@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Text,
   TextInput,
@@ -34,14 +34,166 @@ export const Crossword = () => {
     return initalSolutionState;
   });
 
-  console.log(solution);
+  const gotoPrevCell = ({
+    cell,
+    direction,
+  }: {
+    cell: { x: number; y: number };
+    direction: "Across" | "Down";
+  }) => {
+    if (direction === "Across") {
+      // go back in same row
+      for (let i = cell.y - 1; i >= 0; i = i - 1) {
+        if (solution[cell.x][i] !== "#") {
+          setCurrentCell({ x: cell.x, y: i });
+          setDirection(direction);
+          return;
+        }
+      }
+      // go back in prev row
+      const prevRow = cell.x - 1;
+      if (prevRow >= 0) {
+        for (let i = crossword.dimensions.width - 1; i >= 0; i = i - 1) {
+          if (solution[prevRow][i] !== "#") {
+            setCurrentCell({ x: prevRow, y: i });
+            setDirection(direction);
+            return;
+          }
+        }
+      } else {
+        // switch direction and start search from last cell
+        gotoPrevCell({
+          cell: {
+            x: crossword.dimensions.height - 1,
+            y: crossword.dimensions.width - 1,
+          },
+          direction: "Down",
+        });
+      }
+    }
+    if (direction === "Down") {
+      // go back in same col
+      for (let i = cell.x - 1; i >= 0; i = i - 1) {
+        if (solution[i][cell.y] !== "#") {
+          setCurrentCell({ x: i, y: cell.y });
+          setDirection(direction);
+          return;
+        }
+      }
+      // go back in prev col
+      const prevCol = cell.y - 1;
+      if (prevCol >= 0) {
+        for (let i = crossword.dimensions.height - 1; i >= 0; i = i - 1) {
+          if (solution[i][prevCol] !== "#") {
+            setCurrentCell({ x: i, y: prevCol });
+            setDirection(direction);
+            return;
+          }
+        }
+      } else {
+        // switch direction and start from last cell
+        gotoPrevCell({
+          cell: {
+            x: crossword.dimensions.height - 1,
+            y: crossword.dimensions.width - 1,
+          },
+          direction: "Across",
+        });
+      }
+    }
+  };
 
   const handleBackspace = ({ x, y }: { x: number; y: number }) => {
-    setSolution(
-      produce((draft) => {
-        draft[x][y] = "";
-      })
-    );
+    if (solution[x][y] !== "") {
+      setSolution(
+        produce((draft) => {
+          draft[x][y] = "";
+        })
+      );
+    } else {
+      gotoPrevCell({ cell: currentCell, direction });
+    }
+  };
+
+  const gotoNextCell = ({
+    cell,
+    direction,
+    allowLoop,
+  }: {
+    cell: { x: number; y: number };
+    direction: "Across" | "Down";
+    allowLoop: boolean;
+  }) => {
+    if (direction === "Across") {
+      // find empty cell in current row
+      const emptyRowCellIndex = solution[cell.x].findIndex(
+        (c, col) => c === "" && col > cell.y
+      );
+      if (emptyRowCellIndex > 0) {
+        setCurrentCell({ x: cell.x, y: emptyRowCellIndex });
+        setDirection(direction);
+        return;
+      }
+      // find empty cell in following rows
+      for (let i = cell.x + 1; i < crossword.dimensions.height; i += 1) {
+        const row = i;
+        const emptyRowCellIndex = solution[row].findIndex(
+          (cell, col) => cell === ""
+        );
+        if (emptyRowCellIndex >= 0) {
+          setCurrentCell({ x: row, y: emptyRowCellIndex });
+          setDirection(direction);
+          return;
+        }
+      }
+      if (allowLoop) {
+        gotoNextCell({
+          cell: { x: 0, y: 0 },
+          direction: "Down",
+          allowLoop: false,
+        });
+      }
+    }
+    if (direction === "Down") {
+      // find empty cell in current col
+      let currentCol = cell.y;
+      const solutionCellsInCurrentCol = solution.map((row) => row[currentCol]);
+      const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
+        (c, index) => c === "" && index > cell.x
+      );
+      if (emptyRowIndexInCurrentCol >= 0) {
+        setCurrentCell({ x: emptyRowIndexInCurrentCol, y: currentCol });
+        setDirection(direction);
+        return;
+      }
+
+      // find empty cells in following columns
+      const nextCol = currentCol + 1;
+      if (nextCol <= crossword.dimensions.width - 1) {
+        for (let i = nextCol; i < crossword.dimensions.width; i += 1) {
+          let currentCol = i;
+          const solutionCellsInCurrentCol = solution.map(
+            (row) => row[currentCol]
+          );
+          const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
+            (c, index) => c === ""
+          );
+          if (emptyRowIndexInCurrentCol >= 0) {
+            setCurrentCell({ x: emptyRowIndexInCurrentCol, y: i });
+            setDirection(direction);
+            return;
+          }
+        }
+      }
+      // change direction and start from first cell
+      if (allowLoop) {
+        gotoNextCell({
+          cell: { x: 0, y: 0 },
+          direction: "Across",
+          allowLoop: false,
+        });
+      }
+    }
   };
 
   const handleKey = ({ x, y, key }: { x: number; y: number; key: string }) => {
@@ -50,6 +202,7 @@ export const Crossword = () => {
         draft[x][y] = key;
       })
     );
+    gotoNextCell({ cell: currentCell, direction, allowLoop: true });
   };
 
   const toggleDirection = () => {
@@ -58,6 +211,19 @@ export const Crossword = () => {
     } else {
       setDirection("Across");
     }
+  };
+
+  const jumpToClue = ({
+    clue,
+    direction,
+  }: {
+    clue: { number: number; clue: string };
+    direction: "Down" | "Across";
+  }) => {
+    const x = crossword.puzzle.findIndex((row) => row.includes(clue.number));
+    const y = crossword.puzzle[x].findIndex((cell) => cell === clue.number);
+    setCurrentCell({ x, y });
+    setDirection(direction);
   };
 
   return (
@@ -97,7 +263,11 @@ export const Crossword = () => {
           })}
         </View>
       </View>
-      <CrosswordClue currentCell={currentCell} direction={direction} />
+      <CrosswordClue
+        currentCell={currentCell}
+        direction={direction}
+        jumpToClue={jumpToClue}
+      />
     </View>
   );
 };
@@ -127,12 +297,19 @@ const CrosswordCell = ({
 }) => {
   const { width } = useWindowDimensions();
   const textInputFontSize = width / (crossword.dimensions.height * 2);
+  const textInputRef = useRef<TextInput | null>(null);
   if (puzzleCell === "#") {
     return <View className="flex-1 border-0.5 bg-black" />;
   }
   const { x: currentX, y: currentY } = currentCell;
 
   const isCurrentCell = rowIndex === currentX && colIndex === currentY;
+
+  useEffect(() => {
+    if (isCurrentCell && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [isCurrentCell]);
 
   const getBackgroundColor = () => {
     if (isCurrentCell) {
@@ -167,6 +344,7 @@ const CrosswordCell = ({
       <Text className="absolute left-0.5 top-0.5 text-xs">{puzzleCell}</Text>
       <View className="flex-1">
         <TextInput
+          ref={textInputRef}
           value={value}
           onPressIn={() => {
             if (isCurrentCell) {
@@ -175,7 +353,6 @@ const CrosswordCell = ({
               setCurrentCell({ x: rowIndex, y: colIndex });
             }
           }}
-          autoFocus={isCurrentCell}
           className="h-full w-full"
           maxLength={1}
           autoCorrect={false}
@@ -212,9 +389,17 @@ const CrosswordCell = ({
 const CrosswordClue = ({
   currentCell,
   direction,
+  jumpToClue,
 }: {
   currentCell: { x: number; y: number };
   direction: "Across" | "Down";
+  jumpToClue: ({
+    clue,
+    direction,
+  }: {
+    clue: { number: number; clue: string };
+    direction: "Across" | "Down";
+  }) => void;
 }) => {
   const keyboard = useAnimatedKeyboard();
   const translateStyle = useAnimatedStyle(() => {
@@ -222,7 +407,6 @@ const CrosswordClue = ({
       transform: [{ translateY: -keyboard.height.value }],
     };
   });
-  console.log(keyboard.height.value);
   const { x: currentX, y: currentY } = currentCell;
   const currentRow = crossword.puzzle[currentX];
   const currentCol = crossword.puzzle.map((row) => row[currentY]);
@@ -293,15 +477,41 @@ const CrosswordClue = ({
   const gotoPrevClue = () => {
     if (currentClue) {
       const currentClueIndex = crossword.clues[direction].indexOf(currentClue);
-      const prevClue = crossword.clues[direction][currentClueIndex - 1];
-      console.log(prevClue);
+      if (currentClueIndex > 0) {
+        const prevClue = crossword.clues[direction][currentClueIndex - 1];
+        jumpToClue({ clue: prevClue, direction });
+      } else {
+        if (direction === "Across") {
+          const downClues = crossword.clues["Down"];
+          const prevClue = downClues[downClues.length - 1];
+          jumpToClue({ clue: prevClue, direction: "Down" });
+        }
+        if (direction === "Down") {
+          const acrossClues = crossword.clues["Across"];
+          const prevClue = acrossClues[acrossClues.length - 1];
+          jumpToClue({ clue: prevClue, direction: "Across" });
+        }
+      }
     }
   };
   const gotoNextClue = () => {
     if (currentClue) {
       const currentClueIndex = crossword.clues[direction].indexOf(currentClue);
-      const nextClue = crossword.clues[direction][currentClueIndex + 1];
-      console.log(nextClue);
+      if (currentClueIndex < crossword.clues[direction].length - 1) {
+        const nextClue = crossword.clues[direction][currentClueIndex + 1];
+        jumpToClue({ clue: nextClue, direction });
+      } else {
+        if (direction === "Across") {
+          const downClues = crossword.clues["Down"];
+          const nextClue = downClues[0];
+          jumpToClue({ clue: nextClue, direction: "Down" });
+        }
+        if (direction === "Down") {
+          const acrossClues = crossword.clues["Across"];
+          const nextClue = acrossClues[0];
+          jumpToClue({ clue: nextClue, direction: "Across" });
+        }
+      }
     }
   };
 

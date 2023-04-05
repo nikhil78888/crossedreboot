@@ -1,8 +1,14 @@
-[] Handle keyboard logic with onKeyPress
-[] Handle cursor movement
-[] Implement prev/next clue buttons
 [] Implement crossword checker
 [] Implment CrosswordProvider to manage gameplay
-[] Handle font scaling for iPhone 14
+[] Explore ipuz generator from word/clue puzzle
+
+[x] Implement prev/next clue buttons
+    [x] Handle cycling at end of puzzle
+[x] Handle cursor movement
+    [x] Handle cursor movement in Down mode
+    [x] Handle changing rows/columns
+    [x] Handle cycling on end of puzzle
+[x] Handle font scaling for iPhone 14
+[x] Handle keyboard logic with onKeyPress
 [x] Fix hints when playing "Down"
 [x] Highlight current cell and word
