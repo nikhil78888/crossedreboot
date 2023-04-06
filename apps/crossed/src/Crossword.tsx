@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   useWindowDimensions,
   View,
 } from "react-native";
 import Animated, {
+  BounceIn,
+  ZoomOut,
   useAnimatedKeyboard,
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { crossword } from "./crossword-formats/sample";
 import produce from "immer";
+import { Image } from "expo-image";
+import { images } from "./images";
 
 export const Crossword = () => {
   const [currentCell, setCurrentCell] = useState({ x: 0, y: 0 });
@@ -33,6 +38,32 @@ export const Crossword = () => {
     });
     return initalSolutionState;
   });
+  const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
+  const [isPuzzleCompleted, setPuzzleCompleted] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+
+  useEffect(() => {
+    const hasEmptyCell = solution.find((row) => row.includes(""));
+    if (!hasEmptyCell) {
+      const isCorrectSolution =
+        JSON.stringify(solution) === JSON.stringify(crossword.solution);
+      if (!isCorrectSolution) {
+        if (!isPlayingAfterFilled) {
+          Alert.alert(
+            "So close ...",
+            "The puzzle is filled, but at least one square's amiss.",
+            [{ text: "Keep Trying" }]
+          );
+          setPlayingAfterFilled(true);
+        }
+      } else {
+        if (!isPuzzleCompleted) {
+          setPuzzleCompleted(true);
+        }
+        setShowResult(true);
+      }
+    }
+  }, [isPlayingAfterFilled, isPuzzleCompleted, solution]);
 
   const gotoPrevCell = ({
     cell,
@@ -138,7 +169,7 @@ export const Crossword = () => {
       for (let i = cell.x + 1; i < crossword.dimensions.height; i += 1) {
         const row = i;
         const emptyRowCellIndex = solution[row].findIndex(
-          (cell, col) => cell === ""
+          (cell) => cell === ""
         );
         if (emptyRowCellIndex >= 0) {
           setCurrentCell({ x: row, y: emptyRowCellIndex });
@@ -156,7 +187,7 @@ export const Crossword = () => {
     }
     if (direction === "Down") {
       // find empty cell in current col
-      let currentCol = cell.y;
+      const currentCol = cell.y;
       const solutionCellsInCurrentCol = solution.map((row) => row[currentCol]);
       const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
         (c, index) => c === "" && index > cell.x
@@ -171,12 +202,12 @@ export const Crossword = () => {
       const nextCol = currentCol + 1;
       if (nextCol <= crossword.dimensions.width - 1) {
         for (let i = nextCol; i < crossword.dimensions.width; i += 1) {
-          let currentCol = i;
+          const currentCol = i;
           const solutionCellsInCurrentCol = solution.map(
             (row) => row[currentCol]
           );
           const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
-            (c, index) => c === ""
+            (c) => c === ""
           );
           if (emptyRowIndexInCurrentCol >= 0) {
             setCurrentCell({ x: emptyRowIndexInCurrentCol, y: i });
@@ -227,7 +258,7 @@ export const Crossword = () => {
   };
 
   return (
-    <View className="flex-1" style={{ paddingTop: top }}>
+    <View className="flex-1" style={{ marginTop: top }}>
       <View className="h-12 bg-green-200 items-center justify-center">
         <TouchableOpacity onPress={toggleDirection}>
           <Text>{direction === "Across" ? "Play Down" : "Play Across"}</Text>
@@ -254,6 +285,7 @@ export const Crossword = () => {
                         handleBackspace={handleBackspace}
                         handleKey={handleKey}
                         toggleDirection={toggleDirection}
+                        showResult={showResult}
                       />
                     </View>
                   );
@@ -268,6 +300,96 @@ export const Crossword = () => {
         direction={direction}
         jumpToClue={jumpToClue}
       />
+      {showResult && (
+        <Animated.View
+          entering={BounceIn}
+          exiting={ZoomOut}
+          className="absolute h-full w-full bg-white"
+        >
+          <View className="h-12 w-full items-center justify-center border-b border-gray-100">
+            <Text className="text-3xl" style={{ fontFamily: "Bitter_700Bold" }}>
+              Results
+            </Text>
+          </View>
+          <ScrollView className="flex-1 px-5 py-4">
+            <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
+              <Image
+                source={images.card_ellipsis}
+                className="absolute right-0 bottom-0 w-1/2 aspect-square"
+              />
+              <View className="pt-4 pb-5 px-4">
+                <Text
+                  className="text-center text-crossed-green-700 text-3xl"
+                  style={{ fontFamily: "Bitter_700Bold" }}
+                >
+                  You are the Winner!
+                </Text>
+                <View className="items-center py-4">
+                  <Image source={images.winner} className="h-24 w-24" />
+                </View>
+                <Text
+                  className="text-center text-crossed-green-700 text-3xl"
+                  style={{ fontFamily: "Bitter_700Bold" }}
+                >
+                  You got 100 Points
+                </Text>
+              </View>
+            </View>
+            <Text
+              className="mt-5 text-3xl text-center"
+              style={{ fontFamily: "Bitter_700Bold" }}
+            >
+              Checkout the Answers
+            </Text>
+            <View className="mt-4">
+              <TouchableOpacity
+                className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+                onPress={() => setShowResult(false)}
+              >
+                <Text style={{ fontFamily: "Bitter_700Bold" }}>
+                  View Crossword Answers
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text className="mt-6 font-bold text-xl">Start a New Match</Text>
+            <View className="mt-2.5 flex-row justify-between space-x-2">
+              <View className="h-[130] flex-1 bg-crossed-green-50">
+                <Image
+                  source={images.card_ellipsis}
+                  className="absolute right-0 bottom-0 w-3/5 aspect-square"
+                />
+                <Text
+                  className="text-crossed-black-700 text-xl ml-2.5 mt-2.5"
+                  style={{ fontFamily: "Lato_300Light" }}
+                >
+                  With{"\n"}Your{"\n"}Friend
+                </Text>
+                <Image
+                  source={images.friend}
+                  className="absolute h-[35] w-[50.83] bottom-2 right-1"
+                />
+              </View>
+              <View className="h-[130] flex-1 bg-crossed-green-50">
+                <Image
+                  source={images.card_ellipsis}
+                  className="absolute right-0 bottom-0 w-3/5 aspect-square"
+                />
+                <Text
+                  className="text-crossed-black-700 text-xl ml-2.5 mt-2.5"
+                  style={{ fontFamily: "Lato_300Light" }}
+                >
+                  Play{"\n"}Solo
+                </Text>
+                <Image
+                  source={images.solo}
+                  className="absolute h-10 w-9 bottom-2 right-2"
+                />
+              </View>
+              <View className="h-32 flex-1 bg-transparent"></View>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -283,6 +405,7 @@ const CrosswordCell = ({
   handleBackspace,
   handleKey,
   toggleDirection,
+  showResult,
 }: {
   rowIndex: number;
   colIndex: number;
@@ -294,22 +417,27 @@ const CrosswordCell = ({
   handleBackspace: ({ x, y }: { x: number; y: number }) => void;
   handleKey: ({ x, y, key }: { x: number; y: number; key: string }) => void;
   toggleDirection: () => void;
+  showResult: boolean;
 }) => {
   const { width } = useWindowDimensions();
   const textInputFontSize = width / (crossword.dimensions.height * 2);
   const textInputRef = useRef<TextInput | null>(null);
-  if (puzzleCell === "#") {
-    return <View className="flex-1 border-0.5 bg-black" />;
-  }
-  const { x: currentX, y: currentY } = currentCell;
 
+  const { x: currentX, y: currentY } = currentCell;
   const isCurrentCell = rowIndex === currentX && colIndex === currentY;
 
   useEffect(() => {
-    if (isCurrentCell && textInputRef.current) {
+    if (showResult && textInputRef.current) {
+      textInputRef.current.blur();
+    }
+    if (!showResult && isCurrentCell && textInputRef.current) {
       textInputRef.current.focus();
     }
-  }, [isCurrentCell]);
+  }, [isCurrentCell, showResult]);
+
+  if (puzzleCell === "#") {
+    return <View className="flex-1 border-0.5 bg-black" />;
+  }
 
   const getBackgroundColor = () => {
     if (isCurrentCell) {
@@ -379,7 +507,7 @@ const CrosswordCell = ({
               }
             }
           }}
-          blurOnSubmit={false}
+          blurOnSubmit={showResult}
         />
       </View>
     </View>
