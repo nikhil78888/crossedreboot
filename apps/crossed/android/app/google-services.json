@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "886124808032",
+    "project_id": "crossed-live",
+    "storage_bucket": "crossed-live.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886124808032:android:78e31b4c7d4b1d0d9e4005",
+        "android_client_info": {
+          "package_name": "live.crossed.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "886124808032-68nq6p20ov6ombnq6qllif4u8d8l0ris.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCu0KN1kbYlfvvsJ5yiqcQf8uxKiUb6uj8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "886124808032-68nq6p20ov6ombnq6qllif4u8d8l0ris.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "886124808032-iohofai77kt6v11e3k4dkkv4m382n8je.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "live.crossed.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
