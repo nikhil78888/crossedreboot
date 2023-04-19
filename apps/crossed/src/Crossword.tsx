@@ -22,6 +22,7 @@ import { Game, GameState, TCrossword } from "./types";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { gamesCollection } from "./firebase-collection";
 import { useCurrentGame } from "./hooks/use-current-game";
+import { useGame } from "./hooks/use-game";
 
 type CrosswordContextType = {
   crossword: TCrossword;
@@ -50,6 +51,8 @@ export const CrosswordProvider = ({
   currentGameId: string;
   currentUser: FirebaseAuthTypes.User;
 }) => {
+  const game = useGame({ gameId: currentGameId });
+  console.log(game);
   const { crossword } = currentGame;
   const playerGameState = currentGame.game_state?.[currentUser.uid];
   const [gameState, setGameState] = useState<GameState>(() => {
