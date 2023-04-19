@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -15,32 +15,145 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { crossword } from "./crossword-formats/sample";
 import produce from "immer";
 import { Image } from "expo-image";
 import { images } from "./images";
+import { Game, GameState, TCrossword } from "./types";
+import { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { gamesCollection } from "./firebase-collection";
+import { useCurrentGame } from "./hooks/use-current-game";
 
-export const Crossword = () => {
-  const [currentCell, setCurrentCell] = useState({ x: 0, y: 0 });
-  const [direction, setDirection] = useState<"Across" | "Down">("Across");
-  const { top } = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const [solution, setSolution] = useState<("#" | string)[][]>(() => {
+type CrosswordContextType = {
+  crossword: TCrossword;
+  currentCell: GameState["currentCell"];
+  setCurrentCell: (cell: GameState["currentCell"]) => void;
+  direction: GameState["direction"];
+  setDirection: (newDirection: GameState["direction"]) => void;
+  solution: GameState["solution"];
+  setSolution: ({
+    cell,
+    value,
+  }: {
+    cell: GameState["currentCell"];
+    value: string;
+  }) => void;
+};
+
+const CrosswordContext = createContext<CrosswordContextType>(null!);
+
+export const CrosswordProvider = ({
+  currentGame,
+  currentGameId,
+  currentUser,
+}: {
+  currentGame: Game;
+  currentGameId: string;
+  currentUser: FirebaseAuthTypes.User;
+}) => {
+  const { crossword } = currentGame;
+  const playerGameState = currentGame.game_state?.[currentUser.uid];
+  const [gameState, setGameState] = useState<GameState>(() => {
+    if (playerGameState) {
+      return playerGameState;
+    }
     const initalSolutionState = crossword.puzzle.map((row) => {
       const emptyRow = row.map((cell) => {
         if (cell !== "#") {
           return "";
         } else {
-          return cell;
+          return null;
         }
       });
       return emptyRow;
     });
-    return initalSolutionState;
+    return {
+      currentCell: { x: 0, y: 0 },
+      direction: "Across",
+      solution: initalSolutionState,
+    };
   });
+
+  const setCurrentCell = (cell: GameState["currentCell"]) => {
+    setGameState(
+      produce((draft) => {
+        draft.currentCell = cell;
+      })
+    );
+  };
+
+  const setDirection = (newDirection: GameState["direction"]) => {
+    setGameState(
+      produce((draft) => {
+        draft.direction = newDirection;
+      })
+    );
+  };
+
+  const setSolution = ({
+    cell,
+    value,
+  }: {
+    cell: GameState["currentCell"];
+    value: string;
+  }) => {
+    setGameState(
+      produce((draft) => {
+        draft.solution[cell.x][cell.y] = value;
+      })
+    );
+  };
+
+  useEffect(() => {
+    // write gameState to database
+    gamesCollection.doc(currentGameId).update({
+      [`game_state.${currentUser.uid}`]: {
+        ...gameState,
+        solution: JSON.stringify(gameState.solution),
+      },
+    });
+  }, [currentGameId, currentUser.uid, gameState]);
+
+  return (
+    <CrosswordContext.Provider
+      value={{
+        crossword,
+        currentCell: gameState.currentCell,
+        setCurrentCell,
+        direction: gameState.direction,
+        setDirection,
+        solution: gameState.solution,
+        setSolution,
+      }}
+    >
+      <Crossword />
+    </CrosswordContext.Provider>
+  );
+};
+
+const useCrosswordContext = () => {
+  const context = useContext(CrosswordContext);
+  if (!context) {
+    throw new Error("useCrosswordContext must be used within ContextProvider");
+  }
+  return context;
+};
+
+const Crossword = () => {
+  const {
+    crossword,
+    currentCell,
+    setCurrentCell,
+    direction,
+    setDirection,
+    solution,
+    setSolution,
+  } = useCrosswordContext();
+  const { top } = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
   const [isPuzzleCompleted, setPuzzleCompleted] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const { startSoloGame, currentGameId } = useCurrentGame();
 
   useEffect(() => {
     const hasEmptyCell = solution.find((row) => row.includes(""));
@@ -59,11 +172,18 @@ export const Crossword = () => {
       } else {
         if (!isPuzzleCompleted) {
           setPuzzleCompleted(true);
+          gamesCollection.doc(currentGameId).update("play_state", "COMPLETED");
         }
         setShowResult(true);
       }
     }
-  }, [isPlayingAfterFilled, isPuzzleCompleted, solution]);
+  }, [
+    crossword.solution,
+    currentGameId,
+    isPlayingAfterFilled,
+    isPuzzleCompleted,
+    solution,
+  ]);
 
   const gotoPrevCell = ({
     cell,
@@ -135,12 +255,11 @@ export const Crossword = () => {
   };
 
   const handleBackspace = ({ x, y }: { x: number; y: number }) => {
+    if (isPuzzleCompleted) {
+      return;
+    }
     if (solution[x][y] !== "") {
-      setSolution(
-        produce((draft) => {
-          draft[x][y] = "";
-        })
-      );
+      setSolution({ cell: { x, y }, value: "" });
     } else {
       gotoPrevCell({ cell: currentCell, direction });
     }
@@ -155,6 +274,9 @@ export const Crossword = () => {
     direction: "Across" | "Down";
     allowLoop: boolean;
   }) => {
+    if (isPuzzleCompleted) {
+      return;
+    }
     if (direction === "Across") {
       // find empty cell in current row
       const emptyRowCellIndex = solution[cell.x].findIndex(
@@ -228,11 +350,7 @@ export const Crossword = () => {
   };
 
   const handleKey = ({ x, y, key }: { x: number; y: number; key: string }) => {
-    setSolution(
-      produce((draft) => {
-        draft[x][y] = key;
-      })
-    );
+    setSolution({ cell: { x, y }, value: key });
     gotoNextCell({ cell: currentCell, direction, allowLoop: true });
   };
 
@@ -248,7 +366,7 @@ export const Crossword = () => {
     clue,
     direction,
   }: {
-    clue: { number: number; clue: string };
+    clue: { number: string; clue: string };
     direction: "Down" | "Across";
   }) => {
     const x = crossword.puzzle.findIndex((row) => row.includes(clue.number));
@@ -259,11 +377,7 @@ export const Crossword = () => {
 
   return (
     <View className="flex-1" style={{ marginTop: top }}>
-      <View className="h-12 bg-green-200 items-center justify-center">
-        <TouchableOpacity onPress={toggleDirection}>
-          <Text>{direction === "Across" ? "Play Down" : "Play Across"}</Text>
-        </TouchableOpacity>
-      </View>
+      <View className="h-12 bg-green-200 items-center justify-center"></View>
       <View className="flex-1">
         <View className="border" style={{ width, height: width }}>
           {crossword.puzzle.map((puzzleRow, rowIndex) => {
@@ -278,9 +392,6 @@ export const Crossword = () => {
                         rowIndex={rowIndex}
                         colIndex={colIndex}
                         puzzleCell={puzzleCell}
-                        currentCell={currentCell}
-                        setCurrentCell={setCurrentCell}
-                        direction={direction}
                         value={solution[rowIndex][colIndex]}
                         handleBackspace={handleBackspace}
                         handleKey={handleKey}
@@ -369,7 +480,15 @@ export const Crossword = () => {
                   className="absolute h-[35] w-[50.83] bottom-2 right-1"
                 />
               </View>
-              <View className="h-[130] flex-1 bg-crossed-green-50">
+              <TouchableOpacity
+                onPress={async () => {
+                  await startSoloGame();
+                  setPlayingAfterFilled(false);
+                  setPuzzleCompleted(false);
+                  setShowResult(false);
+                }}
+                className="h-[130] flex-1 bg-crossed-green-50"
+              >
                 <Image
                   source={images.card_ellipsis}
                   className="absolute right-0 bottom-0 w-3/5 aspect-square"
@@ -384,7 +503,7 @@ export const Crossword = () => {
                   source={images.solo}
                   className="absolute h-10 w-9 bottom-2 right-2"
                 />
-              </View>
+              </TouchableOpacity>
               <View className="h-32 flex-1 bg-transparent"></View>
             </View>
           </ScrollView>
@@ -398,9 +517,6 @@ const CrosswordCell = ({
   rowIndex,
   colIndex,
   puzzleCell,
-  currentCell,
-  setCurrentCell,
-  direction,
   value,
   handleBackspace,
   handleKey,
@@ -410,15 +526,14 @@ const CrosswordCell = ({
   rowIndex: number;
   colIndex: number;
   puzzleCell: string | number;
-  currentCell: { x: number; y: number };
-  setCurrentCell: ({ x, y }: { x: number; y: number }) => void;
-  direction: "Across" | "Down";
-  value: "#" | string;
+  value: string | null;
   handleBackspace: ({ x, y }: { x: number; y: number }) => void;
   handleKey: ({ x, y, key }: { x: number; y: number; key: string }) => void;
   toggleDirection: () => void;
   showResult: boolean;
 }) => {
+  const { crossword, currentCell, setCurrentCell, direction } =
+    useCrosswordContext();
   const { width } = useWindowDimensions();
   const textInputFontSize = width / (crossword.dimensions.height * 2);
   const textInputRef = useRef<TextInput | null>(null);
@@ -469,11 +584,13 @@ const CrosswordCell = ({
 
   return (
     <View className={`flex-1 border-0.5 ${getBackgroundColor()}`}>
-      <Text className="absolute left-0.5 top-0.5 text-xs">{puzzleCell}</Text>
+      {puzzleCell !== "0" && (
+        <Text className="absolute left-0.5 top-0.5 text-xs">{puzzleCell}</Text>
+      )}
       <View className="flex-1">
         <TextInput
           ref={textInputRef}
-          value={value}
+          value={value || ""}
           onPressIn={() => {
             if (isCurrentCell) {
               toggleDirection();
@@ -525,10 +642,11 @@ const CrosswordClue = ({
     clue,
     direction,
   }: {
-    clue: { number: number; clue: string };
+    clue: { number: string; clue: string };
     direction: "Across" | "Down";
   }) => void;
 }) => {
+  const { crossword } = useCrosswordContext();
   const keyboard = useAnimatedKeyboard();
   const translateStyle = useAnimatedStyle(() => {
     return {

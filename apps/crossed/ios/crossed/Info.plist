@@ -25,6 +25,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
+          <string>crossed</string>
           <string>live.crossed.app</string>
         </array>
       </dict>
