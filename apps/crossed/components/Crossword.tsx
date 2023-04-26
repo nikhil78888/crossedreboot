@@ -14,15 +14,16 @@ import Animated, {
   useAnimatedKeyboard,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import produce from "immer";
 import { Image } from "expo-image";
-import { images } from "./images";
-import { Game, GameState, TCrossword } from "./types";
+import { images } from "../images";
+import { Game, GameState, TCrossword } from "../types";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import { gamesCollection } from "./firebase-collection";
-import { useCurrentGame } from "./hooks/use-current-game";
-import { useGame } from "./hooks/use-game";
+import { gamesCollection } from "../firebase-collection";
+import { useGame } from "../hooks/use-game";
+import { PlaySoloButton } from "./PlaySoloButton";
+import { useRouter } from "expo-router";
+import { PlayFriendlyButton } from "./PlayFriendlyButton";
 
 type CrosswordContextType = {
   crossword: TCrossword;
@@ -38,6 +39,7 @@ type CrosswordContextType = {
     cell: GameState["currentCell"];
     value: string;
   }) => void;
+  gameId: string;
 };
 
 const CrosswordContext = createContext<CrosswordContextType>(null!);
@@ -51,8 +53,6 @@ export const CrosswordProvider = ({
   currentGameId: string;
   currentUser: FirebaseAuthTypes.User;
 }) => {
-  const game = useGame({ gameId: currentGameId });
-  console.log(game);
   const { crossword } = currentGame;
   const playerGameState = currentGame.game_state?.[currentUser.uid];
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -126,6 +126,7 @@ export const CrosswordProvider = ({
         setDirection,
         solution: gameState.solution,
         setSolution,
+        gameId: currentGameId,
       }}
     >
       <Crossword />
@@ -150,13 +151,17 @@ const Crossword = () => {
     setDirection,
     solution,
     setSolution,
+    gameId,
   } = useCrosswordContext();
-  const { top } = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
   const [isPuzzleCompleted, setPuzzleCompleted] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const { startSoloGame, currentGameId } = useCurrentGame();
+  const { createSoloGame, createFriendlyGame, finishGame } = useGame({
+    gameId,
+  });
+
+  const router = useRouter();
 
   useEffect(() => {
     const hasEmptyCell = solution.find((row) => row.includes(""));
@@ -175,17 +180,18 @@ const Crossword = () => {
       } else {
         if (!isPuzzleCompleted) {
           setPuzzleCompleted(true);
-          gamesCollection.doc(currentGameId).update("play_state", "COMPLETED");
+          finishGame();
         }
         setShowResult(true);
       }
     }
   }, [
     crossword.solution,
-    currentGameId,
+    gameId,
     isPlayingAfterFilled,
     isPuzzleCompleted,
     solution,
+    finishGame,
   ]);
 
   const gotoPrevCell = ({
@@ -379,8 +385,7 @@ const Crossword = () => {
   };
 
   return (
-    <View className="flex-1" style={{ marginTop: top }}>
-      <View className="h-12 bg-green-200 items-center justify-center"></View>
+    <View className="flex-1">
       <View className="flex-1">
         <View className="border" style={{ width, height: width }}>
           {crossword.puzzle.map((puzzleRow, rowIndex) => {
@@ -467,46 +472,37 @@ const Crossword = () => {
             </View>
             <Text className="mt-6 font-bold text-xl">Start a New Match</Text>
             <View className="mt-2.5 flex-row justify-between space-x-2">
-              <View className="h-[130] flex-1 bg-crossed-green-50">
-                <Image
-                  source={images.card_ellipsis}
-                  className="absolute right-0 bottom-0 w-3/5 aspect-square"
-                />
-                <Text
-                  className="text-crossed-black-700 text-xl ml-2.5 mt-2.5"
-                  style={{ fontFamily: "Lato_300Light" }}
-                >
-                  With{"\n"}Your{"\n"}Friend
-                </Text>
-                <Image
-                  source={images.friend}
-                  className="absolute h-[35] w-[50.83] bottom-2 right-1"
+              <View>
+                <PlayFriendlyButton
+                  onPress={async () => {
+                    try {
+                      const newGameId = await createFriendlyGame();
+                      router.replace(`/game/${newGameId}`);
+                    } catch (createFriendlyGameError) {
+                      console.error(createFriendlyGameError);
+                      Alert.alert(
+                        "Error",
+                        "Could not start game. Please try again"
+                      );
+                    }
+                  }}
                 />
               </View>
-              <TouchableOpacity
-                onPress={async () => {
-                  await startSoloGame();
-                  setPlayingAfterFilled(false);
-                  setPuzzleCompleted(false);
-                  setShowResult(false);
-                }}
-                className="h-[130] flex-1 bg-crossed-green-50"
-              >
-                <Image
-                  source={images.card_ellipsis}
-                  className="absolute right-0 bottom-0 w-3/5 aspect-square"
+              <View>
+                <PlaySoloButton
+                  onPress={async () => {
+                    try {
+                      const newGameId = await createSoloGame();
+                      router.replace(`/game/${newGameId}`);
+                    } catch (createSoloGameError) {
+                      Alert.alert(
+                        "Error",
+                        "Could not start game. Please try again"
+                      );
+                    }
+                  }}
                 />
-                <Text
-                  className="text-crossed-black-700 text-xl ml-2.5 mt-2.5"
-                  style={{ fontFamily: "Lato_300Light" }}
-                >
-                  Play{"\n"}Solo
-                </Text>
-                <Image
-                  source={images.solo}
-                  className="absolute h-10 w-9 bottom-2 right-2"
-                />
-              </TouchableOpacity>
+              </View>
               <View className="h-32 flex-1 bg-transparent"></View>
             </View>
           </ScrollView>

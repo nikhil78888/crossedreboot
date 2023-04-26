@@ -28,10 +28,13 @@ export interface Clue {
 
 export type Game = {
   players: [string];
-  play_state: "PLAYING";
+  player_handles: Record<string, string>;
+  play_state: "CREATED" | "WAITING_FOR_OPPONENT" | "PLAYING";
   game_type: "SOLO" | "FRIENDLY";
   crossword: TCrossword;
   game_state?: Record<string, GameState>;
+  startedAt?: string;
+  gameDurationInSeconds: number;
 };
 
 export type GameState = {
