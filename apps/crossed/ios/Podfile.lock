@@ -620,21 +620,21 @@ PODS:
     - EXJSONUtils
   - Expo (48.0.15):
     - ExpoModulesCore
-  - expo-dev-client (2.1.6):
+  - expo-dev-client (2.2.1):
     - EXManifests
     - expo-dev-launcher
     - expo-dev-menu
     - expo-dev-menu-interface
     - EXUpdatesInterface
-  - expo-dev-launcher (2.1.6):
+  - expo-dev-launcher (2.2.1):
     - EXManifests
-    - expo-dev-launcher/Main (= 2.1.6)
+    - expo-dev-launcher/Main (= 2.2.1)
     - expo-dev-menu
     - expo-dev-menu-interface
     - ExpoModulesCore
     - EXUpdatesInterface
     - React-Core
-  - expo-dev-launcher/Main (2.1.6):
+  - expo-dev-launcher/Main (2.2.1):
     - EXManifests
     - expo-dev-launcher/Unsafe
     - expo-dev-menu
@@ -642,24 +642,24 @@ PODS:
     - ExpoModulesCore
     - EXUpdatesInterface
     - React-Core
-  - expo-dev-launcher/Unsafe (2.1.6):
+  - expo-dev-launcher/Unsafe (2.2.1):
     - EXManifests
     - expo-dev-menu
     - expo-dev-menu-interface
     - ExpoModulesCore
     - EXUpdatesInterface
     - React-Core
-  - expo-dev-menu (2.1.4):
-    - expo-dev-menu/Main (= 2.1.4)
+  - expo-dev-menu (2.2.0):
+    - expo-dev-menu/Main (= 2.2.0)
   - expo-dev-menu-interface (1.1.1)
-  - expo-dev-menu/GestureHandler (2.1.4)
-  - expo-dev-menu/Main (2.1.4):
+  - expo-dev-menu/GestureHandler (2.2.0)
+  - expo-dev-menu/Main (2.2.0):
     - EXManifests
     - expo-dev-menu-interface
     - expo-dev-menu/Vendored
     - ExpoModulesCore
     - React-Core
-  - expo-dev-menu/Reanimated (2.1.4):
+  - expo-dev-menu/Reanimated (2.2.0):
     - DoubleConversion
     - FBLazyVector
     - FBReactNativeSpec
@@ -687,8 +687,8 @@ PODS:
     - React-RCTVibration
     - ReactCommon/turbomodule/core
     - Yoga
-  - expo-dev-menu/SafeAreaView (2.1.4)
-  - expo-dev-menu/Vendored (2.1.4):
+  - expo-dev-menu/SafeAreaView (2.2.0)
+  - expo-dev-menu/Vendored (2.2.0):
     - expo-dev-menu/GestureHandler
     - expo-dev-menu/Reanimated
     - expo-dev-menu/SafeAreaView
@@ -1493,9 +1493,9 @@ SPEC CHECKSUMS:
   EXJSONUtils: 48b1e764ac35160e6f54d21ab60d7d9501f3e473
   EXManifests: 500666d48e8dd7ca5a482c9e729e4a7a6c34081b
   Expo: 62bba165c9cd30a2983176e7d975ae688b6334b6
-  expo-dev-client: 84792ce20d34fa5c882cdc3ca338ea1b2cde5013
-  expo-dev-launcher: c50f1b78ea294f5762902b768952898d17739983
-  expo-dev-menu: c5f4e620be0eb66efd92a53c3bb12203ddb11df7
+  expo-dev-client: 92b9e487ad6a05a3ad1dda70334729ccaf622bfe
+  expo-dev-launcher: 5275974e9f825f70a33bb79301a8ab894179fa94
+  expo-dev-menu: 3b67916b76bae0283adfe5a5c71e323196e6ad40
   expo-dev-menu-interface: 6c82ae323c4b8724dead4763ce3ff24a2108bdb1
   ExpoImage: b6a65c4aa891cdf00bfba0da46df14b27ae09cc7
   ExpoKeepAwake: 69f5f627670d62318410392d03e0b5db0f85759a
