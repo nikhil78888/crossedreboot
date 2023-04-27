@@ -3,7 +3,7 @@
     "name": "Crossd",
     "slug": "crossed",
     "owner": "harshpillario",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "userInterfaceStyle": "light",
@@ -16,7 +16,10 @@
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "live.crossed.app"
+      "bundleIdentifier": "live.crossed.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "live.crossed.app",
@@ -42,6 +45,10 @@
       "eas": {
         "projectId": "95dd38ca-d0be-41ad-8148-56a2b4f5460e"
       }
+    },
+    "runtimeVersion": "1.0.1",
+    "updates": {
+      "url": "https://u.expo.dev/95dd38ca-d0be-41ad-8148-56a2b4f5460e"
     }
   }
 }
