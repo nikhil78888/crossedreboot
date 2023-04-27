@@ -26,6 +26,12 @@ module.exports = {
         "crossed-gray": {
           200: "#BDCBCB",
         },
+        "crossed-yellow": {
+          400: "#E7B402",
+        },
+        "crossed-red": {
+          400: "#FF7477",
+        },
       },
     },
   },

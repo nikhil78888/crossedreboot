@@ -13,7 +13,8 @@ export const useCurrentGame = () => {
       .where("players", "array-contains", user?.uid)
       .get();
     const currentGameDoc = documents.docs.find(
-      (d) => d.data().play_state === "PLAYING"
+      (d) =>
+        d.data().play_state === "PLAYING" || d.data().play_state === "CREATED"
     );
     return currentGameDoc?.id;
   });

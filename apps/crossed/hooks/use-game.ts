@@ -5,6 +5,34 @@ import { Game, GameState, TCrossword } from "../types";
 import { crosswordsCollection, gamesCollection } from "../firebase-collection";
 import { useCurrentUser } from "./use-current-user";
 
+export const calculateScore = ({
+  correctSolution,
+  solution,
+}: {
+  correctSolution: Game["crossword"]["solution"];
+  solution: Game["crossword"]["solution"] | undefined;
+}) => {
+  if (!solution) {
+    return 0;
+  }
+  let totalChars = 0;
+  let correctChars = 0;
+  for (let i = 0; i < correctSolution.length; i += 1) {
+    const rowSolution = correctSolution[i];
+    for (let j = 0; j < rowSolution.length; j += 1) {
+      const cellCorrectSolution = rowSolution[j];
+      if (cellCorrectSolution) {
+        totalChars += 1;
+        if (solution[i][j] === cellCorrectSolution) {
+          correctChars += 1;
+        }
+      }
+    }
+  }
+  const score = Math.round((correctChars / totalChars) * 100);
+  return score;
+};
+
 export const useGame = ({ gameId }: { gameId?: string }) => {
   const { user, profile } = useCurrentUser();
   const [game, setGame] = useState<Game | undefined>(undefined);
@@ -149,7 +177,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     }
   );
 
-  let opponentProgress = 0;
+  let opponentProgress = 1;
   let opponentUsername = "";
   if (game?.game_type === "FRIENDLY") {
     const opponentUid = game.players.find((uid) => uid !== user?.uid);
@@ -159,19 +187,19 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       const opponentSolution = game.game_state?.[opponentUid].solution;
       if (opponentSolution) {
         let totalChars = 0;
-        let correctChars = 0;
+        let filledChars = 0;
         for (let i = 0; i < correctSolution.length; i += 1) {
           const rowSolution = correctSolution[i];
           for (let j = 0; j < rowSolution.length; j += 1) {
             const cellCorrectSolution = rowSolution[j];
             if (cellCorrectSolution) {
               totalChars += 1;
-              if (opponentSolution[i][j] === cellCorrectSolution) {
-                correctChars += 1;
+              if (opponentSolution[i][j]) {
+                filledChars += 1;
               }
             }
           }
-          opponentProgress = Math.round((correctChars / totalChars) * 100);
+          opponentProgress = Math.round((filledChars / totalChars) * 100);
         }
       }
     }

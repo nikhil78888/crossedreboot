@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
-  ScrollView,
+  Modal,
   Text,
   TextInput,
   TouchableOpacity,
@@ -9,21 +9,15 @@ import {
   View,
 } from "react-native";
 import Animated, {
-  BounceIn,
-  ZoomOut,
   useAnimatedKeyboard,
   useAnimatedStyle,
 } from "react-native-reanimated";
 import produce from "immer";
-import { Image } from "expo-image";
-import { images } from "../images";
 import { Game, GameState, TCrossword } from "../types";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { gamesCollection } from "../firebase-collection";
 import { useGame } from "../hooks/use-game";
-import { PlaySoloButton } from "./PlaySoloButton";
-import { useRouter } from "expo-router";
-import { PlayFriendlyButton } from "./PlayFriendlyButton";
+import { CrosswordResults } from "./CrosswordResults";
 
 type CrosswordContextType = {
   crossword: TCrossword;
@@ -155,13 +149,18 @@ const Crossword = () => {
   } = useCrosswordContext();
   const { width } = useWindowDimensions();
   const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
-  const [isPuzzleCompleted, setPuzzleCompleted] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const { createSoloGame, createFriendlyGame, finishGame } = useGame({
+  const { finishGame, game } = useGame({
     gameId,
   });
 
-  const router = useRouter();
+  const isGameFinished = game?.play_state === "COMPLETED";
+
+  useEffect(() => {
+    if (isGameFinished) {
+      setShowResult(true);
+    }
+  }, [isGameFinished]);
 
   useEffect(() => {
     const hasEmptyCell = solution.find((row) => row.includes(""));
@@ -178,18 +177,16 @@ const Crossword = () => {
           setPlayingAfterFilled(true);
         }
       } else {
-        if (!isPuzzleCompleted) {
-          setPuzzleCompleted(true);
+        if (!isGameFinished) {
           finishGame();
         }
-        setShowResult(true);
       }
     }
   }, [
     crossword.solution,
     gameId,
     isPlayingAfterFilled,
-    isPuzzleCompleted,
+    isGameFinished,
     solution,
     finishGame,
   ]);
@@ -264,7 +261,7 @@ const Crossword = () => {
   };
 
   const handleBackspace = ({ x, y }: { x: number; y: number }) => {
-    if (isPuzzleCompleted) {
+    if (isGameFinished) {
       return;
     }
     if (solution[x][y] !== "") {
@@ -283,7 +280,7 @@ const Crossword = () => {
     direction: "Across" | "Down";
     allowLoop: boolean;
   }) => {
-    if (isPuzzleCompleted) {
+    if (isGameFinished) {
       return;
     }
     if (direction === "Across") {
@@ -419,95 +416,9 @@ const Crossword = () => {
         direction={direction}
         jumpToClue={jumpToClue}
       />
-      {showResult && (
-        <Animated.View
-          entering={BounceIn}
-          exiting={ZoomOut}
-          className="absolute h-full w-full bg-white"
-        >
-          <View className="h-12 w-full items-center justify-center border-b border-gray-100">
-            <Text className="text-3xl" style={{ fontFamily: "Bitter_700Bold" }}>
-              Results
-            </Text>
-          </View>
-          <ScrollView className="flex-1 px-5 py-4">
-            <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
-              <Image
-                source={images.card_ellipsis}
-                className="absolute right-0 bottom-0 w-1/2 aspect-square"
-              />
-              <View className="pt-4 pb-5 px-4">
-                <Text
-                  className="text-center text-crossed-green-700 text-3xl"
-                  style={{ fontFamily: "Bitter_700Bold" }}
-                >
-                  You are the Winner!
-                </Text>
-                <View className="items-center py-4">
-                  <Image source={images.winner} className="h-24 w-24" />
-                </View>
-                <Text
-                  className="text-center text-crossed-green-700 text-3xl"
-                  style={{ fontFamily: "Bitter_700Bold" }}
-                >
-                  You got 100 Points
-                </Text>
-              </View>
-            </View>
-            <Text
-              className="mt-5 text-3xl text-center"
-              style={{ fontFamily: "Bitter_700Bold" }}
-            >
-              Checkout the Answers
-            </Text>
-            <View className="mt-4">
-              <TouchableOpacity
-                className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-                onPress={() => setShowResult(false)}
-              >
-                <Text style={{ fontFamily: "Bitter_700Bold" }}>
-                  View Crossword Answers
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <Text className="mt-6 font-bold text-xl">Start a New Match</Text>
-            <View className="mt-2.5 flex-row justify-between space-x-2">
-              <View>
-                <PlayFriendlyButton
-                  onPress={async () => {
-                    try {
-                      const newGameId = await createFriendlyGame();
-                      router.replace(`/game/${newGameId}`);
-                    } catch (createFriendlyGameError) {
-                      console.error(createFriendlyGameError);
-                      Alert.alert(
-                        "Error",
-                        "Could not start game. Please try again"
-                      );
-                    }
-                  }}
-                />
-              </View>
-              <View>
-                <PlaySoloButton
-                  onPress={async () => {
-                    try {
-                      const newGameId = await createSoloGame();
-                      router.replace(`/game/${newGameId}`);
-                    } catch (createSoloGameError) {
-                      Alert.alert(
-                        "Error",
-                        "Could not start game. Please try again"
-                      );
-                    }
-                  }}
-                />
-              </View>
-              <View className="h-32 flex-1 bg-transparent"></View>
-            </View>
-          </ScrollView>
-        </Animated.View>
-      )}
+      <Modal visible={showResult} animationType="none">
+        <CrosswordResults gameId={gameId} />
+      </Modal>
     </View>
   );
 };

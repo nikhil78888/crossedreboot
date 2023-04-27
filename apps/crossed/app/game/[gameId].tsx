@@ -1,5 +1,12 @@
-import { useSearchParams } from "expo-router";
-import { ActivityIndicator, Alert, Share, Text, View } from "react-native";
+import { usePathname, useRouter, useSearchParams } from "expo-router";
+import {
+  ActivityIndicator,
+  Alert,
+  Share,
+  Text,
+  View,
+  Modal,
+} from "react-native";
 import { useGame } from "../../hooks/use-game";
 import { CrosswordProvider } from "../../components/Crossword";
 import { useCurrentUser } from "../../hooks/use-current-user";
@@ -61,29 +68,26 @@ export default function Game() {
         currentUser={user}
       />
       {game.play_state === "CREATED" && (
-        <View className="absolute h-full w-full bg-white/90">
-          <View className="flex-1 items-center justify-center px-8">
-            <PrimaryButton onPress={inviteFriend}>
-              <View className="flex-1 items-center justify-center">
-                <Text className="text-white">Invite a Friend</Text>
-              </View>
-            </PrimaryButton>
-          </View>
+        <View className="absolute h-full w-full flex-1 items-center justify-center px-8 bg-white/90">
+          <PrimaryButton onPress={inviteFriend}>
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-white">Invite a Friend</Text>
+            </View>
+          </PrimaryButton>
         </View>
       )}
+
       {game.play_state === "WAITING_FOR_OPPONENT" && (
-        <View className="absolute h-full w-full bg-white/90">
-          <View className="flex-1 items-center justify-center px-8">
-            {join === "true" ? (
-              <PrimaryButton onPress={startMatch}>
-                <View className="flex-1 items-center justify-center">
-                  <Text className="text-white">Start Match</Text>
-                </View>
-              </PrimaryButton>
-            ) : (
-              <Text>Waiting for opponent...</Text>
-            )}
-          </View>
+        <View className="absolute h-full w-full flex-1 items-center justify-center px-8 bg-white/90">
+          {join === "true" ? (
+            <PrimaryButton onPress={startMatch}>
+              <View className="flex-1 items-center justify-center">
+                <Text className="text-white">Start Match</Text>
+              </View>
+            </PrimaryButton>
+          ) : (
+            <Text>Waiting for opponent...</Text>
+          )}
         </View>
       )}
     </View>

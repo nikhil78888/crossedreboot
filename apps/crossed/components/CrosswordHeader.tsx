@@ -8,7 +8,9 @@ import { useEffect, useState } from "react";
 import { differenceInSeconds, intervalToDuration } from "date-fns";
 
 export const CrosswordHeader = ({ gameId }: { gameId: string }) => {
-  const { opponentProgress, game, opponentUsername } = useGame({ gameId });
+  const { opponentProgress, game, opponentUsername, finishGame } = useGame({
+    gameId,
+  });
   const [timeInGame, setTimeInGame] = useState(() => {
     if (game?.game_type === "FRIENDLY" && game.play_state === "PLAYING") {
       const gameStartedAt = game.startedAt as string;
@@ -34,6 +36,10 @@ export const CrosswordHeader = ({ gameId }: { gameId: string }) => {
           new Date(),
           new Date(gameStartedAt)
         );
+        if (secondsSinceStart > game.gameDurationInSeconds) {
+          finishGame();
+          return;
+        }
         const duration = intervalToDuration({
           start: 0,
           end: secondsSinceStart * 1000,
@@ -46,7 +52,13 @@ export const CrosswordHeader = ({ gameId }: { gameId: string }) => {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [game?.game_type, game?.play_state, game?.startedAt]);
+  }, [
+    game?.gameDurationInSeconds,
+    game?.game_type,
+    game?.play_state,
+    game?.startedAt,
+    finishGame,
+  ]);
 
   if (!game) {
     return null;
