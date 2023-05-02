@@ -7,7 +7,9 @@ import {
   Lato_700Bold,
 } from "@expo-google-fonts/lato";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
+import * as Updates from "expo-updates";
 import { useCurrentUser } from "../hooks/use-current-user";
+import { Alert } from "react-native";
 
 export default function IndexLayout() {
   const [fontsLoaded] = useFonts({
@@ -28,6 +30,29 @@ export default function IndexLayout() {
       router.push("/onboarding");
     }
   }, [isOnboardingComplete, isReady, pathname, router]);
+
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+
+        if (update.isAvailable) {
+          const updateResult = await Updates.fetchUpdateAsync();
+          if (updateResult) {
+            Alert.alert(
+              "New Stuff Alert!",
+              "A new update is available. Please reload the app to enjoy a better experience.",
+              [{ text: "Reload", onPress: Updates.reloadAsync }]
+            );
+          }
+        }
+      } catch (error) {
+        // You can also add an alert() to see the error message in case of an error when fetching updates.
+        console.info(`Error fetching latest Expo update: ${error}`);
+      }
+    };
+    checkForUpdates();
+  }, []);
 
   if (!isReady) {
     return <SplashScreen />;
