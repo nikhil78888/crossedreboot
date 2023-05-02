@@ -125,7 +125,7 @@ const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               onPress={async () => {
                 try {
                   const newGameId = await createFriendlyGame();
-                  router.replace(`/game/${newGameId}`);
+                  router.replace(`/invite-friend?gameId=${newGameId}`);
                 } catch (createFriendlyGameError) {
                   console.error(createFriendlyGameError);
                   Alert.alert(
@@ -141,7 +141,7 @@ const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               onPress={async () => {
                 try {
                   const newGameId = await createSoloGame();
-                  router.replace(`/game/${newGameId}`);
+                  router.replace(`/game?gameId=${newGameId}`);
                 } catch (createSoloGameError) {
                   Alert.alert(
                     "Error",
@@ -226,7 +226,7 @@ const SoloGameResult = ({ gameId }: { gameId: string }) => {
               onPress={async () => {
                 try {
                   const newGameId = await createFriendlyGame();
-                  router.replace(`/game/${newGameId}`);
+                  router.replace(`/invite-friend?gameId=${newGameId}`);
                 } catch (createFriendlyGameError) {
                   console.error(createFriendlyGameError);
                   Alert.alert(
@@ -242,7 +242,7 @@ const SoloGameResult = ({ gameId }: { gameId: string }) => {
               onPress={async () => {
                 try {
                   const newGameId = await createSoloGame();
-                  router.replace(`/game/${newGameId}`);
+                  router.replace(`/game?gameId=${newGameId}`);
                 } catch (createSoloGameError) {
                   Alert.alert(
                     "Error",

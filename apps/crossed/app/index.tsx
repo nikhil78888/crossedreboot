@@ -11,15 +11,27 @@ import { useEffect } from "react";
 
 export default function Index() {
   const { profile } = useCurrentUser();
-  const { createSoloGame, createFriendlyGame } = useGame({});
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
+  const { createSoloGame, createFriendlyGame, game } = useGame({
+    gameId: currentGameId,
+  });
   const router = useRouter();
 
+  const gamePlayState = game?.play_state;
+
   useEffect(() => {
-    if (currentGameId) {
-      router.replace(`/game/${currentGameId}`);
+    switch (gamePlayState) {
+      case "PLAYING":
+      case "COMPLETED":
+        router.replace(`/game?gameId=${currentGameId}`);
+        break;
+      case "WAITING_FOR_OPPONENT":
+        router.replace(`/invite-friend?gameId=${currentGameId}`);
+        break;
+      default:
+        break;
     }
-  }, [currentGameId, router]);
+  }, [currentGameId, gamePlayState, router]);
 
   if (loadingCurrentGameId) {
     return (
@@ -68,7 +80,7 @@ export default function Index() {
               onPress={async () => {
                 try {
                   const newGameId = await createSoloGame();
-                  router.replace(`/game/${newGameId}`);
+                  router.replace(`/game?gameId=${newGameId}`);
                 } catch (createSoloGameError) {
                   Alert.alert(
                     "Error",
@@ -83,7 +95,7 @@ export default function Index() {
               onPress={async () => {
                 try {
                   const newGameId = await createFriendlyGame();
-                  router.replace(`/game/${newGameId}`);
+                  router.replace(`/invite-friend?gameId=${newGameId}`);
                 } catch (createFriendlyGameError) {
                   console.error(createFriendlyGameError);
                   Alert.alert(

@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   Alert,
-  Modal,
   Text,
   TextInput,
   TouchableOpacity,
@@ -17,7 +16,6 @@ import { Game, GameState, TCrossword } from "../types";
 import { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { gamesCollection } from "../firebase-collection";
 import { useGame } from "../hooks/use-game";
-import { CrosswordResults } from "./CrosswordResults";
 
 type CrosswordContextType = {
   crossword: TCrossword;
@@ -416,9 +414,6 @@ const Crossword = () => {
         direction={direction}
         jumpToClue={jumpToClue}
       />
-      <Modal visible={showResult} animationType="none">
-        <CrosswordResults gameId={gameId} />
-      </Modal>
     </View>
   );
 };

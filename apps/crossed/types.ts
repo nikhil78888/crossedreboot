@@ -29,7 +29,7 @@ export interface Clue {
 export type Game = {
   players: [string];
   player_handles: Record<string, string>;
-  play_state: "CREATED" | "WAITING_FOR_OPPONENT" | "PLAYING" | "COMPLETED";
+  play_state: "WAITING_FOR_OPPONENT" | "PLAYING" | "COMPLETED";
   game_type: "SOLO" | "FRIENDLY";
   crossword: TCrossword;
   game_state?: Record<string, GameState>;

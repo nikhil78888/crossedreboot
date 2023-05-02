@@ -73,7 +73,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           player_handles: gameData.player_handles as Game["player_handles"],
           game_type: gameData.game_type as Game["game_type"],
           play_state: gameData.play_state as Game["play_state"],
-          startedAt: gameData.startedAt as Game["startedAt"],
+          startedAt: gameData.startedAt
+            ? new Date(gameData.startedAt.seconds * 1000).toISOString()
+            : ("" as Game["startedAt"]),
           gameDurationInSeconds:
             gameData.gameDurationInSeconds as Game["gameDurationInSeconds"],
           game_state: gameData.game_state
@@ -106,6 +108,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       if (user?.uid) {
         const gamesPlayed = await gamesCollection
           .where("players", "array-contains", user.uid)
+          .orderBy("created", "desc")
+          .limit(10)
           .get();
         const playedGameIds = gamesPlayed.docs.map((d) => d.data().crosswordId);
         let documents;
@@ -126,6 +130,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             players: [user.uid],
             play_state: "PLAYING",
             game_type: "SOLO",
+            created: firestore.FieldValue.serverTimestamp(),
           };
           const soloGameDoc = await gamesCollection.add(game);
           return soloGameDoc.id;
@@ -138,6 +143,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       if (user?.uid) {
         const gamesPlayed = await gamesCollection
           .where("players", "array-contains", user.uid)
+          .orderBy("created", "desc")
+          .limit(10)
           .get();
         const playedGameIds = gamesPlayed.docs.map((d) => d.data().crosswordId);
         let documents;
@@ -156,10 +163,11 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             crossword: documents.docs[randomIndex].data(),
             crosswordId: documents.docs[randomIndex].id,
             players: [user.uid],
-            play_state: "CREATED",
+            play_state: "WAITING_FOR_OPPONENT",
             game_type: "FRIENDLY",
             player_handles: { [user.uid]: profile?.username },
             gameDurationInSeconds: 300,
+            created: firestore.FieldValue.serverTimestamp(),
           };
           const friendlyGameDoc = await gamesCollection.add(game);
           return friendlyGameDoc.id;
@@ -184,7 +192,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     if (opponentUid) {
       opponentUsername = game.player_handles[opponentUid];
       const correctSolution = game.crossword.solution;
-      const opponentSolution = game.game_state?.[opponentUid].solution;
+      const opponentSolution = game.game_state?.[opponentUid]?.solution;
       if (opponentSolution) {
         let totalChars = 0;
         let filledChars = 0;
