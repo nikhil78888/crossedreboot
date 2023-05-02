@@ -2,12 +2,11 @@ import { Image } from "expo-image";
 import { Text, View } from "react-native";
 import { images } from "../images";
 import { ProgressBar } from "react-native-ui-lib";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { differenceInSeconds, intervalToDuration } from "date-fns";
 
-export const CrosswordHeader = ({ gameId }: { gameId: string }) => {
+export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { opponentProgress, game, opponentUsername, finishGame } = useGame({
     gameId,
   });
@@ -92,25 +91,15 @@ export const CrosswordHeader = ({ gameId }: { gameId: string }) => {
           / {getFormattedGameDuration(game.gameDurationInSeconds)}
         </Text>
       </View>
-      <View className="flex-row items-center">
-        <View>
-          <Text className="text-sm" style={{ fontFamily: "Lato_300Light" }}>
-            @{opponentUsername}
-          </Text>
-          <ProgressBar
-            progress={opponentProgress}
-            progressColor="#AFD8CA"
-            style={{ height: 3 }}
-          />
-        </View>
-        <TouchableOpacity className="bg-crossed-blue-400 h-[30] w-[110] rounded-sm items-center justify-center ml-3">
-          <Text
-            className="text-white text-sm"
-            style={{ fontFamily: "Bitter_700Bold" }}
-          >
-            Submit Match
-          </Text>
-        </TouchableOpacity>
+      <View className="w-1/2">
+        <Text className="text-sm" style={{ fontFamily: "Lato_300Light" }}>
+          @{opponentUsername}
+        </Text>
+        <ProgressBar
+          progress={opponentProgress}
+          progressColor="#AFD8CA"
+          style={{ height: 5 }}
+        />
       </View>
     </View>
   );

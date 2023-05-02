@@ -67,7 +67,7 @@ export default function JoinGame() {
         Play a friendly match with @{opponentUsername}
       </Text>
       <PrimaryButton onPress={startMatch}>
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center px-2">
           <Text className="text-white">Start Match</Text>
         </View>
       </PrimaryButton>

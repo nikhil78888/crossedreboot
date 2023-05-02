@@ -50,7 +50,7 @@ export default function InviteFriend() {
         Waiting for opponent
       </Text>
       <PrimaryButton onPress={inviteFriend}>
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center px-2">
           <Text className="text-white">Invite a Friend</Text>
         </View>
       </PrimaryButton>

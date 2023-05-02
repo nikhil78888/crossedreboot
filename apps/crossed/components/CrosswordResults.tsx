@@ -9,25 +9,13 @@ import { useRouter } from "expo-router";
 import { calculateScore, useGame } from "../hooks/use-game";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { classNames } from "../utils";
+import { PrimaryButton } from "./PrimaryButton";
 
-export const CrosswordResults = ({ gameId }: { gameId: string }) => {
-  const { game } = useGame({ gameId });
-
-  if (!game) {
-    return null;
-  }
-
-  if (game.game_type === "SOLO") {
-    return <SoloGameResult gameId={gameId} />;
-  }
-
-  return <FriendlyGameResult gameId={gameId} />;
-};
-
-const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
+export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
-  const { user } = useCurrentUser();
-  const { createFriendlyGame, createSoloGame, game } = useGame({ gameId });
+  const { user, profile } = useCurrentUser();
+  const { createFriendlyGame, createSoloGame, game, opponentUsername } =
+    useGame({ gameId });
   if (!user || !game) {
     return null;
   }
@@ -57,11 +45,6 @@ const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
       exiting={ZoomOut}
       className="absolute h-full w-full bg-white"
     >
-      <View className="h-12 w-full items-center justify-center border-b border-gray-100">
-        <Text className="text-3xl" style={{ fontFamily: "Bitter_700Bold" }}>
-          Results
-        </Text>
-      </View>
       <ScrollView className="flex-1 px-5 py-4">
         <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
           <Image
@@ -108,10 +91,50 @@ const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         >
           Checkout the Answers
         </Text>
+        <View className="mt-4 flex-row items-center justify-between space-x-2">
+          <View className="flex-1">
+            <PrimaryButton
+              onPress={() =>
+                router.replace(
+                  `/view-answers?gameId=${gameId}&playerId=${user.uid}`
+                )
+              }
+            >
+              <View className="px-2 h-full w-full items-center justify-center">
+                <Text
+                  className="text-white"
+                  style={{ fontFamily: "Bitter_700Bold" }}
+                >
+                  @{profile?.username}
+                </Text>
+              </View>
+            </PrimaryButton>
+          </View>
+          <View className="flex-1">
+            <PrimaryButton
+              onPress={() =>
+                router.replace(
+                  `/view-answers?gameId=${gameId}&playerId=${opponentUid}`
+                )
+              }
+            >
+              <View className="px-2 h-full w-full items-center justify-center">
+                <Text
+                  className="text-white"
+                  style={{ fontFamily: "Bitter_700Bold" }}
+                >
+                  @{opponentUsername}
+                </Text>
+              </View>
+            </PrimaryButton>
+          </View>
+        </View>
         <View className="mt-4">
           <TouchableOpacity
             className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-            onPress={() => {}}
+            onPress={() => {
+              router.replace(`/view-answers?gameId=${gameId}`);
+            }}
           >
             <Text style={{ fontFamily: "Bitter_700Bold" }}>
               View Crossword Answers
@@ -158,7 +181,7 @@ const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   );
 };
 
-const SoloGameResult = ({ gameId }: { gameId: string }) => {
+export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
   const { user } = useCurrentUser();
   const { createFriendlyGame, createSoloGame, game } = useGame({ gameId });
@@ -168,17 +191,13 @@ const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const solution = game.game_state?.[user?.uid].solution;
   const correctSolution = game.crossword.solution;
   const points = calculateScore({ solution, correctSolution });
+  const result = points === 100 ? "PERFECT_SCORE" : points > 0 ? "WON" : "LOST";
   return (
     <Animated.View
       entering={BounceIn}
       exiting={ZoomOut}
       className="absolute h-full w-full bg-white"
     >
-      <View className="h-12 w-full items-center justify-center border-b border-gray-100">
-        <Text className="text-3xl" style={{ fontFamily: "Bitter_700Bold" }}>
-          Results
-        </Text>
-      </View>
       <ScrollView className="flex-1 px-5 py-4">
         <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
           <Image
@@ -187,16 +206,36 @@ const SoloGameResult = ({ gameId }: { gameId: string }) => {
           />
           <View className="pt-4 pb-5 px-4">
             <Text
-              className="text-center text-crossed-green-700 text-3xl"
+              className={classNames(
+                "text-center text-3xl",
+                result === "PERFECT_SCORE" ? "text-crossed-green-700" : "",
+                result === "WON" ? "text-crossed-yellow-400" : "",
+                result === "LOST" ? "text-crossed-red-400" : ""
+              )}
               style={{ fontFamily: "Bitter_700Bold" }}
             >
-              You are the Winner!
+              {result === "PERFECT_SCORE"
+                ? "You aced it!"
+                : "Better Luck Next Time"}
             </Text>
             <View className="items-center py-4">
-              <Image source={images.winner} className="h-24 w-24" />
+              {result === "PERFECT_SCORE" || result === "WON" ? (
+                <Image
+                  source={images.winner}
+                  className="h-24 w-24"
+                  style={result === "WON" ? { tintColor: "#E7B402" } : {}}
+                />
+              ) : (
+                <Image source={images.lost} className="h-[100] w-20" />
+              )}
             </View>
             <Text
-              className="text-center text-crossed-green-700 text-3xl"
+              className={classNames(
+                "text-center text-3xl",
+                result === "PERFECT_SCORE" ? "text-crossed-green-700" : "",
+                result === "WON" ? "text-crossed-yellow-400" : "",
+                result === "LOST" ? "text-crossed-red-400" : ""
+              )}
               style={{ fontFamily: "Bitter_700Bold" }}
             >
               You got {points} Points
@@ -212,7 +251,9 @@ const SoloGameResult = ({ gameId }: { gameId: string }) => {
         <View className="mt-4">
           <TouchableOpacity
             className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-            onPress={() => {}}
+            onPress={() => {
+              router.replace(`/view-answers?gameId=${gameId}`);
+            }}
           >
             <Text style={{ fontFamily: "Bitter_700Bold" }}>
               View Crossword Answers

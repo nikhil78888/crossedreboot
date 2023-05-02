@@ -22,8 +22,10 @@ export default function Index() {
   useEffect(() => {
     switch (gamePlayState) {
       case "PLAYING":
-      case "COMPLETED":
         router.replace(`/game?gameId=${currentGameId}`);
+        break;
+      case "COMPLETED":
+        router.replace(`/game-results?gameId=${currentGameId}`);
         break;
       case "WAITING_FOR_OPPONENT":
         router.replace(`/invite-friend?gameId=${currentGameId}`);

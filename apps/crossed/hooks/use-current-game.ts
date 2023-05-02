@@ -16,8 +16,8 @@ export const useCurrentGame = () => {
     const currentGameDoc = documents.docs.find(
       (d) => d.data().play_state !== "COMPLETED"
     );
-    return currentGameDoc?.id;
-    // return currentGameDoc?.id || documents.docs[0]?.id;
+    // return currentGameDoc?.id;
+    return currentGameDoc?.id || documents.docs[0]?.id;
     // return documents.docs[0].id;
   });
 

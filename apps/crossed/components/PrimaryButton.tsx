@@ -1,4 +1,4 @@
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export const PrimaryButton = ({
   children,
@@ -10,7 +10,7 @@ export const PrimaryButton = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="h-12 w-full bg-crossed-blue-400 border border-crossed-blue-300 rounded"
+      className="h-10 w-full bg-crossed-blue-400 border border-crossed-blue-300 rounded"
     >
       {children}
     </TouchableOpacity>

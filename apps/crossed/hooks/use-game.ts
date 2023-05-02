@@ -185,7 +185,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     }
   );
 
-  let opponentProgress = 1;
+  let opponentProgress = 0;
   let opponentUsername = "";
   if (game?.game_type === "FRIENDLY") {
     const opponentUid = game.players.find((uid) => uid !== user?.uid);

@@ -34,11 +34,20 @@ export default function IndexLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="onboarding"
-        options={{ presentation: "fullScreenModal" }}
-      />
+    <Stack
+      screenOptions={{
+        gestureEnabled: false,
+        headerTitleStyle: { fontSize: 24, fontFamily: "Bitter_700Bold" },
+        headerBackVisible: false,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="invite-friend" options={{ headerShown: false }} />
+      <Stack.Screen name="join-game" options={{ headerShown: false }} />
+      <Stack.Screen name="game" options={{ headerTitle: "Match" }} />
+      <Stack.Screen name="game-results" options={{ headerTitle: "Results" }} />
+      <Stack.Screen name="view-answers" options={{ headerTitle: "Answers" }} />
     </Stack>
   );
 }

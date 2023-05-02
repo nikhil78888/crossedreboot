@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
-import { Text, TouchableOpacity } from "react-native";
+import { Text } from "react-native";
 import { images } from "../images";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export const PlayFriendlyButton = ({ onPress }: { onPress: () => void }) => {
   return (
