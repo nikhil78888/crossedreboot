@@ -10,25 +10,15 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { opponentProgress, game, opponentUsername, finishGame } = useGame({
     gameId,
   });
-  const [timeInGame, setTimeInGame] = useState(() => {
-    if (game?.game_type === "FRIENDLY" && game.play_state === "PLAYING") {
-      const gameStartedAt = game.startedAt as string;
-      const secondsSinceStart = differenceInSeconds(
-        new Date(),
-        new Date(gameStartedAt)
-      );
-      const duration = intervalToDuration({
-        start: 0,
-        end: secondsSinceStart * 1000,
-      });
-      return `${duration.minutes
-        ?.toString()
-        .padStart(2, "0")}:${duration.seconds?.toString().padStart(2, "0")}`;
-    }
-  });
+  const [timeInGame, setTimeInGame] = useState("");
 
   useEffect(() => {
-    if (game?.game_type === "FRIENDLY" && game.play_state === "PLAYING") {
+    // if game duration is over, end the game, else update time in game
+    if (
+      game?.game_type === "FRIENDLY" &&
+      game.play_state === "PLAYING" &&
+      game.startedAt
+    ) {
       const interval = setInterval(() => {
         const gameStartedAt = game.startedAt as string;
         const secondsSinceStart = differenceInSeconds(
@@ -74,7 +64,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   };
 
   return (
-    <View className="flex-row items-center justify-between p-5">
+    <View className="flex-row items-center justify-between">
       <View className="flex-row items-center">
         <Image source={images.stop_watch} className="h-5 w-[17.42]" />
         <Text

@@ -1,11 +1,9 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useGame } from "../hooks/use-game";
-import { CrosswordProvider } from "../components/Crossword";
+import { Crossword } from "../components/Crossword";
 import { useCurrentUser } from "../hooks/use-current-user";
-import { FriendlyCrosswordHeader } from "../components/FriendlyCrosswordHeader";
 import { useEffect } from "react";
-import { SoloCrosswordHeader } from "../components/SoloCrosswordHeader";
 
 export default function Game() {
   const router = useRouter();
@@ -31,10 +29,10 @@ export default function Game() {
   }, [gameType, navigation]);
 
   useEffect(() => {
-    if (gamePlayState === "COMPLETED") {
+    if (gamePlayState === "COMPLETED" && navigation.isFocused()) {
       router.push(`/game-results?gameId=${gameId}`);
     }
-  }, [gamePlayState, gameId, router]);
+  }, [gamePlayState, gameId, router, navigation]);
 
   if (!user || !game) {
     return (
@@ -46,17 +44,7 @@ export default function Game() {
 
   return (
     <View className={`flex-1 bg-white`}>
-      {game.game_type === "FRIENDLY" && (
-        <FriendlyCrosswordHeader gameId={gameId as string} />
-      )}
-      {game.game_type === "SOLO" && (
-        <SoloCrosswordHeader gameId={gameId as string} />
-      )}
-      <CrosswordProvider
-        currentGame={game}
-        currentGameId={gameId as string}
-        currentUser={user}
-      />
+      <Crossword gameId={gameId as string} />
     </View>
   );
 }

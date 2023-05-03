@@ -26,12 +26,14 @@ export default function IndexLayout() {
   const isReady = fontsLoaded && !!user;
 
   useEffect(() => {
+    // Redirect to onboarding if required
     if (isReady && !isOnboardingComplete && pathname !== "/onboarding") {
       router.push("/onboarding");
     }
   }, [isOnboardingComplete, isReady, pathname, router]);
 
   useEffect(() => {
+    // Check for updates
     const checkForUpdates = async () => {
       try {
         const update = await Updates.checkForUpdateAsync();
@@ -73,6 +75,14 @@ export default function IndexLayout() {
       <Stack.Screen name="game" options={{ headerTitle: "Match" }} />
       <Stack.Screen name="game-results" options={{ headerTitle: "Results" }} />
       <Stack.Screen name="view-answers" options={{ headerTitle: "Answers" }} />
+      <Stack.Screen
+        name="feedback"
+        options={{
+          headerTitle: "Feedback",
+          presentation: "modal",
+          gestureEnabled: true,
+        }}
+      />
     </Stack>
   );
 }

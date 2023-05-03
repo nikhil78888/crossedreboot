@@ -20,6 +20,7 @@ export default function Index() {
   const gamePlayState = game?.play_state;
 
   useEffect(() => {
+    // if game exists, redirect to correct game screen
     switch (gamePlayState) {
       case "PLAYING":
         router.replace(`/game?gameId=${currentGameId}`);

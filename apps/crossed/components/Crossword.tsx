@@ -1,15 +1,20 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
+  KeyboardState,
   useAnimatedKeyboard,
   useAnimatedStyle,
 } from "react-native-reanimated";
 import produce from "immer";
-import { Game, GameState, TCrossword } from "../types";
-import { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { GameState, TCrossword } from "../types";
 import { gamesCollection } from "../firebase-collection";
 import { useGame } from "../hooks/use-game";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
+import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
+import { SoloCrosswordHeader } from "./SoloCrosswordHeader";
+import { Image } from "expo-image";
+import { images } from "../images";
+import { useCurrentUser } from "../hooks/use-current-user";
 
 type CrosswordContextType = {
   crossword: TCrossword;
@@ -26,59 +31,150 @@ type CrosswordContextType = {
     value: string;
   }) => void;
   gameId: string;
-  readOnly: boolean;
   playerResult?: GameState["solution"];
 };
 
 const CrosswordContext = createContext<CrosswordContextType>(null!);
 
-export const CrosswordProvider = ({
-  currentGame,
-  currentGameId,
-  currentUser,
+export const Crossword = ({
+  gameId,
   showResults,
 }: {
-  currentGame: Game;
-  currentGameId: string;
-  currentUser: FirebaseAuthTypes.User;
+  gameId: string;
   showResults?: {
     playerId?: string;
   };
 }) => {
-  const { crossword } = currentGame;
-  const [gameState, setGameState] = useState<GameState>(() => {
-    if (showResults) {
-      return {
-        direction: "Across",
-        currentCell: { x: 0, y: 0 },
-        solution: crossword.solution,
-      };
+  const { user } = useCurrentUser();
+  const { finishGame, game } = useGame({ gameId });
+  const crossword = game?.crossword;
+  const { width } = useWindowDimensions();
+  const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
+  const [containerHeight, setContainerHeight] = useState<number | null>();
+  const keyboard = useAnimatedKeyboard();
+
+  const crosswordContainerStyle = useAnimatedStyle(() => {
+    const maxWidth = width * 0.9;
+    if (keyboard.state.value !== KeyboardState.OPEN || !containerHeight) {
+      return { width: maxWidth };
     }
-    const playerGameState = currentGame.game_state?.[currentUser.uid];
-    if (playerGameState) {
-      return playerGameState;
-    }
-    const initalSolutionState = crossword.puzzle.map((row) => {
-      const emptyRow = row.map((cell) => {
-        if (cell !== "#") {
-          return "";
-        } else {
-          return null;
-        }
-      });
-      return emptyRow;
-    });
+    const deductible = keyboard.height.value + 120;
     return {
-      currentCell: { x: 0, y: 0 },
-      direction: "Across",
-      solution: initalSolutionState,
+      width: Math.min(containerHeight - deductible, maxWidth),
+    };
+  }, [containerHeight]);
+
+  const clueContainerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: -keyboard.height.value }],
     };
   });
+
+  const isGameFinished = game?.play_state === "COMPLETED";
+  const [gameState, setGameState] = useState<GameState | null>(null);
+
+  useEffect(() => {
+    // initialize gameState
+    if (game && crossword && user && !gameState) {
+      if (showResults) {
+        setGameState({
+          direction: "Across",
+          currentCell: {
+            x: 0,
+            y: crossword.solution[0].findIndex(
+              (cellResult) => cellResult !== null
+            ),
+          },
+          solution: crossword.solution,
+        });
+        return;
+      }
+      const playerGameState = game.game_state?.[user.uid];
+      if (playerGameState) {
+        setGameState(playerGameState);
+        return;
+      }
+      const initalSolutionState = crossword.puzzle.map((row) => {
+        const emptyRow = row.map((cell) => {
+          if (cell !== "#") {
+            return "";
+          } else {
+            return null;
+          }
+        });
+        return emptyRow;
+      });
+      setGameState({
+        currentCell: {
+          x: 0,
+          y: crossword.solution[0].findIndex(
+            (cellResult) => cellResult !== null
+          ),
+        },
+        direction: "Across",
+        solution: initalSolutionState,
+      });
+    }
+  }, [crossword, game, gameState, showResults, user]);
+
+  useEffect(() => {
+    // write gameState to database
+    if (game && gameState) {
+      if (game.play_state !== "COMPLETED") {
+        gamesCollection.doc(gameId).update({
+          [`game_state.${user?.uid}`]: {
+            ...gameState,
+            solution: JSON.stringify(gameState.solution),
+          },
+        });
+      }
+    }
+  }, [game, gameId, gameState, user?.uid]);
+
+  useEffect(() => {
+    if (game && gameState) {
+      const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
+      if (!hasEmptyCell) {
+        const isCorrectSolution =
+          JSON.stringify(gameState.solution) ===
+          JSON.stringify(game.crossword.solution);
+        if (!isCorrectSolution) {
+          if (!isPlayingAfterFilled) {
+            Alert.alert(
+              "So close ...",
+              "The puzzle is filled, but at least one square's amiss.",
+              [{ text: "Keep Trying" }]
+            );
+            setPlayingAfterFilled(true);
+          }
+        } else {
+          if (!isGameFinished) {
+            finishGame();
+          }
+        }
+      }
+    }
+  }, [
+    game,
+    gameId,
+    isPlayingAfterFilled,
+    isGameFinished,
+    gameState,
+    finishGame,
+  ]);
+
+  if (!game || !gameState || !crossword) {
+    return null;
+  }
+
+  const { solution, currentCell, direction } = gameState;
 
   const setCurrentCell = (cell: GameState["currentCell"]) => {
     setGameState(
       produce((draft) => {
-        draft.currentCell = cell;
+        if (draft) {
+          draft.currentCell = cell;
+        }
       })
     );
   };
@@ -86,7 +182,9 @@ export const CrosswordProvider = ({
   const setDirection = (newDirection: GameState["direction"]) => {
     setGameState(
       produce((draft) => {
-        draft.direction = newDirection;
+        if (draft) {
+          draft.direction = newDirection;
+        }
       })
     );
   };
@@ -100,104 +198,12 @@ export const CrosswordProvider = ({
   }) => {
     setGameState(
       produce((draft) => {
-        draft.solution[cell.x][cell.y] = value;
+        if (draft) {
+          draft.solution[cell.x][cell.y] = value;
+        }
       })
     );
   };
-
-  useEffect(() => {
-    // write gameState to database
-    if (currentGame.play_state !== "COMPLETED") {
-      gamesCollection.doc(currentGameId).update({
-        [`game_state.${currentUser.uid}`]: {
-          ...gameState,
-          solution: JSON.stringify(gameState.solution),
-        },
-      });
-    }
-  }, [currentGame.play_state, currentGameId, currentUser.uid, gameState]);
-
-  const playerResult = showResults?.playerId
-    ? currentGame.game_state?.[showResults.playerId].solution
-    : undefined;
-
-  return (
-    <CrosswordContext.Provider
-      value={{
-        crossword,
-        currentCell: gameState.currentCell,
-        setCurrentCell,
-        direction: gameState.direction,
-        setDirection,
-        solution: gameState.solution,
-        setSolution,
-        gameId: currentGameId,
-        readOnly: !!showResults,
-        playerResult,
-      }}
-    >
-      <Crossword />
-    </CrosswordContext.Provider>
-  );
-};
-
-const useCrosswordContext = () => {
-  const context = useContext(CrosswordContext);
-  if (!context) {
-    throw new Error("useCrosswordContext must be used within ContextProvider");
-  }
-  return context;
-};
-
-const Crossword = () => {
-  const {
-    crossword,
-    currentCell,
-    setCurrentCell,
-    direction,
-    setDirection,
-    solution,
-    setSolution,
-    gameId,
-    readOnly,
-    playerResult,
-  } = useCrosswordContext();
-  const { width } = useWindowDimensions();
-  const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
-  const { finishGame, game } = useGame({
-    gameId,
-  });
-
-  const isGameFinished = game?.play_state === "COMPLETED";
-
-  useEffect(() => {
-    const hasEmptyCell = solution.find((row) => row.includes(""));
-    if (!hasEmptyCell) {
-      const isCorrectSolution =
-        JSON.stringify(solution) === JSON.stringify(crossword.solution);
-      if (!isCorrectSolution) {
-        if (!isPlayingAfterFilled) {
-          Alert.alert(
-            "So close ...",
-            "The puzzle is filled, but at least one square's amiss.",
-            [{ text: "Keep Trying" }]
-          );
-          setPlayingAfterFilled(true);
-        }
-      } else {
-        if (!isGameFinished) {
-          finishGame();
-        }
-      }
-    }
-  }, [
-    crossword.solution,
-    gameId,
-    isPlayingAfterFilled,
-    isGameFinished,
-    solution,
-    finishGame,
-  ]);
 
   const gotoPrevCell = ({
     cell,
@@ -391,51 +397,98 @@ const Crossword = () => {
     setDirection(direction);
   };
 
+  const playerResult = showResults?.playerId
+    ? game.game_state?.[showResults.playerId].solution
+    : undefined;
+
   return (
-    <View className="flex-1">
-      <View className="items-center">
-        <View
-          className="border"
-          style={{ width: width * 0.85, height: width * 0.85 }}
-        >
-          {crossword.puzzle.map((puzzleRow, rowIndex) => {
-            const rowKey = puzzleRow.join(",");
-            return (
-              <View className="flex-1 flex-row" key={rowKey}>
-                {puzzleRow.map((puzzleCell, colIndex) => {
-                  const colKey = rowKey + puzzleCell + String(colIndex);
-                  return (
-                    <View className="flex-1" key={colKey}>
-                      <CrosswordCell
-                        rowIndex={rowIndex}
-                        colIndex={colIndex}
-                        puzzleCell={puzzleCell}
-                        value={solution[rowIndex][colIndex]}
-                        handleBackspace={handleBackspace}
-                        handleKey={handleKey}
-                        toggleDirection={toggleDirection}
-                        disabled={readOnly || isGameFinished}
-                      />
-                      {playerResult &&
-                        playerResult[rowIndex][colIndex] !==
-                          solution[rowIndex][colIndex] && (
-                          <View className="absolute top-1 right-1 bg-red-700 h-1.5 w-1.5 rounded-full"></View>
-                        )}
-                    </View>
-                  );
-                })}
-              </View>
-            );
-          })}
+    <CrosswordContext.Provider
+      value={{
+        crossword,
+        currentCell: gameState.currentCell,
+        setCurrentCell,
+        direction: gameState.direction,
+        setDirection,
+        solution: gameState.solution,
+        setSolution,
+        gameId: gameId,
+        playerResult,
+      }}
+    >
+      <View
+        className="flex-1"
+        onLayout={(e) => {
+          setContainerHeight(e.nativeEvent.layout.height);
+        }}
+      >
+        <View className="items-center">
+          <Animated.View style={crosswordContainerStyle}>
+            <View className="py-3">
+              {showResults ? null : (
+                <>
+                  {game?.game_type === "FRIENDLY" && (
+                    <FriendlyCrosswordHeader gameId={gameId as string} />
+                  )}
+                  {game?.game_type === "SOLO" && (
+                    <SoloCrosswordHeader gameId={gameId as string} />
+                  )}
+                </>
+              )}
+            </View>
+            <View className="border aspect-square">
+              {crossword.puzzle.map((puzzleRow, rowIndex) => {
+                const rowKey = puzzleRow.join(",");
+                return (
+                  <View className="flex-1 flex-row" key={rowKey}>
+                    {puzzleRow.map((puzzleCell, colIndex) => {
+                      const colKey = rowKey + puzzleCell + String(colIndex);
+                      return (
+                        <View className="flex-1" key={colKey}>
+                          <CrosswordCell
+                            rowIndex={rowIndex}
+                            colIndex={colIndex}
+                            puzzleCell={puzzleCell}
+                            value={solution[rowIndex][colIndex]}
+                            handleBackspace={handleBackspace}
+                            handleKey={handleKey}
+                            toggleDirection={toggleDirection}
+                            disabled={!!showResults || isGameFinished}
+                          />
+                          {playerResult &&
+                            playerResult[rowIndex][colIndex] !==
+                              solution[rowIndex][colIndex] && (
+                              <View className="absolute top-1 right-1 bg-red-700 h-1.5 w-1.5 rounded-full"></View>
+                            )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+            </View>
+          </Animated.View>
         </View>
+        <Animated.View
+          className={showResults ? "mt-8 w-full" : "absolute bottom-0 w-full"}
+          style={showResults ? {} : clueContainerStyle}
+        >
+          <CrosswordClue
+            currentCell={currentCell}
+            direction={direction}
+            jumpToClue={jumpToClue}
+          />
+        </Animated.View>
       </View>
-      <CrosswordClue
-        currentCell={currentCell}
-        direction={direction}
-        jumpToClue={jumpToClue}
-      />
-    </View>
+    </CrosswordContext.Provider>
   );
+};
+
+const useCrosswordContext = () => {
+  const context = useContext(CrosswordContext);
+  if (!context) {
+    throw new Error("useCrosswordContext must be used within ContextProvider");
+  }
+  return context;
 };
 
 const CrosswordCell = ({
@@ -476,7 +529,7 @@ const CrosswordCell = ({
   }, [isCurrentCell, disabled]);
 
   if (puzzleCell === "#") {
-    return <View className="flex-1 border-0.5 bg-black" />;
+    return <View className="flex-1 border-0.5 bg-crossed-black-700" />;
   }
 
   const getBackgroundColor = () => {
@@ -491,7 +544,11 @@ const CrosswordCell = ({
           return true;
         }
       });
-      return hasBreak ? "bg-white" : "bg-blue-300";
+      return hasBreak
+        ? value
+          ? "bg-crossed-green-300"
+          : "bg-white"
+        : "bg-crossed-blue-300/30";
     }
     if (direction === "Down" && currentY === colIndex) {
       const currentCol = crossword.puzzle.map((row) => row[currentY]);
@@ -502,9 +559,13 @@ const CrosswordCell = ({
           return true;
         }
       });
-      return hasBreak ? "bg-white" : "bg-blue-300";
+      return hasBreak
+        ? value
+          ? "bg-crossed-green-300"
+          : "bg-white"
+        : "bg-crossed-blue-300/30";
     }
-    return "bg-white";
+    return value ? "bg-crossed-green-300" : "bg-white";
   };
 
   return (
@@ -575,12 +636,6 @@ const CrosswordClue = ({
   }) => void;
 }) => {
   const { crossword } = useCrosswordContext();
-  const keyboard = useAnimatedKeyboard();
-  const translateStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: -keyboard.height.value }],
-    };
-  });
   const { x: currentX, y: currentY } = currentCell;
   const currentRow = crossword.puzzle[currentX];
   const currentCol = crossword.puzzle.map((row) => row[currentY]);
@@ -690,21 +745,32 @@ const CrosswordClue = ({
   };
 
   return (
-    <Animated.View
-      className="h-12 w-full bg-blue-300 px-10 justify-center absolute bottom-0"
-      style={translateStyle}
-    >
+    <View className="h-[53] w-full bg-crossed-green-300 px-10 items-center justify-center">
       <View className="absolute left-0 inset-y-0 items-center justify-center w-10">
-        <TouchableOpacity onPress={gotoPrevClue}>
-          <Text>{"<"}</Text>
+        <TouchableOpacity
+          onPress={gotoPrevClue}
+          className="h-full w-full items-center justify-center"
+        >
+          <Image source={images.arrow_left} className="h-3.5 w-2" />
         </TouchableOpacity>
       </View>
-      <Text>{currentClue?.clue}</Text>
+      <View className="flex-row">
+        <Text style={{ fontFamily: "Lato_700Bold" }}>
+          {currentClue?.number} {direction}
+          <Text style={{ fontFamily: "Lato_400Regular" }}>
+            {" "}
+            - {currentClue?.clue}
+          </Text>
+        </Text>
+      </View>
       <View className="absolute right-0 inset-y-0 items-center justify-center w-10">
-        <TouchableOpacity onPress={gotoNextClue}>
-          <Text>{">"}</Text>
+        <TouchableOpacity
+          onPress={gotoNextClue}
+          className="h-full w-full items-center justify-center"
+        >
+          <Image source={images.arrow_right} className="h-3.5 w-2" />
         </TouchableOpacity>
       </View>
-    </Animated.View>
+    </View>
   );
 };

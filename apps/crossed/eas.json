@@ -15,6 +15,7 @@
       "channel": "development"
     },
     "preview": {
+      "autoIncrement": true,
       "distribution": "internal",
       "channel": "preview"
     },

@@ -14,6 +14,8 @@ export default function InviteFriend() {
   const gamePlayState = game?.play_state;
 
   useEffect(() => {
+    // if game has ended go back home
+    // if game is playing, go to game screen
     switch (gamePlayState) {
       case "COMPLETED":
         Alert.alert("The game has ended");

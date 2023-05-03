@@ -19,7 +19,7 @@ export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
   };
 
   return (
-    <View className="flex-row items-center justify-end p-5">
+    <View className="flex-row items-center justify-end">
       <TouchableOpacity
         onPress={submitMatch}
         className="bg-crossed-blue-400 h-[30] w-[110] rounded-sm items-center justify-center ml-3"

@@ -9,4 +9,6 @@ export const images = {
   splash_bg: require("./assets/images/splash_bg.png"),
   input_check: require("./assets/images/input_check.png"),
   stop_watch: require("./assets/images/stop_watch.png"),
+  arrow_left: require("./assets/images/arrow_left.png"),
+  arrow_right: require("./assets/images/arrow_right.png"),
 };

@@ -176,6 +176,18 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           </View>
           <View className="h-32 flex-1 bg-transparent"></View>
         </View>
+        <View className="mt-8">
+          <TouchableOpacity
+            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+            onPress={() => {
+              router.push(`/feedback`);
+            }}
+          >
+            <Text style={{ fontFamily: "Bitter_700Bold" }}>
+              Take the survey
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </Animated.View>
   );
@@ -196,7 +208,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
     <Animated.View
       entering={BounceIn}
       exiting={ZoomOut}
-      className="absolute h-full w-full bg-white"
+      className="h-full w-full bg-white"
     >
       <ScrollView className="flex-1 px-5 py-4">
         <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
@@ -294,6 +306,18 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             />
           </View>
           <View className="h-32 flex-1 bg-transparent"></View>
+        </View>
+        <View className="mt-8">
+          <TouchableOpacity
+            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+            onPress={() => {
+              router.push(`/feedback`);
+            }}
+          >
+            <Text style={{ fontFamily: "Bitter_700Bold" }}>
+              Take the survey
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </Animated.View>

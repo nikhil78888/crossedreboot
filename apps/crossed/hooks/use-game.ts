@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import useSWRMutation from "swr/mutation";
+import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
 import firestore from "@react-native-firebase/firestore";
 import { Game, GameState, TCrossword } from "../types";
 import { crosswordsCollection, gamesCollection } from "../firebase-collection";
@@ -35,73 +35,77 @@ export const calculateScore = ({
 
 export const useGame = ({ gameId }: { gameId?: string }) => {
   const { user, profile } = useCurrentUser();
-  const [game, setGame] = useState<Game | undefined>(undefined);
 
-  useEffect(() => {
-    if (!gameId) {
-      return;
-    }
-    const subscriber = gamesCollection
-      .doc(gameId)
-      .onSnapshot((gameSnapshot) => {
-        const gameData = gameSnapshot.data();
-        if (!gameData) {
-          return;
-        }
-        const crossword: TCrossword = {
-          version: gameData.crossword.version as TCrossword["version"],
-          kind: gameData.crossword.kind as TCrossword["kind"],
-          title: gameData.crossword.title as TCrossword["title"],
-          copyright: gameData.crossword.copyright as TCrossword["copyright"],
-          author: gameData.crossword.author as TCrossword["author"],
-          dimensions: gameData.crossword.dimensions as TCrossword["dimensions"],
-          puzzle: JSON.parse(gameData.crossword.puzzle) as TCrossword["puzzle"],
-          solution: JSON.parse(
-            gameData.crossword.solution
-          ) as TCrossword["solution"],
-          clues: {
-            Across: JSON.parse(
-              gameData.crossword.clues.Across
-            ) as TCrossword["clues"]["Across"],
-            Down: JSON.parse(
-              gameData.crossword.clues.Down
-            ) as TCrossword["clues"]["Down"],
-          },
-        };
-        const game: Game = {
-          players: gameData.players as Game["players"],
-          player_handles: gameData.player_handles as Game["player_handles"],
-          game_type: gameData.game_type as Game["game_type"],
-          play_state: gameData.play_state as Game["play_state"],
-          startedAt: gameData.startedAt
-            ? new Date(gameData.startedAt.seconds * 1000).toISOString()
-            : ("" as Game["startedAt"]),
-          gameDurationInSeconds:
-            gameData.gameDurationInSeconds as Game["gameDurationInSeconds"],
-          game_state: gameData.game_state
-            ? Object.keys(gameData.game_state).reduce((prevValue, playerId) => {
-                const playerGameState = gameData.game_state[playerId];
-                return {
-                  ...prevValue,
-                  [playerId]: {
-                    currentCell:
-                      playerGameState.currentCell as GameState["currentCell"],
-                    direction:
-                      playerGameState.direction as GameState["direction"],
-                    solution: JSON.parse(
-                      playerGameState.solution
-                    ) as GameState["solution"],
+  const { data: game } = useSWRSubscription(
+    gameId ? ["game", gameId] : null,
+    (key, { next }: SWRSubscriptionOptions<Game, Error>) => {
+      const subscriber = gamesCollection
+        .doc(gameId)
+        .onSnapshot((gameSnapshot) => {
+          const gameData = gameSnapshot.data();
+          if (!gameData) {
+            return;
+          }
+          const crossword: TCrossword = {
+            version: gameData.crossword.version as TCrossword["version"],
+            kind: gameData.crossword.kind as TCrossword["kind"],
+            title: gameData.crossword.title as TCrossword["title"],
+            copyright: gameData.crossword.copyright as TCrossword["copyright"],
+            author: gameData.crossword.author as TCrossword["author"],
+            dimensions: gameData.crossword
+              .dimensions as TCrossword["dimensions"],
+            puzzle: JSON.parse(
+              gameData.crossword.puzzle
+            ) as TCrossword["puzzle"],
+            solution: JSON.parse(
+              gameData.crossword.solution
+            ) as TCrossword["solution"],
+            clues: {
+              Across: JSON.parse(
+                gameData.crossword.clues.Across
+              ) as TCrossword["clues"]["Across"],
+              Down: JSON.parse(
+                gameData.crossword.clues.Down
+              ) as TCrossword["clues"]["Down"],
+            },
+          };
+          const serverGame: Game = {
+            players: gameData.players as Game["players"],
+            player_handles: gameData.player_handles as Game["player_handles"],
+            game_type: gameData.game_type as Game["game_type"],
+            play_state: gameData.play_state as Game["play_state"],
+            startedAt: gameData.startedAt
+              ? new Date(gameData.startedAt.seconds * 1000).toISOString()
+              : ("" as Game["startedAt"]),
+            gameDurationInSeconds:
+              gameData.gameDurationInSeconds as Game["gameDurationInSeconds"],
+            game_state: gameData.game_state
+              ? Object.keys(gameData.game_state).reduce(
+                  (prevValue, playerId) => {
+                    const playerGameState = gameData.game_state[playerId];
+                    return {
+                      ...prevValue,
+                      [playerId]: {
+                        currentCell:
+                          playerGameState.currentCell as GameState["currentCell"],
+                        direction:
+                          playerGameState.direction as GameState["direction"],
+                        solution: JSON.parse(
+                          playerGameState.solution
+                        ) as GameState["solution"],
+                      },
+                    };
                   },
-                };
-              }, {})
-            : undefined,
-          crossword,
-        };
-        setGame(game);
-      });
-
-    return subscriber;
-  }, [gameId]);
+                  {}
+                )
+              : undefined,
+            crossword,
+          };
+          next(null, serverGame);
+        });
+      return () => subscriber();
+    }
+  );
 
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation("create-solo-game", async () => {
@@ -189,27 +193,12 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   let opponentUsername = "";
   if (game?.game_type === "FRIENDLY") {
     const opponentUid = game.players.find((uid) => uid !== user?.uid);
-    if (opponentUid) {
+    if (opponentUid && game.game_state?.[opponentUid]) {
       opponentUsername = game.player_handles[opponentUid];
-      const correctSolution = game.crossword.solution;
-      const opponentSolution = game.game_state?.[opponentUid]?.solution;
-      if (opponentSolution) {
-        let totalChars = 0;
-        let filledChars = 0;
-        for (let i = 0; i < correctSolution.length; i += 1) {
-          const rowSolution = correctSolution[i];
-          for (let j = 0; j < rowSolution.length; j += 1) {
-            const cellCorrectSolution = rowSolution[j];
-            if (cellCorrectSolution) {
-              totalChars += 1;
-              if (opponentSolution[i][j]) {
-                filledChars += 1;
-              }
-            }
-          }
-          opponentProgress = Math.round((filledChars / totalChars) * 100);
-        }
-      }
+      opponentProgress = calculateScore({
+        correctSolution: game.crossword.solution,
+        solution: game.game_state[opponentUid].solution,
+      });
     }
   }
 

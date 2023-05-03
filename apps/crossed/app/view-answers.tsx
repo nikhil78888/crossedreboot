@@ -3,12 +3,12 @@ import { useLayoutEffect } from "react";
 import { Alert, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { useCurrentUser } from "../hooks/use-current-user";
-import { CrosswordProvider } from "../components/Crossword";
+import { Crossword } from "../components/Crossword";
 import { Text } from "react-native";
 import { PlayFriendlyButton } from "../components/PlayFriendlyButton";
 import { PlaySoloButton } from "../components/PlaySoloButton";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 
 export default function ViewAnswers() {
   const { gameId, playerId }: { gameId?: string; playerId?: string } =
@@ -38,13 +38,8 @@ export default function ViewAnswers() {
   const opponentUid = game.players.find((p) => p !== user.uid);
 
   return (
-    <View className="flex-1 bg-white">
-      <CrosswordProvider
-        currentGame={game}
-        currentGameId={gameId as string}
-        currentUser={user}
-        showResults={{ playerId }}
-      />
+    <ScrollView className="flex-1 bg-white">
+      <Crossword gameId={gameId as string} showResults={{ playerId }} />
       <View className="flex-1 px-5">
         {game.game_type === "FRIENDLY" && (
           <View className="flex flex-row items-center justify-between space-x-2 mt-6">
@@ -154,6 +149,6 @@ export default function ViewAnswers() {
           <View className="h-32 flex-1 bg-transparent"></View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
