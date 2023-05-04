@@ -184,7 +184,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
             }}
           >
             <Text style={{ fontFamily: "Bitter_700Bold" }}>
-              Take the survey
+              Leave us feedback
             </Text>
           </TouchableOpacity>
         </View>
@@ -315,7 +315,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             }}
           >
             <Text style={{ fontFamily: "Bitter_700Bold" }}>
-              Take the survey
+              Leave us feedback
             </Text>
           </TouchableOpacity>
         </View>
