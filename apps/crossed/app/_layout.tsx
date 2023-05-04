@@ -11,9 +11,10 @@ import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { Alert } from "react-native";
+import Constants from "expo-constants";
 
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,
+  dsn: Constants.expoConfig?.extra?.sentryDSN,
   enableInExpoDevelopment: false,
   debug: __DEV__,
 });
