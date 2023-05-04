@@ -77,6 +77,10 @@ export const Crossword = ({
     // initialize gameState
     if (game && crossword && user && !gameState) {
       if (showResults) {
+        const solutionToDisplay = showResults.playerId
+          ? (game.game_state?.[showResults.playerId]
+              .solution as GameState["solution"])
+          : crossword.solution;
         setGameState({
           direction: "Across",
           currentCell: {
@@ -85,7 +89,7 @@ export const Crossword = ({
               (cellResult) => cellResult !== null
             ),
           },
-          solution: crossword.solution,
+          solution: solutionToDisplay,
         });
         return;
       }
@@ -133,22 +137,22 @@ export const Crossword = ({
 
   useEffect(() => {
     if (game && gameState) {
-      const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
-      if (!hasEmptyCell) {
-        const isCorrectSolution =
-          JSON.stringify(gameState.solution) ===
-          JSON.stringify(game.crossword.solution);
-        if (!isCorrectSolution) {
-          if (!isPlayingAfterFilled) {
-            Alert.alert(
-              "So close ...",
-              "The puzzle is filled, but at least one square's amiss.",
-              [{ text: "Keep Trying" }]
-            );
-            setPlayingAfterFilled(true);
-          }
-        } else {
-          if (!isGameFinished) {
+      if (!isGameFinished) {
+        const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
+        if (!hasEmptyCell) {
+          const isCorrectSolution =
+            JSON.stringify(gameState.solution) ===
+            JSON.stringify(game.crossword.solution);
+          if (!isCorrectSolution) {
+            if (!isPlayingAfterFilled) {
+              Alert.alert(
+                "So close ...",
+                "The puzzle is filled, but at least one square's amiss.",
+                [{ text: "Keep Trying" }]
+              );
+              setPlayingAfterFilled(true);
+            }
+          } else {
             finishGame();
           }
         }
@@ -208,15 +212,20 @@ export const Crossword = ({
   const gotoPrevCell = ({
     cell,
     direction,
+    clearDestination,
   }: {
     cell: { x: number; y: number };
     direction: "Across" | "Down";
+    clearDestination?: boolean;
   }) => {
     if (direction === "Across") {
       // go back in same row
       for (let i = cell.y - 1; i >= 0; i = i - 1) {
-        if (solution[cell.x][i] !== "#") {
+        if (solution[cell.x][i] !== null) {
           setCurrentCell({ x: cell.x, y: i });
+          if (clearDestination) {
+            setSolution({ cell: { x: cell.x, y: i }, value: "" });
+          }
           setDirection(direction);
           return;
         }
@@ -225,8 +234,11 @@ export const Crossword = ({
       const prevRow = cell.x - 1;
       if (prevRow >= 0) {
         for (let i = crossword.dimensions.width - 1; i >= 0; i = i - 1) {
-          if (solution[prevRow][i] !== "#") {
+          if (solution[prevRow][i] !== null) {
             setCurrentCell({ x: prevRow, y: i });
+            if (clearDestination) {
+              setSolution({ cell: { x: prevRow, y: i }, value: "" });
+            }
             setDirection(direction);
             return;
           }
@@ -235,7 +247,7 @@ export const Crossword = ({
         // switch direction and start search from last cell
         gotoPrevCell({
           cell: {
-            x: crossword.dimensions.height - 1,
+            x: crossword.dimensions.height,
             y: crossword.dimensions.width - 1,
           },
           direction: "Down",
@@ -245,8 +257,11 @@ export const Crossword = ({
     if (direction === "Down") {
       // go back in same col
       for (let i = cell.x - 1; i >= 0; i = i - 1) {
-        if (solution[i][cell.y] !== "#") {
+        if (solution[i][cell.y] !== null) {
           setCurrentCell({ x: i, y: cell.y });
+          if (clearDestination) {
+            setSolution({ cell: { x: i, y: cell.y }, value: "" });
+          }
           setDirection(direction);
           return;
         }
@@ -255,8 +270,11 @@ export const Crossword = ({
       const prevCol = cell.y - 1;
       if (prevCol >= 0) {
         for (let i = crossword.dimensions.height - 1; i >= 0; i = i - 1) {
-          if (solution[i][prevCol] !== "#") {
+          if (solution[i][prevCol] !== null) {
             setCurrentCell({ x: i, y: prevCol });
+            if (clearDestination) {
+              setSolution({ cell: { x: i, y: prevCol }, value: "" });
+            }
             setDirection(direction);
             return;
           }
@@ -266,7 +284,7 @@ export const Crossword = ({
         gotoPrevCell({
           cell: {
             x: crossword.dimensions.height - 1,
-            y: crossword.dimensions.width - 1,
+            y: crossword.dimensions.width,
           },
           direction: "Across",
         });
@@ -281,7 +299,7 @@ export const Crossword = ({
     if (solution[x][y] !== "") {
       setSolution({ cell: { x, y }, value: "" });
     } else {
-      gotoPrevCell({ cell: currentCell, direction });
+      gotoPrevCell({ cell: currentCell, direction, clearDestination: true });
     }
   };
 
@@ -397,10 +415,6 @@ export const Crossword = ({
     setDirection(direction);
   };
 
-  const playerResult = showResults?.playerId
-    ? game.game_state?.[showResults.playerId].solution
-    : undefined;
-
   return (
     <CrosswordContext.Provider
       value={{
@@ -412,7 +426,6 @@ export const Crossword = ({
         solution: gameState.solution,
         setSolution,
         gameId: gameId,
-        playerResult,
       }}
     >
       <View
@@ -454,9 +467,9 @@ export const Crossword = ({
                             toggleDirection={toggleDirection}
                             disabled={!!showResults || isGameFinished}
                           />
-                          {playerResult &&
-                            playerResult[rowIndex][colIndex] !==
-                              solution[rowIndex][colIndex] && (
+                          {showResults &&
+                            solution[rowIndex][colIndex] !==
+                              game.crossword.solution[rowIndex][colIndex] && (
                               <View className="absolute top-1 right-1 bg-red-700 h-1.5 w-1.5 rounded-full"></View>
                             )}
                         </View>
@@ -503,7 +516,7 @@ const CrosswordCell = ({
 }: {
   rowIndex: number;
   colIndex: number;
-  puzzleCell: string | number;
+  puzzleCell: string | number | { cell: string | number };
   value: string | null;
   handleBackspace: ({ x, y }: { x: number; y: number }) => void;
   handleKey: ({ x, y, key }: { x: number; y: number; key: string }) => void;
@@ -562,8 +575,20 @@ const CrosswordCell = ({
 
   return (
     <View className={`flex-1 border-0.5 ${getBackgroundColor()}`}>
-      {puzzleCell !== "0" && (
-        <Text className="absolute left-0.5 top-0.5 text-xs">{puzzleCell}</Text>
+      {typeof puzzleCell === "object" ? (
+        <>
+          {puzzleCell.cell && puzzleCell.cell !== "0" && (
+            <Text className="absolute left-0.5 top-0.5 text-xs">
+              {puzzleCell.cell}
+            </Text>
+          )}
+        </>
+      ) : (
+        puzzleCell !== "0" && (
+          <Text className="absolute left-0.5 top-0.5 text-xs">
+            {puzzleCell}
+          </Text>
+        )
       )}
       <View className="flex-1 relative">
         <TextInput

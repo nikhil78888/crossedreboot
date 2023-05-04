@@ -20,6 +20,7 @@ module.exports = {
         "crossed-blue": {
           300: "#83C1D7",
           400: "#63A2B8",
+          700: "#316C81",
         },
         "crossed-black": {
           700: "#354646",

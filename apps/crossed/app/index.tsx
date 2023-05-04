@@ -8,8 +8,10 @@ import { useGame } from "../hooks/use-game";
 import { useRouter } from "expo-router";
 import { useCurrentGame } from "../hooks/use-current-game";
 import { useEffect } from "react";
+import { useStats } from "../hooks/use-stats";
 
 export default function Index() {
+  const { stats } = useStats();
   const { profile } = useCurrentUser();
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
   const { createSoloGame, createFriendlyGame, game } = useGame({
@@ -48,11 +50,8 @@ export default function Index() {
   }
 
   return (
-    <Image
-      source={images.splash_bg}
-      className="flex-1 px-4 items-center justify-center"
-    >
-      <View className="absolute top-32 items-center">
+    <Image source={images.splash_bg} className="flex-1 px-4 items-center">
+      <View className="mt-32 items-center">
         <Image source={images.logo} className="h-20 aspect-square" />
         <Text
           className="mt-1 text-crossed-green-900 text-xl"
@@ -74,7 +73,10 @@ export default function Index() {
         >
           @{profile?.username}
         </Text>
-        <Text className="mt-6 text-xl" style={{ fontFamily: "Bitter_700Bold" }}>
+        <Text
+          className="mt-16 text-xl"
+          style={{ fontFamily: "Bitter_700Bold" }}
+        >
           Start a New Match
         </Text>
         <View className="mt-2 flex-row items-center space-x-2">
@@ -111,6 +113,54 @@ export default function Index() {
           </View>
         </View>
       </View>
+      {stats && (
+        <View>
+          <Text
+            className="mt-10 text-xl"
+            style={{ fontFamily: "Bitter_700Bold" }}
+          >
+            My Stats
+          </Text>
+          <View className="w-full mt-2 flex-row space-x-2">
+            <View className="flex-1 bg-crossed-green-50">
+              <Image
+                source={images.card_ellipsis}
+                className="absolute right-0 bottom-0 w-3/5 h-full"
+              />
+              <Text
+                className="text-crossed-black-700 text-xl mt-2.5 text-center"
+                style={{ fontFamily: "Lato_300Light" }}
+              >
+                Games Played
+              </Text>
+              <Text
+                className="text-crossed-blue-700 text-6xl ml-2.5 mt-2.5 text-center"
+                style={{ fontFamily: "Lato_300Light" }}
+              >
+                {stats.gamesPlayed}
+              </Text>
+            </View>
+            <View className="flex-1 bg-crossed-green-50">
+              <Image
+                source={images.card_ellipsis}
+                className="absolute right-0 bottom-0 w-3/5 h-full"
+              />
+              <Text
+                className="text-crossed-black-700 text-xl mt-2.5 text-center"
+                style={{ fontFamily: "Lato_300Light" }}
+              >
+                Games Won
+              </Text>
+              <Text
+                className="text-crossed-green-700 text-6xl ml-2.5 mt-2.5 text-center"
+                style={{ fontFamily: "Lato_300Light" }}
+              >
+                {stats.gamesWon}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
     </Image>
   );
 }
