@@ -35,7 +35,9 @@ export const useStats = () => {
               }
             }
             if (gameData.game_type === "FRIENDLY") {
-              const opponentUid = gameData.players.find((p) => p !== user.uid);
+              const opponentUid = gameData.players.find(
+                (p: string) => p !== user.uid
+              );
               const opponentSolution =
                 gameData.game_state[opponentUid]?.solution &&
                 JSON.parse(gameData.game_state[opponentUid].solution);
