@@ -544,11 +544,7 @@ const CrosswordCell = ({
           return true;
         }
       });
-      return hasBreak
-        ? value
-          ? "bg-crossed-green-300"
-          : "bg-white"
-        : "bg-crossed-blue-300/30";
+      return hasBreak ? "bg-white" : "bg-crossed-green-300";
     }
     if (direction === "Down" && currentY === colIndex) {
       const currentCol = crossword.puzzle.map((row) => row[currentY]);
@@ -559,13 +555,9 @@ const CrosswordCell = ({
           return true;
         }
       });
-      return hasBreak
-        ? value
-          ? "bg-crossed-green-300"
-          : "bg-white"
-        : "bg-crossed-blue-300/30";
+      return hasBreak ? "bg-white" : "bg-crossed-green-300";
     }
-    return value ? "bg-crossed-green-300" : "bg-white";
+    return "bg-white";
   };
 
   return (
@@ -755,12 +747,8 @@ const CrosswordClue = ({
         </TouchableOpacity>
       </View>
       <View className="flex-row">
-        <Text style={{ fontFamily: "Lato_700Bold" }}>
-          {currentClue?.number} {direction}
-          <Text style={{ fontFamily: "Lato_400Regular" }}>
-            {" "}
-            - {currentClue?.clue}
-          </Text>
+        <Text style={{ fontFamily: "Lato_400Regular" }}>
+          {currentClue?.clue}
         </Text>
       </View>
       <View className="absolute right-0 inset-y-0 items-center justify-center w-10">
