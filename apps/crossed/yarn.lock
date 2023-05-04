@@ -1257,7 +1257,7 @@
     xcode "^3.0.1"
     xml2js "0.4.23"
 
-"@expo/config-plugins@^5.0.4":
+"@expo/config-plugins@^5.0.1", "@expo/config-plugins@^5.0.4":
   version "5.0.4"
   resolved "https://registry.yarnpkg.com/@expo/config-plugins/-/config-plugins-5.0.4.tgz#216fea6558fe66615af1370de55193f4181cb23e"
   integrity sha512-vzUcVpqOMs3h+hyRdhGwk+eGIOhXa5xYdd92yO17RMNHav3v/+ekMbs7XA2c3lepMO8Yd4/5hqmRw9ZTL6jGzg==
@@ -1862,6 +1862,13 @@
   integrity sha512-TfRP53RqunNe2HBobVBJ0VLhK1HbfvBYeTC1ahnN64PWvyYyGebmMiPkuwvD9fpw2ZbkoPb8Q7mwy0aR8Z9rvw==
   dependencies:
     lodash "^4.17.21"
+
+"@logrocket/react-native@^1.15.0":
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/@logrocket/react-native/-/react-native-1.15.0.tgz#3d759db94a6918e8a89f6117468dd6376d0280da"
+  integrity sha512-WXN8r9ByPcgR5YQcBTLEi6gl0tR+rusaT1FRFdRidPDgypENjQorghwhhjcW39RmA7kKPUpJ7vtMwBHWyfLHxA==
+  dependencies:
+    "@expo/config-plugins" "^5.0.1"
 
 "@next/eslint-plugin-next@13.2.4":
   version "13.2.4"

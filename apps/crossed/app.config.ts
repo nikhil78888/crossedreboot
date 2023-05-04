@@ -5,7 +5,7 @@ module.exports = {
     owner: "harshpillario",
     version: "1.0.3",
     orientation: "portrait",
-    icon: "./assets/images/logo.png",
+    icon: "./assets/images/logo_black.png",
     userInterfaceStyle: "light",
     splash: {
       image: "./assets/images/splash.png",
@@ -40,6 +40,7 @@ module.exports = {
         },
       ],
       "sentry-expo",
+      "@logrocket/react-native",
     ],
     scheme: "crossed",
     extra: {

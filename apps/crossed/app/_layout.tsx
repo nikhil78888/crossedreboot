@@ -12,6 +12,7 @@ import * as Updates from "expo-updates";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { Alert } from "react-native";
 import Constants from "expo-constants";
+import LogRocket from "@logrocket/react-native";
 
 Sentry.init({
   dsn: Constants.expoConfig?.extra?.sentryDSN,
@@ -32,6 +33,13 @@ export default function IndexLayout() {
 
   const isOnboardingComplete = !!profile?.username;
   const isReady = fontsLoaded && !!user;
+
+  useEffect(() => {
+    if (!__DEV__ && user?.uid) {
+      LogRocket.init("mvzgsv/crossed");
+      LogRocket.identify(user.uid);
+    }
+  }, [user?.uid]);
 
   useEffect(() => {
     // Redirect to onboarding if required

@@ -41,3 +41,5 @@ allprojects {
         maven { url 'https://www.jitpack.io' }
     }
 }
+
+allprojects { repositories { maven { url "https://storage.googleapis.com/logrocket-maven/" } } }
