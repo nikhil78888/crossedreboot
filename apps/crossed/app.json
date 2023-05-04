@@ -38,7 +38,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "sentry-expo"
     ],
     "scheme": "crossed",
     "extra": {
@@ -49,6 +50,17 @@
     "runtimeVersion": "1.0.3",
     "updates": {
       "url": "https://u.expo.dev/95dd38ca-d0be-41ad-8148-56a2b4f5460e"
+    },
+    "hooks": {
+      "postPublish": [
+        {
+          "file": "sentry-expo/upload-sourcemaps",
+          "config": {
+            "organization": "crossed",
+            "project": "crossed-mobile"
+          }
+        }
+      ]
     }
   }
 }

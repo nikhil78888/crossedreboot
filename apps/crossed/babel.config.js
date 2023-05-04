@@ -5,6 +5,7 @@ module.exports = function (api) {
     plugins: [
       require.resolve("expo-router/babel"),
       "nativewind/babel",
+      "transform-inline-environment-variables",
       "react-native-reanimated/plugin",
     ],
   };

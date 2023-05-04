@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { SplashScreen, Stack, usePathname, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
+import * as Sentry from "sentry-expo";
 import {
   Lato_300Light,
   Lato_400Regular,
@@ -10,6 +11,12 @@ import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { Alert } from "react-native";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  enableInExpoDevelopment: false,
+  debug: __DEV__,
+});
 
 export default function IndexLayout() {
   const [fontsLoaded] = useFonts({
@@ -51,6 +58,9 @@ export default function IndexLayout() {
       } catch (error) {
         // You can also add an alert() to see the error message in case of an error when fetching updates.
         console.info(`Error fetching latest Expo update: ${error}`);
+        Sentry.Native.captureException(
+          `Error fetching latest Expo update: ${error}`
+        );
       }
     };
     checkForUpdates();
