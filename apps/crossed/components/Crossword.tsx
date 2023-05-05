@@ -763,10 +763,10 @@ const CrosswordClue = ({
 
   return (
     <View className="h-[53] w-full bg-crossed-green-300 px-10 items-center justify-center">
-      <View className="absolute left-0 inset-y-0 items-center justify-center w-10">
+      <View className="absolute left-0 inset-y-0 items-center justify-center">
         <TouchableOpacity
           onPress={gotoPrevClue}
-          className="h-full w-full items-center justify-center"
+          className="h-full w-10 items-center justify-center "
         >
           <Image source={images.arrow_left} className="h-3.5 w-2" />
         </TouchableOpacity>
@@ -776,10 +776,10 @@ const CrosswordClue = ({
           {currentClue?.clue}
         </Text>
       </View>
-      <View className="absolute right-0 inset-y-0 items-center justify-center w-10">
+      <View className="absolute right-0 inset-y-0 items-center justify-center">
         <TouchableOpacity
           onPress={gotoNextClue}
-          className="h-full w-full items-center justify-center"
+          className="h-full w-10 items-center justify-center"
         >
           <Image source={images.arrow_right} className="h-3.5 w-2" />
         </TouchableOpacity>

@@ -193,12 +193,14 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   let opponentUsername = "";
   if (game?.game_type === "FRIENDLY") {
     const opponentUid = game.players.find((uid) => uid !== user?.uid);
-    if (opponentUid && game.game_state?.[opponentUid]) {
+    if (opponentUid) {
       opponentUsername = game.player_handles[opponentUid];
-      opponentProgress = calculateScore({
-        correctSolution: game.crossword.solution,
-        solution: game.game_state[opponentUid].solution,
-      });
+      if (game.game_state?.[opponentUid]) {
+        opponentProgress = calculateScore({
+          correctSolution: game.crossword.solution,
+          solution: game.game_state[opponentUid].solution,
+        });
+      }
     }
   }
 

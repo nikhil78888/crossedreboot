@@ -1,21 +1,18 @@
 import { Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { useGame } from "../hooks/use-game";
-import { useRouter } from "expo-router";
 
 export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { game, finishGame } = useGame({
     gameId,
   });
-  const router = useRouter();
 
   if (!game) {
     return null;
   }
 
-  const submitMatch = async () => {
-    await finishGame();
-    router.push(`/game-results?gameId=${gameId}`);
+  const submitMatch = () => {
+    finishGame();
   };
 
   return (

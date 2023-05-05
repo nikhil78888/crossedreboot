@@ -10,6 +10,7 @@ import { calculateScore, useGame } from "../hooks/use-game";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { classNames } from "../utils";
 import { PrimaryButton } from "./PrimaryButton";
+import { ShareAppButton } from "./ShareAppButton";
 
 export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
@@ -176,17 +177,32 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           </View>
           <View className="h-32 flex-1 bg-transparent"></View>
         </View>
-        <View className="mt-8">
-          <TouchableOpacity
-            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-            onPress={() => {
-              router.push(`/feedback`);
-            }}
-          >
-            <Text style={{ fontFamily: "Bitter_700Bold" }}>
-              Leave us feedback
-            </Text>
-          </TouchableOpacity>
+        <View className="mt-8 flex-row items-center space-x-2">
+          <View className="flex-1">
+            <TouchableOpacity
+              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+              onPress={() => {
+                router.replace(`/`);
+              }}
+            >
+              <Text style={{ fontFamily: "Bitter_700Bold" }}>Go Home</Text>
+            </TouchableOpacity>
+          </View>
+          <View className="flex-1">
+            <TouchableOpacity
+              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+              onPress={() => {
+                router.push(`/feedback`);
+              }}
+            >
+              <Text style={{ fontFamily: "Bitter_700Bold" }}>
+                Leave us feedback
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View className="mt-4">
+          <ShareAppButton />
         </View>
       </ScrollView>
     </Animated.View>
@@ -307,17 +323,32 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
           </View>
           <View className="h-32 flex-1 bg-transparent"></View>
         </View>
-        <View className="mt-8">
-          <TouchableOpacity
-            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-            onPress={() => {
-              router.push(`/feedback`);
-            }}
-          >
-            <Text style={{ fontFamily: "Bitter_700Bold" }}>
-              Leave us feedback
-            </Text>
-          </TouchableOpacity>
+        <View className="mt-8 flex-row items-center space-x-2">
+          <View className="flex-1">
+            <TouchableOpacity
+              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+              onPress={() => {
+                router.replace(`/`);
+              }}
+            >
+              <Text style={{ fontFamily: "Bitter_700Bold" }}>Go Home</Text>
+            </TouchableOpacity>
+          </View>
+          <View className="flex-1">
+            <TouchableOpacity
+              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+              onPress={() => {
+                router.push(`/feedback`);
+              }}
+            >
+              <Text style={{ fontFamily: "Bitter_700Bold" }}>
+                Leave us feedback
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View className="mt-4">
+          <ShareAppButton />
         </View>
       </ScrollView>
     </Animated.View>

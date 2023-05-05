@@ -5,10 +5,11 @@ import { Image } from "expo-image";
 import { images } from "../images";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { useGame } from "../hooks/use-game";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useCurrentGame } from "../hooks/use-current-game";
 import { useEffect } from "react";
 import { useStats } from "../hooks/use-stats";
+import { ShareAppButton } from "../components/ShareAppButton";
 
 export default function Index() {
   const { stats } = useStats();
@@ -18,25 +19,29 @@ export default function Index() {
     gameId: currentGameId,
   });
   const router = useRouter();
+  const navigation = useNavigation();
 
   const gamePlayState = game?.play_state;
 
   useEffect(() => {
-    // if game exists, redirect to correct game screen
-    switch (gamePlayState) {
-      case "PLAYING":
-        router.replace(`/game?gameId=${currentGameId}`);
-        break;
-      case "COMPLETED":
-        router.replace(`/game-results?gameId=${currentGameId}`);
-        break;
-      case "WAITING_FOR_OPPONENT":
-        router.replace(`/invite-friend?gameId=${currentGameId}`);
-        break;
-      default:
-        break;
+    if (navigation.isFocused()) {
+      console.log({ gamePlayState });
+      // if game exists, redirect to correct game screen
+      switch (gamePlayState) {
+        case "PLAYING":
+          router.replace(`/game?gameId=${currentGameId}`);
+          break;
+        // case "COMPLETED":
+        //   router.replace(`/game-results?gameId=${currentGameId}`);
+        //   break;
+        case "WAITING_FOR_OPPONENT":
+          router.replace(`/invite-friend?gameId=${currentGameId}`);
+          break;
+        default:
+          break;
+      }
     }
-  }, [currentGameId, gamePlayState, router]);
+  }, [currentGameId, gamePlayState, router, navigation]);
 
   if (loadingCurrentGameId) {
     return (
@@ -113,10 +118,13 @@ export default function Index() {
           </View>
         </View>
       </View>
+      <View className="mt-5 w-full">
+        <ShareAppButton />
+      </View>
       {stats && (
         <View>
           <Text
-            className="mt-10 text-xl"
+            className="mt-4 text-xl"
             style={{ fontFamily: "Bitter_700Bold" }}
           >
             My Stats

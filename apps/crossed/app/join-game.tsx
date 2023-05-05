@@ -21,17 +21,19 @@ export default function JoinGame() {
   const gamePlayState = game?.play_state;
 
   useEffect(() => {
-    switch (gamePlayState) {
-      case "COMPLETED":
-        Alert.alert("The game has ended");
-        navigation.navigate("index");
-        break;
-      case "PLAYING":
-        // navigation.navigate("game", { gameId });
-        router.replace(`/game?gameId=${gameId}`);
-        break;
-      default:
-        break;
+    if (navigation.isFocused()) {
+      switch (gamePlayState) {
+        case "COMPLETED":
+          Alert.alert("The game has ended");
+          router.replace("/");
+          break;
+        case "PLAYING":
+          // navigation.navigate("game", { gameId });
+          router.replace(`/game?gameId=${gameId}`);
+          break;
+        default:
+          break;
+      }
     }
   }, [gameId, gamePlayState, router, navigation]);
 
@@ -68,7 +70,12 @@ export default function JoinGame() {
       </Text>
       <PrimaryButton onPress={startMatch}>
         <View className="flex-1 items-center justify-center px-2">
-          <Text className="text-white">Start Match</Text>
+          <Text
+            className="text-white text-lg"
+            style={{ fontFamily: "Bitter_700Bold" }}
+          >
+            Start Match
+          </Text>
         </View>
       </PrimaryButton>
     </Image>

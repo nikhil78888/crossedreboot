@@ -30,7 +30,7 @@ export default function Game() {
 
   useEffect(() => {
     if (gamePlayState === "COMPLETED" && navigation.isFocused()) {
-      router.push(`/game-results?gameId=${gameId}`);
+      router.replace(`/game-results?gameId=${gameId}`);
     }
   }, [gamePlayState, gameId, router, navigation]);
 
