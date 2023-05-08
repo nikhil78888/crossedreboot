@@ -5,11 +5,14 @@ import { Image } from "expo-image";
 import { images } from "../images";
 import { useGame } from "../hooks/use-game";
 import { useEffect } from "react";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function InviteFriend() {
   const { gameId } = useSearchParams();
   const router = useRouter();
-  const { game } = useGame({ gameId: gameId as string | undefined });
+  const { game, abortGame } = useGame({
+    gameId: gameId as string | undefined,
+  });
   const navigation = useNavigation();
   const gamePlayState = game?.play_state;
 
@@ -20,6 +23,10 @@ export default function InviteFriend() {
       switch (gamePlayState) {
         case "COMPLETED":
           Alert.alert("The game has ended");
+          router.replace("/");
+          break;
+        case "ABORTED":
+          Alert.alert("The game was aborted");
           router.replace("/");
           break;
         case "PLAYING":
@@ -40,6 +47,13 @@ export default function InviteFriend() {
       Alert.alert("Please invite a friend to play");
       return;
     }
+  };
+
+  const exitGame = () => {
+    Alert.alert("Exit Game?", "Are you sure?", [
+      { text: "Keep waiting", style: "cancel" },
+      { text: "Exit", style: "destructive", onPress: () => abortGame() },
+    ]);
   };
 
   return (
@@ -63,6 +77,17 @@ export default function InviteFriend() {
           </Text>
         </View>
       </PrimaryButton>
+      <TouchableOpacity
+        className="mt-8 h-10 px-2 justify-center"
+        onPress={exitGame}
+      >
+        <Text
+          className="text-gray-600 text-lg"
+          style={{ fontFamily: "Lato_400Regular" }}
+        >
+          Exit Game
+        </Text>
+      </TouchableOpacity>
     </Image>
   );
 }

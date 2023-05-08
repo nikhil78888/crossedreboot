@@ -189,6 +189,16 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     }
   );
 
+  const { trigger: abortGame, isMutating: abortingGame } = useSWRMutation(
+    "abort-game",
+    async () => {
+      if (gameId) {
+        await gamesCollection.doc(gameId).update("play_state", "ABORTED");
+        return;
+      }
+    }
+  );
+
   let opponentProgress = 0;
   let opponentUsername = "";
   if (game?.game_type === "FRIENDLY") {
@@ -212,6 +222,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     creatingFriendlyGame,
     finishGame,
     finishingGame,
+    abortGame,
+    abortingGame,
     opponentProgress,
     opponentUsername,
   };

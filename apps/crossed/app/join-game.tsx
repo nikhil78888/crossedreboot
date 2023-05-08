@@ -27,6 +27,10 @@ export default function JoinGame() {
           Alert.alert("The game has ended");
           router.replace("/");
           break;
+        case "ABORTED":
+          Alert.alert("The game was aborted");
+          router.replace("/");
+          break;
         case "PLAYING":
           // navigation.navigate("game", { gameId });
           router.replace(`/game?gameId=${gameId}`);

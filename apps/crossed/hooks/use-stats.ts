@@ -21,7 +21,7 @@ export const useStats = () => {
             gamesPlayed += 1;
             const correctSolution = JSON.parse(gameData.crossword.solution);
             const mySolution =
-              gameData.game_state[user.uid]?.solution &&
+              gameData.game_state?.[user.uid]?.solution &&
               JSON.parse(gameData.game_state[user.uid].solution);
             const myScore = mySolution
               ? calculateScore({
@@ -39,7 +39,7 @@ export const useStats = () => {
                 (p: string) => p !== user.uid
               );
               const opponentSolution =
-                gameData.game_state[opponentUid]?.solution &&
+                gameData.game_state?.[opponentUid]?.solution &&
                 JSON.parse(gameData.game_state[opponentUid].solution);
               const opponentScore = opponentSolution
                 ? calculateScore({
