@@ -142,7 +142,24 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
             </Text>
           </TouchableOpacity>
         </View>
-        <Text className="mt-6 font-bold text-xl">Start a New Match</Text>
+        <View className="mt-4">
+          <TouchableOpacity
+            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+            onPress={() => {
+              router.push(`/feedback`);
+            }}
+          >
+            <Text style={{ fontFamily: "Bitter_700Bold" }}>
+              Leave us feedback
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <Text
+          className="mt-6 font-bold text-xl"
+          style={{ fontFamily: "Bitter_700Bold" }}
+        >
+          Start a New Match
+        </Text>
         <View className="mt-2.5 flex-row justify-between space-x-2">
           <View>
             <PlayFriendlyButton
@@ -186,18 +203,6 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               }}
             >
               <Text style={{ fontFamily: "Bitter_700Bold" }}>Go Home</Text>
-            </TouchableOpacity>
-          </View>
-          <View className="flex-1">
-            <TouchableOpacity
-              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-              onPress={() => {
-                router.push(`/feedback`);
-              }}
-            >
-              <Text style={{ fontFamily: "Bitter_700Bold" }}>
-                Leave us feedback
-              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -288,7 +293,28 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             </Text>
           </TouchableOpacity>
         </View>
-        <Text className="mt-6 font-bold text-xl">Start a New Match</Text>
+        <View className="mt-4">
+          <PrimaryButton
+            onPress={() => {
+              router.push(`/feedback`);
+            }}
+          >
+            <View className="h-full w-full items-center justify-center">
+              <Text
+                className="text-white"
+                style={{ fontFamily: "Bitter_700Bold" }}
+              >
+                Leave us feedback
+              </Text>
+            </View>
+          </PrimaryButton>
+        </View>
+        <Text
+          className="mt-6 font-bold text-xl"
+          style={{ fontFamily: "Bitter_700Bold" }}
+        >
+          Start a New Match
+        </Text>
         <View className="mt-2.5 flex-row justify-between space-x-2">
           <View>
             <PlayFriendlyButton
@@ -332,18 +358,6 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
               }}
             >
               <Text style={{ fontFamily: "Bitter_700Bold" }}>Go Home</Text>
-            </TouchableOpacity>
-          </View>
-          <View className="flex-1">
-            <TouchableOpacity
-              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
-              onPress={() => {
-                router.push(`/feedback`);
-              }}
-            >
-              <Text style={{ fontFamily: "Bitter_700Bold" }}>
-                Leave us feedback
-              </Text>
             </TouchableOpacity>
           </View>
         </View>
