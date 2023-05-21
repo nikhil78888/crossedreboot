@@ -170,7 +170,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             play_state: "WAITING_FOR_OPPONENT",
             game_type: "FRIENDLY",
             player_handles: { [user.uid]: profile?.username },
-            gameDurationInSeconds: 300,
+            gameDurationInSeconds: 180,
             created: firestore.FieldValue.serverTimestamp(),
           };
           const friendlyGameDoc = await gamesCollection.add(game);

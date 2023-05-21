@@ -4,7 +4,7 @@ import { images } from "../images";
 import { ProgressBar } from "react-native-ui-lib";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
-import { differenceInSeconds, intervalToDuration } from "date-fns";
+import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { opponentProgress, game, opponentUsername, finishGame } = useGame({
@@ -21,17 +21,17 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     ) {
       const interval = setInterval(() => {
         const gameStartedAt = game.startedAt as string;
-        const secondsSinceStart = differenceInSeconds(
-          new Date(),
-          new Date(gameStartedAt)
+        const secondsLeft = differenceInSeconds(
+          addSeconds(new Date(gameStartedAt), game.gameDurationInSeconds),
+          new Date()
         );
-        if (secondsSinceStart > game.gameDurationInSeconds) {
+        if (secondsLeft < 0) {
           finishGame();
           return;
         }
         const duration = intervalToDuration({
           start: 0,
-          end: secondsSinceStart * 1000,
+          end: secondsLeft * 1000,
         });
         setTimeInGame(
           `${duration.minutes?.toString().padStart(2, "0")}:${duration.seconds
@@ -53,15 +53,15 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     return null;
   }
 
-  const getFormattedGameDuration = (seconds: number) => {
-    const duration = intervalToDuration({
-      start: 0,
-      end: seconds * 1000,
-    });
-    return `${duration.minutes?.toString().padStart(2, "0")}:${duration.seconds
-      ?.toString()
-      .padStart(2, "0")}`;
-  };
+  // const getFormattedGameDuration = (seconds: number) => {
+  //   const duration = intervalToDuration({
+  //     start: 0,
+  //     end: seconds * 1000,
+  //   });
+  //   return `${duration.minutes?.toString().padStart(2, "0")}:${duration.seconds
+  //     ?.toString()
+  //     .padStart(2, "0")}`;
+  // };
 
   return (
     <View className="flex-row items-center justify-between">
@@ -73,13 +73,13 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         >
           {timeInGame}
         </Text>
-        <Text
+        {/* <Text
           className=" text-crossed-gray-200 text-sm"
           style={{ fontFamily: "Lato_400Regular" }}
         >
           {" "}
           / {getFormattedGameDuration(game.gameDurationInSeconds)}
-        </Text>
+        </Text> */}
       </View>
       <View className="w-1/2">
         <Text className="text-sm" style={{ fontFamily: "Lato_300Light" }}>
