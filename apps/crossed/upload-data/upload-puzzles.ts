@@ -18,27 +18,38 @@ const getIpuzFiles = async () => {
 };
 
 const uploadPuzzles = async () => {
+  const existingPuzzles = await db.collection("crosswords").get();
+  console.info({ existingPuzzles: existingPuzzles.docs.length });
   const ipuzFiles = await getIpuzFiles();
+  let uploadedPuzzles = 0;
   for (let i = 0; i < ipuzFiles.length; i += 1) {
     const ipuzFile = ipuzFiles[i];
     const fileData = await fs.readFile(ipuzFile, "utf-8");
     const puzzleJSON = JSON.parse(fileData);
-    const existingDoc = await db
-      .collection("crosswords")
-      .where("puzzle", "==", JSON.stringify(puzzleJSON.puzzle))
-      .get();
-    if (!existingDoc?.docs?.[0]?.data()) {
-      await db.collection("crosswords").add({
-        ...puzzleJSON,
-        puzzle: JSON.stringify(puzzleJSON.puzzle),
-        solution: JSON.stringify(puzzleJSON.solution),
-        clues: {
-          Across: JSON.stringify(puzzleJSON.clues.Across),
-          Down: JSON.stringify(puzzleJSON.clues.Down),
-        },
-      });
+    if (puzzleJSON.dimensions.height === puzzleJSON.dimensions.width) {
+      if (puzzleJSON.dimensions.height < 8) {
+        const existingDoc = await db
+          .collection("crosswords")
+          .where("puzzle", "==", JSON.stringify(puzzleJSON.puzzle))
+          .get();
+        if (!existingDoc?.docs?.[0]?.data()) {
+          uploadedPuzzles += 1;
+          await db.collection("crosswords").add({
+            ...puzzleJSON,
+            puzzle: JSON.stringify(puzzleJSON.puzzle),
+            solution: JSON.stringify(puzzleJSON.solution),
+            clues: {
+              Across: JSON.stringify(puzzleJSON.clues.Across),
+              Down: JSON.stringify(puzzleJSON.clues.Down),
+            },
+          });
+        }
+      }
+    } else {
+      console.info(puzzleJSON.dimensions);
     }
   }
+  console.info({ uploadedPuzzles, totalPuzzles: ipuzFiles.length });
 };
 
 uploadPuzzles();
