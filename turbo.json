@@ -12,7 +12,7 @@
         "api/**",
         "public/build/**"
       ],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^db:generate", "^build"]
     },
     "test": {
       "outputs": ["coverage/**"],
@@ -22,11 +22,17 @@
       "dependsOn": ["^build"]
     },
     "dev": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^db:generate", "^build"],
       "cache": false,
       "persistent": true
     },
     "clean": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:push": {
       "cache": false
     }
   }
