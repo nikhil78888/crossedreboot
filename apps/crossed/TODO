@@ -1,0 +1,23 @@
+[] On "Play with a friend", find an unplayed crossword and start a game
+[] Wait for friend to land on game screen
+[] Once both players are on the game screen, set the start time of the game to be after 10 seconds
+[] Show a countdown to start time for both players
+[] Update games entry to track game progress
+[] Implement landing screen with "Play Solo" and "Play with a friend" options
+[] Explore ipuz generator from word/clue puzzle
+
+[x] Implment CrosswordProvider to manage gameplay
+[x] Update games entry to track game progress
+[x] On "Play Solo", find an unplayed crossword and start a game by making an entry to games collection
+[x] Write a script to save crosswords to firestore
+[x] Implement crossword checker
+[x] Implement prev/next clue buttons
+[x] Handle cycling at end of puzzle
+[x] Handle cursor movement
+[x] Handle cursor movement in Down mode
+[x] Handle changing rows/columns
+[x] Handle cycling on end of puzzle
+[x] Handle font scaling for iPhone 14
+[x] Handle keyboard logic with onKeyPress
+[x] Fix hints when playing "Down"
+[x] Highlight current cell and word
