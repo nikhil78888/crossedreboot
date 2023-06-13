@@ -1,8 +1,11 @@
 import useSWRMutation from "swr/mutation";
 import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
 import firestore from "@react-native-firebase/firestore";
-import { Game, GameState, TCrossword } from "../types";
-import { crosswordsCollection, gamesCollection } from "../firebase-collection";
+import { Game, GameState, TCrossword } from "../lib/types";
+import {
+  crosswordsCollection,
+  gamesCollection,
+} from "../lib/firebase-collection";
 import { useCurrentUser } from "./use-current-user";
 
 export const calculateScore = ({

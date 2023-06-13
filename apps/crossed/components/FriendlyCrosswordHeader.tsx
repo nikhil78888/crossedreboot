@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Text, View } from "react-native";
-import { images } from "../images";
+import { images } from "../lib/images";
 import { ProgressBar } from "react-native-ui-lib";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";

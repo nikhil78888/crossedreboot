@@ -4,15 +4,17 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
   // schemas  = ["auth", "public"]
 }
 
 model profiles {
-  userId    String  @id
-  username  String
-  firstName String?
-  lastName  String?
-  country   String?
+  userId   String  @id
+  username String  @unique
+  avatar   String?
+  email    String? @unique
+  name     String?
+  country  String?
 }

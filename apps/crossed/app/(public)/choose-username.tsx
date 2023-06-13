@@ -3,28 +3,21 @@ import { Text, TextInput, View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { images } from "../images";
-import { PrimaryButton } from "../components/PrimaryButton";
-import { profileCollection } from "../firebase-collection";
-import { useCurrentUser } from "../hooks/use-current-user";
 import { useRouter } from "expo-router";
+import { images } from "../../lib/images";
+import { useAuth } from "../../hooks/use-auth";
+import { Button } from "../../components/Button";
 
-export default function Onboarding() {
+export default function ChooseUsername() {
   const router = useRouter();
   return (
     <Image source={images.splash_bg} className="flex-1">
       <View className="mt-24 items-center">
         <Image source={images.logo} className="h-20 aspect-square" />
-        <Text
-          className="mt-1 text-crossed-green-900 text-xl"
-          style={{ fontFamily: "Lato_700Bold" }}
-        >
+        <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
           Crossed
         </Text>
-        <Text
-          className="mt-6 text-crossed-green-900 text-4xl"
-          style={{ fontFamily: "Bitter_700Bold" }}
-        >
+        <Text className="mt-6 text-crossed-blue-700 text-[40px] font-[bitterBold]">
           Pick a Username
         </Text>
       </View>
@@ -43,18 +36,6 @@ const usernameFormSchema = z.object({
     .regex(
       new RegExp(/^([a-z]+\.)*[a-z]+$/),
       "Username may contain only a-z separated by dots(.)"
-    )
-    .refine(
-      async (val) => {
-        const existingProfileWithUsername = await profileCollection
-          .where("username", "==", val)
-          .get();
-        if (existingProfileWithUsername.empty) {
-          return true;
-        }
-        return false;
-      },
-      { message: "Username not available" }
     ),
 });
 
@@ -72,36 +53,44 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
     resolver: zodResolver(usernameFormSchema),
     mode: "onChange",
   });
-  const { setUserName, isSettingUsername } = useCurrentUser();
+  const { setDisplayName, isSettingDisplayName } = useAuth();
 
   const usernameValue = watch("username");
 
   const onSubmit = async (data: z.infer<typeof usernameFormSchema>) => {
     try {
-      await setUserName({ username: data.username });
+      await setDisplayName({ username: data.username });
       onDone();
-    } catch (setUsernameError) {
-      setError("root", {
-        message: "Oops! Something went wrong. Please try again",
-      });
+    } catch (error: any) {
+      if (error.code === "23505") {
+        setError("root", {
+          message: "The username is already taken.",
+        });
+      } else {
+        setError("root", {
+          message: "Oops! Something went wrong. Please try again",
+        });
+      }
     }
   };
 
   return (
     <View>
-      <Text className="text-crossed-green-900">Username</Text>
+      <Text className="text-crossed-green-900 font-[latoRegular]">
+        Username
+      </Text>
       <Controller
         control={control}
         rules={{
           required: true,
         }}
         render={({ field: { onChange, onBlur, value } }) => (
-          <View className="flex-row items-center border h-10 mt-1 border-gray-200 px-3">
+          <View className="flex-row items-center border h-[60] mt-1 border-gray-200 px-3 rounded-sm">
             <Text className={usernameValue.length ? "" : "text-gray-400"}>
               @
             </Text>
             <TextInput
-              className="flex-1 h-full border-gray-200 px-1"
+              className="flex-1 h-full px-1"
               placeholder="josh.cross"
               onBlur={onBlur}
               onChangeText={onChange}
@@ -130,19 +119,13 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
           {errors.root.message}
         </Text>
       )}
-      <View className="mt-4 w-full">
-        <PrimaryButton onPress={handleSubmit(onSubmit)}>
-          <View className="h-full items-center justify-center">
-            {
-              <Text
-                className="text-white text-lg"
-                style={{ fontFamily: "Bitter_700Bold" }}
-              >
-                {isSettingUsername ? "Please wait..." : "Let's go"}
-              </Text>
-            }
-          </View>
-        </PrimaryButton>
+      <View className="mt-4">
+        <Button
+          onPress={handleSubmit(onSubmit)}
+          label={isSettingDisplayName ? "Please wait..." : "Let's go"}
+          intent="primary"
+          size="large"
+        />
       </View>
     </View>
   );

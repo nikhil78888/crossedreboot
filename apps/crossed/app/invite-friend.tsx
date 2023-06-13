@@ -2,7 +2,7 @@ import { Alert, Share, Text, View } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { useNavigation, useRouter, useSearchParams } from "expo-router";
 import { Image } from "expo-image";
-import { images } from "../images";
+import { images } from "../lib/images";
 import { useGame } from "../hooks/use-game";
 import { useEffect } from "react";
 import { TouchableOpacity } from "react-native-gesture-handler";

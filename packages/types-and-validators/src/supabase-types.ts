@@ -40,29 +40,34 @@ export interface Database {
           rolled_back_at?: string | null
           started_at?: string
         }
+        Relationships: []
       }
       profiles: {
         Row: {
+          avatar: string | null
           country: string | null
-          firstName: string | null
-          lastName: string | null
+          email: string | null
+          name: string | null
           userId: string
           username: string
         }
         Insert: {
+          avatar?: string | null
           country?: string | null
-          firstName?: string | null
-          lastName?: string | null
+          email?: string | null
+          name?: string | null
           userId: string
           username: string
         }
         Update: {
+          avatar?: string | null
           country?: string | null
-          firstName?: string | null
-          lastName?: string | null
+          email?: string | null
+          name?: string | null
           userId?: string
           username?: string
         }
+        Relationships: []
       }
     }
     Views: {

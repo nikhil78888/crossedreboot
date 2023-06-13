@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { gamesCollection } from "../firebase-collection";
+import { gamesCollection } from "../lib/firebase-collection";
 import { useCurrentUser } from "./use-current-user";
 
 export const useCurrentGame = () => {

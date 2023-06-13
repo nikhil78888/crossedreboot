@@ -2,8 +2,8 @@
 
 import express, { Router } from "express";
 import { z } from "zod";
-import { validate } from "../validate.middleware";
-import { firebaseAdminApp } from "../firebase";
+import { validate } from "../lib/validate.middleware";
+import { firebaseAdminApp } from "../lib/firebase";
 import createHttpError from "http-errors";
 import * as jose from "jose";
 import { apiConfig } from "../api-config";

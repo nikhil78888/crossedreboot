@@ -5,9 +5,9 @@ import { ActivityIndicator, Alert, Text, View } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import { useEffect } from "react";
 import { PrimaryButton } from "../components/PrimaryButton";
-import { gamesCollection } from "../firebase-collection";
+import { gamesCollection } from "../lib/firebase-collection";
 import { Image } from "expo-image";
-import { images } from "../images";
+import { images } from "../lib/images";
 
 export default function JoinGame() {
   const { gameId } = useLocalSearchParams();

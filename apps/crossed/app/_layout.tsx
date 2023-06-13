@@ -1,18 +1,20 @@
 import { useEffect } from "react";
-import { SplashScreen, Stack, usePathname, useRouter } from "expo-router";
+import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import * as Sentry from "sentry-expo";
 import {
   Lato_300Light,
   Lato_400Regular,
   Lato_700Bold,
+  Lato_900Black,
 } from "@expo-google-fonts/lato";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
-import { useCurrentUser } from "../hooks/use-current-user";
 import { Alert } from "react-native";
 import Constants from "expo-constants";
 import LogRocket from "@logrocket/react-native";
+import { useAuth } from "../hooks/use-auth";
+import { useOnlineStatus } from "../hooks/use-online-status";
 
 Sentry.init({
   dsn: Constants.expoConfig?.extra?.sentryDSN,
@@ -23,33 +25,45 @@ Sentry.init({
 export default function IndexLayout() {
   const [fontsLoaded] = useFonts({
     Lato_300Light,
+    latoLight: Lato_300Light,
     Lato_400Regular,
+    latoRegular: Lato_400Regular,
     Lato_700Bold,
+    latoBold: Lato_700Bold,
+    Lato_900Black,
+    latoBlack: Lato_900Black,
     Bitter_700Bold,
+    bitterBold: Bitter_700Bold,
   });
-  const { user, profile } = useCurrentUser();
+  const { user, isLoadingUser } = useAuth();
+  useOnlineStatus();
+  const segments = useSegments();
   const router = useRouter();
-  const pathname = usePathname();
 
-  const isOnboardingComplete = !!profile?.username;
-  const isReady = fontsLoaded && !!user;
+  const isReady = fontsLoaded && !isLoadingUser;
 
+  // setup logrocket
   useEffect(() => {
-    if (!__DEV__ && user?.uid) {
+    if (!__DEV__ && user?.uid && user.displayName) {
       LogRocket.init("mvzgsv/crossed");
-      LogRocket.identify(user.uid);
+      LogRocket.identify(user.uid, { username: user.displayName });
     }
-  }, [user?.uid]);
+  }, [user?.displayName, user?.uid]);
 
   useEffect(() => {
-    // Redirect to onboarding if required
-    if (isReady && !isOnboardingComplete && pathname !== "/onboarding") {
-      router.push("/onboarding");
+    if (isReady) {
+      const inAuthGroup = segments[0] === "(public)";
+      // Redirect to auth flow if required
+      if (!user && !inAuthGroup) {
+        router.replace("/welcome");
+      } else if (user && inAuthGroup) {
+        router.replace("/");
+      }
     }
-  }, [isOnboardingComplete, isReady, pathname, router]);
+  }, [isReady, router, segments, user]);
 
+  // Check for updates
   useEffect(() => {
-    // Check for updates
     const checkForUpdates = async () => {
       try {
         const update = await Updates.checkForUpdateAsync();
@@ -75,6 +89,7 @@ export default function IndexLayout() {
     checkForUpdates();
   }, []);
 
+  console.log({ isReady });
   if (!isReady) {
     return <SplashScreen />;
   }
@@ -82,18 +97,26 @@ export default function IndexLayout() {
   return (
     <Stack
       screenOptions={{
-        gestureEnabled: false,
         headerTitleStyle: { fontSize: 24, fontFamily: "Bitter_700Bold" },
         headerBackVisible: false,
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="(public)" options={{ headerShown: false }} />
+      <Stack.Screen name="(home-tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="invite-friend" options={{ headerShown: false }} />
       <Stack.Screen name="join-game" options={{ headerShown: false }} />
       <Stack.Screen name="game" options={{ headerTitle: "Match" }} />
       <Stack.Screen name="game-results" options={{ headerTitle: "Results" }} />
       <Stack.Screen name="view-answers" options={{ headerTitle: "Answers" }} />
+      <Stack.Screen
+        name="choose-avatar"
+        options={{ headerTitle: "Choose Avatar", headerBackVisible: true }}
+      />
+      <Stack.Screen
+        name="notifications"
+        options={{ headerTitle: "Notifications" }}
+      />
       <Stack.Screen
         name="feedback"
         options={{

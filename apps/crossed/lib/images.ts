@@ -1,0 +1,31 @@
+export const images = {
+  winner: require("../assets/images/winner.png"),
+  lost: require("../assets/images/lost.png"),
+  card_ellipsis: require("../assets/images/card_ellipsis.png"),
+  solo: require("../assets/images/solo.png"),
+  friend: require("../assets/images/friend.png"),
+  logo: require("../assets/images/logo.png"),
+  splash: require("../assets/images/splash.png"),
+  splash_bg: require("../assets/images/splash_bg.png"),
+  input_check: require("../assets/images/input_check.png"),
+  stop_watch: require("../assets/images/stop_watch.png"),
+  arrow_left: require("../assets/images/arrow_left.png"),
+  arrow_right: require("../assets/images/arrow_right.png"),
+  bell: require("../assets/images/bell.png"),
+  tab_home: require("../assets/images/tab_home.png"),
+  tab_my_account: require("../assets/images/tab_my_account.png"),
+};
+
+export const avatars = {
+  avatar_lion: require("../assets/images/avatar_lion.png"),
+  avatar_frog: require("../assets/images/avatar_frog.png"),
+  avatar_snake: require("../assets/images/avatar_snake.png"),
+  avatar_monkey: require("../assets/images/avatar_monkey.png"),
+  avatar_bee: require("../assets/images/avatar_bee.png"),
+  avatar_panda: require("../assets/images/avatar_panda.png"),
+  avatar_pig: require("../assets/images/avatar_pig.png"),
+  avatar_bird: require("../assets/images/avatar_bird.png"),
+  avatar_penguin: require("../assets/images/avatar_penguin.png"),
+  avatar_donkey: require("../assets/images/avatar_donkey.png"),
+  // avatar_turtle: require("../assets/images/avatar_turtle.png"),
+};

@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Text } from "react-native";
-import { images } from "../images";
+import { images } from "../lib/images";
 import { TouchableOpacity } from "react-native-gesture-handler";
 
 export const PlaySoloButton = ({ onPress }: { onPress: () => void }) => {

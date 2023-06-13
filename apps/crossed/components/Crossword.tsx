@@ -6,14 +6,14 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import produce from "immer";
-import { GameState, TCrossword } from "../types";
-import { gamesCollection } from "../firebase-collection";
+import { GameState, TCrossword } from "../lib/types";
+import { gamesCollection } from "../lib/firebase-collection";
 import { useGame } from "../hooks/use-game";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import { SoloCrosswordHeader } from "./SoloCrosswordHeader";
 import { Image } from "expo-image";
-import { images } from "../images";
+import { images } from "../lib/images";
 import { useCurrentUser } from "../hooks/use-current-user";
 
 type CrosswordContextType = {

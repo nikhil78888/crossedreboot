@@ -1,14 +1,14 @@
 import { Image } from "expo-image";
 import { Alert, ScrollView, Text, View } from "react-native";
 import Animated, { BounceIn, ZoomOut } from "react-native-reanimated";
-import { images } from "../images";
+import { images } from "../lib/images";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { PlayFriendlyButton } from "./PlayFriendlyButton";
 import { PlaySoloButton } from "./PlaySoloButton";
 import { useRouter } from "expo-router";
 import { calculateScore, useGame } from "../hooks/use-game";
 import { useCurrentUser } from "../hooks/use-current-user";
-import { classNames } from "../utils";
+import { classNames } from "../lib/utils";
 import { PrimaryButton } from "./PrimaryButton";
 import { ShareAppButton } from "./ShareAppButton";
 

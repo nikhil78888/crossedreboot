@@ -1,0 +1,67 @@
+import { Tabs, useRouter } from "expo-router";
+import { useAuth } from "../../hooks/use-auth";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import { Image } from "expo-image";
+import { images } from "../../lib/images";
+
+export default function HomeLayout() {
+  const { user } = useAuth();
+  const router = useRouter();
+  if (!user) {
+    return null;
+  }
+  return (
+    <Tabs
+      screenOptions={{
+        headerTitleStyle: {
+          fontFamily: "bitterBold",
+          fontSize: 32,
+          lineHeight: 38.4,
+        },
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => router.push("/notifications")}
+            className="mr-4"
+          >
+            <Image source={images.bell} className="h-[25] w-[22.47]" />
+          </TouchableOpacity>
+        ),
+        tabBarLabelStyle: {
+          fontFamily: "bitterBold",
+          fontSize: 12,
+        },
+        tabBarActiveTintColor: "#316C81",
+        tabBarInactiveTintColor: "#BDCBCB",
+      }}
+    >
+      <Tabs.Screen
+        name="home"
+        options={{
+          tabBarLabel: "Home",
+          headerTitle: "Crossed.",
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={images.tab_home}
+              className="h-5 w-5"
+              style={{ tintColor: color }}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="my-account"
+        options={{
+          headerTitle: "My Account",
+          tabBarLabel: "My Account",
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={images.tab_my_account}
+              className="h-5 w-[17.62]"
+              style={{ tintColor: color }}
+            />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
