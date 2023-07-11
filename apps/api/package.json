@@ -8,21 +8,28 @@
     "dev": "tsup src/index.ts --format cjs --watch --onSuccess \"node dist/index.js\"",
     "lint": "tsc --noEmit && eslint \"src/**/*.ts*\"",
     "start": "node dist/index.js",
-    "test": "jest --detectOpenHandles"
+    "test": "jest --detectOpenHandles",
+    "load-words": "tsup scripts/load-words.ts --format cjs --onSuccess \"node dist/load-words.js\"",
+    "create-crossword": "tsup scripts/create-crossword.ts --format cjs --onSuccess \"node dist/create-crossword.js\""
   },
   "jest": {
     "preset": "jest-presets/jest/node"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.24.0",
+    "axios": "^1.4.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
+    "d3-dsv": "2",
     "database": "*",
+    "date-fns": "^2.30.0",
     "express": "^4.17.1",
     "firebase-admin": "^11.9.0",
     "http-errors": "2.0.0",
     "jose": "^4.14.4",
+    "langchain": "0.0.95",
     "morgan": "^1.10.0",
+    "types-and-validators": "*",
     "zod": "3.21.4"
   },
   "devDependencies": {

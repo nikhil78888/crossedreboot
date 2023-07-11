@@ -1,21 +1,14 @@
 // /api/profile
 
 import express, { Router } from "express";
-import { supabase } from "../lib/supabase";
+import { getUsersInLobby } from "./profile.service";
 
 export const profileRouter: Router = express.Router();
 
 profileRouter.get("/online", async (req, res, next) => {
   try {
-    const statusChannel = supabase.channel("online-status");
-    statusChannel
-      .on("presence", { event: "sync" }, () => {
-        const state = statusChannel.presenceState();
-        console.log({ state });
-        res.send(state);
-        statusChannel.unsubscribe();
-      })
-      .subscribe();
+    const users = await getUsersInLobby();
+    res.send(users);
   } catch (error) {
     next(error);
   }

@@ -1,18 +1,17 @@
 import { useEffect } from "react";
-import { useAuth } from "./use-auth";
-import { getSupabase } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
+import { useMyProfile } from "./use-my-profile";
 
 export const useOnlineStatus = () => {
-  const { user } = useAuth();
+  const { myProfile } = useMyProfile();
 
   useEffect(() => {
-    if (user) {
-      const supabase = getSupabase();
+    if (myProfile) {
       const statusChannel = supabase.channel("online-status");
       statusChannel.subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           await statusChannel.track({
-            userId: user.uid,
+            userId: myProfile.id,
             onlineAt: new Date().toISOString(),
           });
         }
@@ -22,5 +21,5 @@ export const useOnlineStatus = () => {
         supabase.removeChannel(statusChannel);
       };
     }
-  }, [user]);
+  }, [myProfile]);
 };

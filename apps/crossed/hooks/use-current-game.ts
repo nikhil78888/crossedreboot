@@ -1,24 +1,27 @@
 import useSWR from "swr";
-import { gamesCollection } from "../lib/firebase-collection";
-import { useCurrentUser } from "./use-current-user";
+import { useMyProfile } from "./use-my-profile";
+import { supabase } from "../lib/supabase";
 
 export const useCurrentGame = () => {
-  const { user } = useCurrentUser();
+  const { myProfile } = useMyProfile();
   const {
     data: currentGameId,
     isLoading: loadingCurrentGameId,
     error: loadCurrentGameError,
-  } = useSWR(user ? "current-game" : null, async () => {
-    const documents = await gamesCollection
-      .where("players", "array-contains", user?.uid)
-      .orderBy("created", "desc")
-      .get();
-    const currentGameDoc = documents.docs.find(
-      (d) => d.data().play_state !== "COMPLETED"
-    );
-    return currentGameDoc?.id;
-    // return currentGameDoc?.id || documents.docs[0]?.id;
-    // return documents.docs[0].id;
+  } = useSWR(myProfile ? "current-game" : null, async () => {
+    if (myProfile) {
+      const { data, error } = await supabase
+        .from("games")
+        .select("*, profiles(*)")
+        .filter("profiles.id", "eq", myProfile.id)
+        .in("playState", ["PLAYING", "WAITING_FOR_OPPONENT"])
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+
+      return data?.id;
+    }
   });
 
   if (loadCurrentGameError) {

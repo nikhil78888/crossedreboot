@@ -3,7 +3,7 @@ export type Json =
   | number
   | boolean
   | null
-  | { [key: string]: Json }
+  | { [key: string]: Json | undefined }
   | Json[]
 
 export interface Database {
@@ -42,11 +42,117 @@ export interface Database {
         }
         Relationships: []
       }
+      crosswords: {
+        Row: {
+          category: Database["public"]["Enums"]["CrosswordCategory"]
+          clues: Json
+          difficulty: number
+          id: string
+          isPublished: boolean
+          puzzle: string[] | null
+          size: number
+          solution: string[] | null
+          source: Database["public"]["Enums"]["CrosswordSource"]
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["CrosswordCategory"]
+          clues: Json
+          difficulty: number
+          id?: string
+          isPublished: boolean
+          puzzle?: string[] | null
+          size: number
+          solution?: string[] | null
+          source: Database["public"]["Enums"]["CrosswordSource"]
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["CrosswordCategory"]
+          clues?: Json
+          difficulty?: number
+          id?: string
+          isPublished?: boolean
+          puzzle?: string[] | null
+          size?: number
+          solution?: string[] | null
+          source?: Database["public"]["Enums"]["CrosswordSource"]
+        }
+        Relationships: []
+      }
+      gamePlayers: {
+        Row: {
+          gamesId: string
+          profilesId: string
+        }
+        Insert: {
+          gamesId: string
+          profilesId: string
+        }
+        Update: {
+          gamesId?: string
+          profilesId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamePlayers_gamesId_fkey"
+            columns: ["gamesId"]
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamePlayers_profilesId_fkey"
+            columns: ["profilesId"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      games: {
+        Row: {
+          createdAt: string
+          crosswordsId: string
+          gameDurationInSeconds: number
+          gameState: Json | null
+          gameType: Database["public"]["Enums"]["GameType"]
+          id: string
+          playState: Database["public"]["Enums"]["PlayState"]
+          startedAt: string | null
+        }
+        Insert: {
+          createdAt?: string
+          crosswordsId: string
+          gameDurationInSeconds: number
+          gameState?: Json | null
+          gameType: Database["public"]["Enums"]["GameType"]
+          id?: string
+          playState: Database["public"]["Enums"]["PlayState"]
+          startedAt?: string | null
+        }
+        Update: {
+          createdAt?: string
+          crosswordsId?: string
+          gameDurationInSeconds?: number
+          gameState?: Json | null
+          gameType?: Database["public"]["Enums"]["GameType"]
+          id?: string
+          playState?: Database["public"]["Enums"]["PlayState"]
+          startedAt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_crosswordsId_fkey"
+            columns: ["crosswordsId"]
+            referencedRelation: "crosswords"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar: string | null
           country: string | null
+          createdAt: string
           email: string | null
+          id: string
           name: string | null
           userId: string
           username: string
@@ -54,7 +160,9 @@ export interface Database {
         Insert: {
           avatar?: string | null
           country?: string | null
+          createdAt?: string
           email?: string | null
+          id?: string
           name?: string | null
           userId: string
           username: string
@@ -62,7 +170,9 @@ export interface Database {
         Update: {
           avatar?: string | null
           country?: string | null
+          createdAt?: string
           email?: string | null
+          id?: string
           name?: string | null
           userId?: string
           username?: string
@@ -77,7 +187,19 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      CrosswordCategory:
+        | "general"
+        | "sports"
+        | "history"
+        | "geography"
+        | "science"
+        | "politics"
+        | "movies"
+        | "television"
+        | "pop_culture"
+      CrosswordSource: "wizium"
+      GameType: "SOLO" | "FRIENDLY" | "RANKED"
+      PlayState: "WAITING_FOR_OPPONENT" | "PLAYING" | "COMPLETED" | "ABORTED"
     }
     CompositeTypes: {
       [_ in never]: never

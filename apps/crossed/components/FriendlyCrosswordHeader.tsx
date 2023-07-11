@@ -15,15 +15,15 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   useEffect(() => {
     // if game duration is over, end the game, else update time in game
     if (
-      game?.game_type === "FRIENDLY" &&
-      game.play_state === "PLAYING" &&
+      (game?.gameType === "FRIENDLY" || game?.gameType === "RANKED") &&
+      game.playState === "PLAYING" &&
       game.startedAt
     ) {
       const interval = setInterval(() => {
         const gameStartedAt = game.startedAt as string;
         const secondsLeft = differenceInSeconds(
-          addSeconds(new Date(gameStartedAt), game.gameDurationInSeconds),
-          new Date()
+          addSeconds(new Date(`${gameStartedAt}Z`), game.gameDurationInSeconds),
+          new Date(new Date().toUTCString())
         );
         if (secondsLeft < 0) {
           finishGame();
@@ -43,8 +43,8 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     }
   }, [
     game?.gameDurationInSeconds,
-    game?.game_type,
-    game?.play_state,
+    game?.gameType,
+    game?.playState,
     game?.startedAt,
     finishGame,
   ]);
@@ -67,10 +67,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     <View className="flex-row items-center justify-between">
       <View className="flex-row items-center">
         <Image source={images.stop_watch} className="h-5 w-[17.42]" />
-        <Text
-          className="ml-1 text-crossed-green-700 text-sm"
-          style={{ fontFamily: "Lato_700Bold" }}
-        >
+        <Text className="ml-1 text-crossed-green-700 text-sm font-[latoBold]">
           {timeInGame}
         </Text>
         {/* <Text
@@ -82,9 +79,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         </Text> */}
       </View>
       <View className="w-1/2">
-        <Text className="text-sm" style={{ fontFamily: "Lato_300Light" }}>
-          @{opponentUsername}
-        </Text>
+        <Text className="text-sm font-[latoLight]">@{opponentUsername}</Text>
         <ProgressBar
           progress={opponentProgress}
           progressColor="#AFD8CA"

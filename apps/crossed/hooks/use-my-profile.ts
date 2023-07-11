@@ -1,8 +1,8 @@
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import { useAuth } from "./use-auth";
-import { getSupabase } from "../lib/supabase";
 import { Database } from "types-and-validators";
+import { supabase } from "../lib/supabase";
 
 export const useMyProfile = () => {
   const { user } = useAuth();
@@ -14,7 +14,6 @@ export const useMyProfile = () => {
   } = useSWR(user ? "my-profile" : null, async () => {
     if (user) {
       try {
-        const supabase = getSupabase();
         const { data, error } = await supabase
           .from("profiles")
           .select()
@@ -41,7 +40,6 @@ export const useMyProfile = () => {
       }
     ) => {
       try {
-        const supabase = getSupabase();
         const { error } = await supabase.from("profiles").insert(arg);
         if (error) {
           throw error;
@@ -65,7 +63,6 @@ export const useMyProfile = () => {
       }
     ) => {
       try {
-        const supabase = getSupabase();
         const { error } = await supabase
           .from("profiles")
           .update(arg)

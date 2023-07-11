@@ -1,12 +1,8 @@
 import useSWRMutation from "swr/mutation";
 import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
-import firestore from "@react-native-firebase/firestore";
-import { Game, GameState, TCrossword } from "../lib/types";
-import {
-  crosswordsCollection,
-  gamesCollection,
-} from "../lib/firebase-collection";
-import { useCurrentUser } from "./use-current-user";
+import { supabase } from "../lib/supabase";
+import { useMyProfile } from "./use-my-profile";
+import { Game } from "types-and-validators";
 
 export const calculateScore = ({
   correctSolution,
@@ -36,158 +32,167 @@ export const calculateScore = ({
   return score;
 };
 
+export const fixType = (game: Game) => {
+  return {
+    ...game,
+    crossword: {
+      ...game.crossword,
+      solution: game.crossword.solution as unknown as string[][],
+      puzzle: game.crossword.puzzle as unknown as string[][],
+    },
+  };
+};
+
 export const useGame = ({ gameId }: { gameId?: string }) => {
-  const { user, profile } = useCurrentUser();
+  const { myProfile } = useMyProfile();
 
   const { data: game } = useSWRSubscription(
     gameId ? ["game", gameId] : null,
     (key, { next }: SWRSubscriptionOptions<Game, Error>) => {
-      const subscriber = gamesCollection
-        .doc(gameId)
-        .onSnapshot((gameSnapshot) => {
-          const gameData = gameSnapshot.data();
-          if (!gameData) {
-            return;
+      const subscription = supabase
+        .channel(`game-updates-${gameId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "games",
+            filter: `id=eq.${gameId}`,
+          },
+          async () => {
+            const { data: game } = await supabase
+              .from("games")
+              .select("*, players:profiles(*), crossword:crosswords(*)")
+              .eq("id", gameId)
+              .returns<Game>()
+              .single();
+            next(null, game ? fixType(game) : undefined);
           }
-          const crossword: TCrossword = {
-            version: gameData.crossword.version as TCrossword["version"],
-            kind: gameData.crossword.kind as TCrossword["kind"],
-            title: gameData.crossword.title as TCrossword["title"],
-            copyright: gameData.crossword.copyright as TCrossword["copyright"],
-            author: gameData.crossword.author as TCrossword["author"],
-            dimensions: gameData.crossword
-              .dimensions as TCrossword["dimensions"],
-            puzzle: JSON.parse(
-              gameData.crossword.puzzle
-            ) as TCrossword["puzzle"],
-            solution: JSON.parse(
-              gameData.crossword.solution
-            ) as TCrossword["solution"],
-            clues: {
-              Across: JSON.parse(
-                gameData.crossword.clues.Across
-              ) as TCrossword["clues"]["Across"],
-              Down: JSON.parse(
-                gameData.crossword.clues.Down
-              ) as TCrossword["clues"]["Down"],
-            },
-          };
-          const serverGame: Game = {
-            players: gameData.players as Game["players"],
-            player_handles: gameData.player_handles as Game["player_handles"],
-            game_type: gameData.game_type as Game["game_type"],
-            play_state: gameData.play_state as Game["play_state"],
-            startedAt: gameData.startedAt
-              ? new Date(gameData.startedAt.seconds * 1000).toISOString()
-              : ("" as Game["startedAt"]),
-            gameDurationInSeconds:
-              gameData.gameDurationInSeconds as Game["gameDurationInSeconds"],
-            game_state: gameData.game_state
-              ? Object.keys(gameData.game_state).reduce(
-                  (prevValue, playerId) => {
-                    const playerGameState = gameData.game_state[playerId];
-                    return {
-                      ...prevValue,
-                      [playerId]: {
-                        currentCell:
-                          playerGameState.currentCell as GameState["currentCell"],
-                        direction:
-                          playerGameState.direction as GameState["direction"],
-                        solution: JSON.parse(
-                          playerGameState.solution
-                        ) as GameState["solution"],
-                      },
-                    };
-                  },
-                  {}
-                )
-              : undefined,
-            crossword,
-          };
-          next(null, serverGame);
+        )
+        .subscribe(async () => {
+          const { data: game } = await supabase
+            .from("games")
+            .select("*, players:profiles(*), crossword:crosswords(*)")
+            .eq("id", gameId)
+            .returns<Game>()
+            .single();
+          next(null, game ? fixType(game) : undefined);
         });
-      return () => subscriber();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   );
 
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation("create-solo-game", async () => {
-      if (user?.uid) {
-        const gamesPlayed = await gamesCollection
-          .where("players", "array-contains", user.uid)
-          .orderBy("created", "desc")
-          .limit(10)
-          .get();
-        const playedGameIds = gamesPlayed.docs.map((d) => d.data().crosswordId);
-        let documents;
-        if (playedGameIds.length) {
-          documents = await crosswordsCollection
-            .where(firestore.FieldPath.documentId(), "not-in", playedGameIds)
-            .get();
-        }
-        if (!documents?.docs.length) {
-          documents = await crosswordsCollection.get();
-        }
-        if (documents.docs.length) {
-          const count = documents.docs.length;
-          const randomIndex = Math.floor(Math.random() * count);
-          const game = {
-            crossword: documents.docs[randomIndex].data(),
-            crosswordId: documents.docs[randomIndex].id,
-            players: [user.uid],
-            play_state: "PLAYING",
-            game_type: "SOLO",
-            created: firestore.FieldValue.serverTimestamp(),
-          };
-          const soloGameDoc = await gamesCollection.add(game);
-          return soloGameDoc.id;
+      if (myProfile) {
+        const { data: played } = await supabase
+          .from("profiles")
+          .select("games(crosswordsId)")
+          .eq("id", myProfile.id)
+          .limit(1)
+          .single();
+
+        const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
+
+        const { data: crossword } = await supabase
+          .from("crosswords")
+          .select("*")
+          .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
+          .limit(1)
+          .single();
+
+        if (crossword) {
+          const { data: game, error: createGameError } = await supabase
+            .from("games")
+            .insert({
+              crosswordsId: crossword.id,
+              gameType: "SOLO",
+              playState: "PLAYING",
+              gameDurationInSeconds: 300,
+            })
+            .select("*")
+            .single();
+          if (createGameError) {
+            throw createGameError;
+          }
+          await supabase
+            .from("gamePlayers")
+            .insert({ gamesId: game.id, profilesId: myProfile.id });
+          return game.id;
         }
       }
     });
 
   const { trigger: createFriendlyGame, isMutating: creatingFriendlyGame } =
     useSWRMutation("create-friendly-game", async () => {
-      if (user?.uid) {
-        const gamesPlayed = await gamesCollection
-          .where("players", "array-contains", user.uid)
-          .orderBy("created", "desc")
-          .limit(10)
-          .get();
-        const playedGameIds = gamesPlayed.docs.map((d) => d.data().crosswordId);
-        let documents;
-        if (playedGameIds.length) {
-          documents = await crosswordsCollection
-            .where(firestore.FieldPath.documentId(), "not-in", playedGameIds)
-            .get();
-        }
-        if (!documents?.docs.length) {
-          documents = await crosswordsCollection.get();
-        }
-        if (documents.docs.length) {
-          const count = documents.docs.length;
-          const randomIndex = Math.floor(Math.random() * count);
-          const game = {
-            crossword: documents.docs[randomIndex].data(),
-            crosswordId: documents.docs[randomIndex].id,
-            players: [user.uid],
-            play_state: "WAITING_FOR_OPPONENT",
-            game_type: "FRIENDLY",
-            player_handles: { [user.uid]: profile?.username },
-            gameDurationInSeconds: 180,
-            created: firestore.FieldValue.serverTimestamp(),
-          };
-          const friendlyGameDoc = await gamesCollection.add(game);
-          return friendlyGameDoc.id;
+      if (myProfile) {
+        const { data: played } = await supabase
+          .from("profiles")
+          .select("games(crosswordsId)")
+          .eq("id", myProfile.id)
+          .limit(1)
+          .single();
+
+        const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
+
+        const { data: crossword } = await supabase
+          .from("crosswords")
+          .select("*")
+          .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
+          .limit(1)
+          .single();
+
+        if (crossword) {
+          const { data: game, error: createGameError } = await supabase
+            .from("games")
+            .insert({
+              crosswordsId: crossword.id,
+              gameType: "FRIENDLY",
+              playState: "WAITING_FOR_OPPONENT",
+              gameDurationInSeconds: 300,
+            })
+            .select("*")
+            .single();
+          if (createGameError) {
+            throw createGameError;
+          }
+          await supabase
+            .from("gamePlayers")
+            .insert({ gamesId: game.id, profilesId: myProfile.id });
+          return game.id;
         }
       }
     });
+
+  const { trigger: startGame, isMutating: startingGame } = useSWRMutation(
+    "start-friendly-game",
+    async () => {
+      if (gameId && myProfile) {
+        await supabase
+          .from("gamePlayers")
+          .insert({ gamesId: gameId, profilesId: myProfile.id });
+        await supabase
+          .from("games")
+          .update({ playState: "PLAYING", startedAt: new Date().toISOString() })
+          .eq("id", gameId);
+      }
+    }
+  );
 
   const { trigger: finishGame, isMutating: finishingGame } = useSWRMutation(
     "finish-game",
     async () => {
       if (gameId) {
-        await gamesCollection.doc(gameId).update("play_state", "COMPLETED");
-        return;
+        const { error } = await supabase
+          .from("games")
+          .update({ playState: "COMPLETED" })
+          .eq("id", gameId);
+        if (error) {
+          throw error;
+        }
       }
     }
   );
@@ -196,22 +201,32 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     "abort-game",
     async () => {
       if (gameId) {
-        await gamesCollection.doc(gameId).update("play_state", "ABORTED");
-        return;
+        const { error } = await supabase
+          .from("games")
+          .update({ playState: "ABORTED" })
+          .eq("id", gameId);
+        if (error) {
+          throw error;
+        }
       }
     }
   );
 
   let opponentProgress = 0;
   let opponentUsername = "";
-  if (game?.game_type === "FRIENDLY") {
-    const opponentUid = game.players.find((uid) => uid !== user?.uid);
-    if (opponentUid) {
-      opponentUsername = game.player_handles[opponentUid];
-      if (game.game_state?.[opponentUid]) {
+  if (
+    myProfile &&
+    (game?.gameType === "FRIENDLY" || game?.gameType === "RANKED")
+  ) {
+    const opponent = game.players.find(
+      (profile) => profile.id !== myProfile.id
+    );
+    if (opponent) {
+      opponentUsername = opponent.username;
+      if (game.gameState?.[opponent.id]) {
         opponentProgress = calculateScore({
           correctSolution: game.crossword.solution,
-          solution: game.game_state[opponentUid].solution,
+          solution: game.gameState[opponent.id].solution,
         });
       }
     }
@@ -229,5 +244,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     abortingGame,
     opponentProgress,
     opponentUsername,
+    startGame,
+    startingGame,
   };
 };

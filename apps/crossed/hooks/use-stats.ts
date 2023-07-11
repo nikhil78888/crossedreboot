@@ -1,54 +1,59 @@
-import { gamesCollection } from "../lib/firebase-collection";
-import { useCurrentUser } from "./use-current-user";
 import useSWR from "swr";
-import { calculateScore } from "./use-game";
+import { calculateScore, fixType } from "./use-game";
+import { useMyProfile } from "./use-my-profile";
+import { supabase } from "../lib/supabase";
+import { Game } from "types-and-validators";
 
 export const useStats = () => {
-  const { user } = useCurrentUser();
+  const { myProfile } = useMyProfile();
 
   const { data: stats } = useSWR(
-    user ? `stats-${user.uid}` : null,
+    myProfile ? `stats-${myProfile.id}` : null,
     async () => {
-      if (user) {
-        const documents = await gamesCollection
-          .where("players", "array-contains", user.uid)
-          .get();
+      if (myProfile) {
+        const { data, error } = await supabase
+          .from("games")
+          .select("*, players:profiles(*), crossword:crosswords(*)")
+          .filter("profiles.id", "eq", myProfile.id)
+          .returns<Game[]>();
+        if (error) {
+          throw error;
+        }
         let gamesPlayed = 0;
         let gamesWon = 0;
-        for (let i = 0; i < documents.docs.length; i += 1) {
-          const gameData = documents.docs[i].data();
-          if (gameData.play_state === "COMPLETED") {
+        for (let i = 0; i < data.length; i += 1) {
+          const gameData = fixType(data[i]);
+          if (gameData.playState === "COMPLETED") {
             gamesPlayed += 1;
-            const correctSolution = JSON.parse(gameData.crossword.solution);
-            const mySolution =
-              gameData.game_state?.[user.uid]?.solution &&
-              JSON.parse(gameData.game_state[user.uid].solution);
+            const correctSolution = gameData.crossword.solution;
+            const mySolution = gameData.gameState?.[myProfile.id]?.solution;
             const myScore = mySolution
               ? calculateScore({
                   correctSolution,
                   solution: mySolution,
                 })
               : 0;
-            if (gameData.game_type === "SOLO") {
+            if (gameData.gameType === "SOLO") {
               if (myScore === 100) {
                 gamesWon += 1;
               }
             }
-            if (gameData.game_type === "FRIENDLY") {
-              const opponentUid = gameData.players.find(
-                (p: string) => p !== user.uid
+            if (gameData.gameType === "FRIENDLY") {
+              const opponent = gameData.players.find(
+                (p) => p.id !== myProfile.id
               );
-              const opponentSolution =
-                gameData.game_state?.[opponentUid]?.solution &&
-                JSON.parse(gameData.game_state[opponentUid].solution);
-              const opponentScore = opponentSolution
-                ? calculateScore({
-                    correctSolution,
-                    solution: opponentSolution,
-                  })
-                : 0;
-              if (myScore > opponentScore) {
-                gamesWon += 1;
+              if (opponent) {
+                const opponentSolution =
+                  gameData.gameState?.[opponent.id]?.solution;
+                const opponentScore = opponentSolution
+                  ? calculateScore({
+                      correctSolution,
+                      solution: opponentSolution,
+                    })
+                  : 0;
+                if (myScore > opponentScore) {
+                  gamesWon += 1;
+                }
               }
             }
           }

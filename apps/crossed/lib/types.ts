@@ -1,3 +1,5 @@
+// TODO - Deprecate this in favor of crossword-types from 'types-and-validators'
+
 export type TCrossword = {
   version: string;
   kind: string[];

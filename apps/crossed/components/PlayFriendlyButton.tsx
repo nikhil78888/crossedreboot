@@ -13,10 +13,7 @@ export const PlayFriendlyButton = ({ onPress }: { onPress: () => void }) => {
         source={images.card_ellipsis}
         className="absolute right-0 bottom-0 w-3/5 aspect-square"
       />
-      <Text
-        className="text-crossed-black-700 text-xl ml-2.5 mt-2.5"
-        style={{ fontFamily: "Lato_300Light" }}
-      >
+      <Text className="text-crossed-black-700 text-xl ml-2.5 mt-2.5 font-[latoLight]">
         With{"\n"}Your{"\n"}Friend
       </Text>
       <Image

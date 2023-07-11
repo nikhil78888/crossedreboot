@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "lib": ["ES2015"],
-    "module": "CommonJS",
+    "target": "ES2020",
+    "module": "NodeNext",
     "outDir": "./dist",
     "rootDir": "./src"
   },

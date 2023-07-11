@@ -5,29 +5,30 @@ import { images } from "../lib/images";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { PlayFriendlyButton } from "./PlayFriendlyButton";
 import { PlaySoloButton } from "./PlaySoloButton";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { calculateScore, useGame } from "../hooks/use-game";
-import { useCurrentUser } from "../hooks/use-current-user";
 import { classNames } from "../lib/utils";
 import { PrimaryButton } from "./PrimaryButton";
 import { ShareAppButton } from "./ShareAppButton";
+import { useMyProfile } from "../hooks/use-my-profile";
 
 export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
-  const { user, profile } = useCurrentUser();
+  const { myProfile } = useMyProfile();
   const { createFriendlyGame, createSoloGame, game, opponentUsername } =
     useGame({ gameId });
-  if (!user || !game) {
+  if (!myProfile || !game) {
     return null;
   }
-  const mySolution = game.game_state?.[user.uid].solution;
+  const mySolution = game.gameState?.[myProfile.id].solution;
   const correctSolution = game.crossword.solution;
   const myPoints = calculateScore({
     solution: mySolution,
     correctSolution,
   });
-  const opponentUid = game.players.find((p) => p !== user.uid) as string;
-  const opponentSolution = game.game_state?.[opponentUid].solution;
+  const opponent = game.players.find((p) => p.id !== myProfile.id);
+  const opponentUid = opponent?.id as string;
+  const opponentSolution = game.gameState?.[opponentUid].solution;
   const opponentPoints = calculateScore({
     solution: opponentSolution,
     correctSolution,
@@ -60,7 +61,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
                 result === "WON" ? "text-crossed-yellow-400" : "",
                 result === "LOST" ? "text-crossed-red-400" : ""
               )}
-              style={{ fontFamily: "Bitter_700Bold" }}
+              style={{ fontFamily: "bitterBold" }}
             >
               {result === "PERFECT_SCORE" || result === "WON"
                 ? "You are the Winner!"
@@ -80,7 +81,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
                 result === "WON" ? "text-crossed-yellow-400" : "",
                 result === "LOST" ? "text-crossed-red-400" : ""
               )}
-              style={{ fontFamily: "Bitter_700Bold" }}
+              style={{ fontFamily: "bitterBold" }}
             >
               You got {myPoints} Points
             </Text>
@@ -88,7 +89,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         </View>
         <Text
           className="mt-5 text-3xl text-center"
-          style={{ fontFamily: "Bitter_700Bold" }}
+          style={{ fontFamily: "bitterBold" }}
         >
           Checkout the Answers
         </Text>
@@ -97,16 +98,16 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
             <PrimaryButton
               onPress={() =>
                 router.replace(
-                  `/view-answers?gameId=${gameId}&playerId=${user.uid}`
+                  `/view-answers?gameId=${gameId}&playerId=${myProfile.id}`
                 )
               }
             >
               <View className="px-2 h-full w-full items-center justify-center">
                 <Text
                   className="text-white"
-                  style={{ fontFamily: "Bitter_700Bold" }}
+                  style={{ fontFamily: "bitterBold" }}
                 >
-                  @{profile?.username}
+                  @{myProfile?.username}
                 </Text>
               </View>
             </PrimaryButton>
@@ -122,7 +123,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               <View className="px-2 h-full w-full items-center justify-center">
                 <Text
                   className="text-white"
-                  style={{ fontFamily: "Bitter_700Bold" }}
+                  style={{ fontFamily: "bitterBold" }}
                 >
                   @{opponentUsername}
                 </Text>
@@ -137,7 +138,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               router.replace(`/view-answers?gameId=${gameId}`);
             }}
           >
-            <Text style={{ fontFamily: "Bitter_700Bold" }}>
+            <Text style={{ fontFamily: "bitterBold" }}>
               View Crossword Answers
             </Text>
           </TouchableOpacity>
@@ -149,14 +150,12 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               router.push(`/feedback`);
             }}
           >
-            <Text style={{ fontFamily: "Bitter_700Bold" }}>
-              Leave us feedback
-            </Text>
+            <Text style={{ fontFamily: "bitterBold" }}>Leave us feedback</Text>
           </TouchableOpacity>
         </View>
         <Text
           className="mt-6 font-bold text-xl"
-          style={{ fontFamily: "Bitter_700Bold" }}
+          style={{ fontFamily: "bitterBold" }}
         >
           Start a New Match
         </Text>
@@ -202,7 +201,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
                 router.replace(`/`);
               }}
             >
-              <Text style={{ fontFamily: "Bitter_700Bold" }}>Go Home</Text>
+              <Text style={{ fontFamily: "bitterBold" }}>Go Home</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -216,12 +215,13 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
 
 export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
-  const { user } = useCurrentUser();
+  const navigation = useNavigation();
+  const { myProfile } = useMyProfile();
   const { createFriendlyGame, createSoloGame, game } = useGame({ gameId });
-  if (!user || !game) {
+  if (!myProfile || !game) {
     return null;
   }
-  const solution = game.game_state?.[user?.uid].solution;
+  const solution = game.gameState?.[myProfile.id].solution;
   const correctSolution = game.crossword.solution;
   const points = calculateScore({ solution, correctSolution });
   const result = points === 100 ? "PERFECT_SCORE" : points > 0 ? "WON" : "LOST";
@@ -245,7 +245,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
                 result === "WON" ? "text-crossed-yellow-400" : "",
                 result === "LOST" ? "text-crossed-red-400" : ""
               )}
-              style={{ fontFamily: "Bitter_700Bold" }}
+              style={{ fontFamily: "bitterBold" }}
             >
               {result === "PERFECT_SCORE"
                 ? "You aced it!"
@@ -269,7 +269,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
                 result === "WON" ? "text-crossed-yellow-400" : "",
                 result === "LOST" ? "text-crossed-red-400" : ""
               )}
-              style={{ fontFamily: "Bitter_700Bold" }}
+              style={{ fontFamily: "bitterBold" }}
             >
               You got {points} Points
             </Text>
@@ -277,7 +277,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
         </View>
         <Text
           className="mt-5 text-3xl text-center"
-          style={{ fontFamily: "Bitter_700Bold" }}
+          style={{ fontFamily: "bitterBold" }}
         >
           Checkout the Answers
         </Text>
@@ -288,7 +288,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
               router.replace(`/view-answers?gameId=${gameId}`);
             }}
           >
-            <Text style={{ fontFamily: "Bitter_700Bold" }}>
+            <Text style={{ fontFamily: "bitterBold" }}>
               View Crossword Answers
             </Text>
           </TouchableOpacity>
@@ -300,10 +300,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             }}
           >
             <View className="h-full w-full items-center justify-center">
-              <Text
-                className="text-white"
-                style={{ fontFamily: "Bitter_700Bold" }}
-              >
+              <Text className="text-white" style={{ fontFamily: "bitterBold" }}>
                 Leave us feedback
               </Text>
             </View>
@@ -311,7 +308,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
         </View>
         <Text
           className="mt-6 font-bold text-xl"
-          style={{ fontFamily: "Bitter_700Bold" }}
+          style={{ fontFamily: "bitterBold" }}
         >
           Start a New Match
         </Text>
@@ -354,10 +351,10 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             <TouchableOpacity
               className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
               onPress={() => {
-                router.replace(`/`);
+                navigation.navigate("home");
               }}
             >
-              <Text style={{ fontFamily: "Bitter_700Bold" }}>Go Home</Text>
+              <Text style={{ fontFamily: "bitterBold" }}>Go Home</Text>
             </TouchableOpacity>
           </View>
         </View>

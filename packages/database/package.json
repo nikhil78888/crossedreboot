@@ -15,7 +15,9 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push --skip-generate",
-    "db:pull": "prisma db pull"
+    "db:pull": "prisma db pull",
+    "db:migrate:dev": "prisma migrate dev --create-only",
+    "db:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "4.15.0"

@@ -2,62 +2,62 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect } from "react";
 import { Alert, View } from "react-native";
 import { useGame } from "../hooks/use-game";
-import { useCurrentUser } from "../hooks/use-current-user";
-import { Crossword } from "../components/Crossword";
+import { CrosswordGrid } from "../components/Crossword";
 import { Text } from "react-native";
 import { PlayFriendlyButton } from "../components/PlayFriendlyButton";
 import { PlaySoloButton } from "../components/PlaySoloButton";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
+import { useMyProfile } from "../hooks/use-my-profile";
 
 export default function ViewAnswers() {
   const { gameId, playerId }: { gameId?: string; playerId?: string } =
     useLocalSearchParams();
   const navigation = useNavigation();
   const router = useRouter();
-  const { game, opponentUsername, createFriendlyGame, createSoloGame } =
-    useGame({ gameId });
-  const { user, profile } = useCurrentUser();
+  const { game, createFriendlyGame, createSoloGame } = useGame({ gameId });
+  const { myProfile } = useMyProfile();
 
   useLayoutEffect(() => {
     if (!playerId) {
       navigation.setOptions({ headerTitle: "Crossword Answers" });
       return;
     }
-    if (playerId === user?.uid) {
-      navigation.setOptions({ headerTitle: `Answers of ${profile?.username}` });
-      return;
-    }
-    navigation.setOptions({ headerTitle: `Answers of ${opponentUsername}` });
-  }, [playerId, navigation, user?.uid, opponentUsername, profile?.username]);
+    const playerProfile = game?.players.find(
+      (profile) => profile.id === playerId
+    );
+    navigation.setOptions({
+      headerTitle: `Answers of ${playerProfile?.username}`,
+    });
+  }, [playerId, navigation, game?.players]);
 
-  if (!game || !user) {
+  if (!game || !myProfile) {
     return null;
   }
 
-  const opponentUid = game.players.find((p) => p !== user.uid);
+  const opponent = game.players.find((p) => p.id !== myProfile.id);
 
   return (
     <ScrollView className="flex-1 bg-white">
-      <Crossword gameId={gameId as string} showResults={{ playerId }} />
+      <CrosswordGrid gameId={gameId as string} showResults={{ playerId }} />
       <View className="flex-1 px-5">
-        {game.game_type === "FRIENDLY" && (
+        {game.gameType === "FRIENDLY" && (
           <View className="flex flex-row items-center justify-between space-x-2 mt-6">
             <View>
-              {playerId === user.uid ? (
+              {playerId === myProfile.id ? (
                 <PrimaryButton
                   onPress={() =>
                     router.replace(
-                      `/view-answers?gameId=${gameId}&playerId=${opponentUid}`
+                      `/view-answers?gameId=${gameId}&playerId=${opponent?.id}`
                     )
                   }
                 >
                   <View className="px-2 h-full w-full items-center justify-center">
                     <Text
                       className="text-white"
-                      style={{ fontFamily: "Bitter_700Bold" }}
+                      style={{ fontFamily: "bitterBold" }}
                     >
-                      @{opponentUsername}
+                      @{opponent?.username}
                     </Text>
                   </View>
                 </PrimaryButton>
@@ -65,16 +65,16 @@ export default function ViewAnswers() {
                 <PrimaryButton
                   onPress={() =>
                     router.replace(
-                      `/view-answers?gameId=${gameId}&playerId=${user.uid}`
+                      `/view-answers?gameId=${gameId}&playerId=${myProfile.id}`
                     )
                   }
                 >
                   <View className="px-2 h-full w-full items-center justify-center">
                     <Text
                       className="text-white"
-                      style={{ fontFamily: "Bitter_700Bold" }}
+                      style={{ fontFamily: "bitterBold" }}
                     >
-                      @{profile?.username}
+                      @{myProfile?.username}
                     </Text>
                   </View>
                 </PrimaryButton>
@@ -88,7 +88,7 @@ export default function ViewAnswers() {
                     router.replace(`/view-answers?gameId=${gameId}`);
                   }}
                 >
-                  <Text style={{ fontFamily: "Bitter_700Bold" }}>
+                  <Text style={{ fontFamily: "bitterBold" }}>
                     View Crossword Answers
                   </Text>
                 </TouchableOpacity>
@@ -96,16 +96,16 @@ export default function ViewAnswers() {
                 <PrimaryButton
                   onPress={() =>
                     router.replace(
-                      `/view-answers?gameId=${gameId}&playerId=${opponentUid}`
+                      `/view-answers?gameId=${gameId}&playerId=${opponent?.id}`
                     )
                   }
                 >
                   <View className="px-2 h-full w-full items-center justify-center">
                     <Text
                       className="text-white"
-                      style={{ fontFamily: "Bitter_700Bold" }}
+                      style={{ fontFamily: "bitterBold" }}
                     >
-                      @{opponentUsername}
+                      @{opponent?.username}
                     </Text>
                   </View>
                 </PrimaryButton>

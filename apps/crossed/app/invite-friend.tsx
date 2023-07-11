@@ -14,7 +14,7 @@ export default function InviteFriend() {
     gameId: gameId as string | undefined,
   });
   const navigation = useNavigation();
-  const gamePlayState = game?.play_state;
+  const gamePlayState = game?.playState;
 
   useEffect(() => {
     // if game has ended go back home
@@ -61,17 +61,15 @@ export default function InviteFriend() {
       source={images.splash_bg}
       className="flex-1 px-4 items-center justify-center"
     >
-      <Text className="text-2xl" style={{ fontFamily: "Bitter_700Bold" }}>
+      <Text className="text-2xl" style={{ fontFamily: "bitterBold" }}>
         Friendly Match
       </Text>
-      <Text className="mt-2 mb-8" style={{ fontFamily: "Lato_400Regular" }}>
-        Waiting for opponent
-      </Text>
+      <Text className="mt-2 mb-8 font-[latoRegular]">Waiting for opponent</Text>
       <PrimaryButton onPress={inviteFriend}>
         <View className="flex-1 items-center justify-center px-2">
           <Text
             className="text-white text-lg"
-            style={{ fontFamily: "Bitter_700Bold" }}
+            style={{ fontFamily: "bitterBold" }}
           >
             Invite a Friend
           </Text>
@@ -81,10 +79,7 @@ export default function InviteFriend() {
         className="mt-8 h-10 px-2 justify-center"
         onPress={exitGame}
       >
-        <Text
-          className="text-gray-600 text-lg"
-          style={{ fontFamily: "Lato_400Regular" }}
-        >
+        <Text className="text-gray-600 text-lg font-[latoRegular]">
           Exit Game
         </Text>
       </TouchableOpacity>

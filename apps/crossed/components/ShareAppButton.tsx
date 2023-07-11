@@ -12,7 +12,7 @@ export const ShareAppButton = () => {
   return (
     <PrimaryButton onPress={shareApp}>
       <View className="h-full w-full items-center justify-center">
-        <Text className="text-white" style={{ fontFamily: "Bitter_700Bold" }}>
+        <Text className="text-white" style={{ fontFamily: "bitterBold" }}>
           Share Crossed with friends
         </Text>
       </View>

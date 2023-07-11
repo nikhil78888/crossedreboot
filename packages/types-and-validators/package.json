@@ -23,5 +23,9 @@
     "jest-presets": "*",
     "tsconfig": "*",
     "typescript": "^4.8.3"
+  },
+  "dependencies": {
+    "zod": "3.21.4",
+    "database": "*"
   }
 }

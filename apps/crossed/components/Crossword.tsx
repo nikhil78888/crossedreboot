@@ -6,18 +6,18 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import produce from "immer";
-import { GameState, TCrossword } from "../lib/types";
-import { gamesCollection } from "../lib/firebase-collection";
 import { useGame } from "../hooks/use-game";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import { SoloCrosswordHeader } from "./SoloCrosswordHeader";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
-import { useCurrentUser } from "../hooks/use-current-user";
+import { useMyProfile } from "../hooks/use-my-profile";
+import { supabase } from "../lib/supabase";
+import { Crossword, GameState } from "types-and-validators";
 
 type CrosswordContextType = {
-  crossword: TCrossword;
+  crossword: Crossword;
   currentCell: GameState["currentCell"];
   setCurrentCell: (cell: GameState["currentCell"]) => void;
   direction: GameState["direction"];
@@ -36,7 +36,7 @@ type CrosswordContextType = {
 
 const CrosswordContext = createContext<CrosswordContextType>(null!);
 
-export const Crossword = ({
+export const CrosswordGrid = ({
   gameId,
   showResults,
 }: {
@@ -45,7 +45,7 @@ export const Crossword = ({
     playerId?: string;
   };
 }) => {
-  const { user } = useCurrentUser();
+  const { myProfile } = useMyProfile();
   const { finishGame, game } = useGame({ gameId });
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
@@ -70,16 +70,15 @@ export const Crossword = ({
     };
   });
 
-  const isGameFinished = game?.play_state === "COMPLETED";
+  const isGameFinished = game?.playState === "COMPLETED";
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
     // initialize gameState
-    if (game && crossword && user && !gameState) {
+    if (game && crossword && myProfile && !gameState) {
       if (showResults) {
         const solutionToDisplay = showResults.playerId
-          ? (game.game_state?.[showResults.playerId]
-              .solution as GameState["solution"])
+          ? game.gameState?.[showResults.playerId].solution
           : crossword.solution;
         setGameState({
           direction: "Across",
@@ -93,7 +92,7 @@ export const Crossword = ({
         });
         return;
       }
-      const playerGameState = game.game_state?.[user.uid];
+      const playerGameState = game.gameState?.[myProfile.id];
       if (playerGameState) {
         setGameState(playerGameState);
         return;
@@ -119,21 +118,27 @@ export const Crossword = ({
         solution: initalSolutionState,
       });
     }
-  }, [crossword, game, gameState, showResults, user]);
+  }, [crossword, game, gameState, showResults, myProfile]);
 
   useEffect(() => {
     // write gameState to database
-    if (game && gameState) {
-      if (game.play_state !== "COMPLETED") {
-        gamesCollection.doc(gameId).update({
-          [`game_state.${user?.uid}`]: {
-            ...gameState,
-            solution: JSON.stringify(gameState.solution),
-          },
-        });
+    if (game && gameState && myProfile) {
+      if (game.playState !== "COMPLETED") {
+        supabase
+          .from("games")
+          .update({
+            gameState: game.gameState
+              ? {
+                  ...game.gameState,
+                  [myProfile.id]: gameState,
+                }
+              : { [myProfile.id]: gameState },
+          })
+          .eq("id", gameId)
+          .then();
       }
     }
-  }, [game, gameId, gameState, user?.uid]);
+  }, [game, gameId, gameState, myProfile]);
 
   useEffect(() => {
     if (game && gameState) {
@@ -233,7 +238,7 @@ export const Crossword = ({
       // go back in prev row
       const prevRow = cell.x - 1;
       if (prevRow >= 0) {
-        for (let i = crossword.dimensions.width - 1; i >= 0; i = i - 1) {
+        for (let i = crossword.size - 1; i >= 0; i = i - 1) {
           if (solution[prevRow][i] !== null) {
             setCurrentCell({ x: prevRow, y: i });
             if (clearDestination) {
@@ -247,8 +252,8 @@ export const Crossword = ({
         // switch direction and start search from last cell
         gotoPrevCell({
           cell: {
-            x: crossword.dimensions.height,
-            y: crossword.dimensions.width - 1,
+            x: crossword.size,
+            y: crossword.size - 1,
           },
           direction: "Down",
         });
@@ -269,7 +274,7 @@ export const Crossword = ({
       // go back in prev col
       const prevCol = cell.y - 1;
       if (prevCol >= 0) {
-        for (let i = crossword.dimensions.height - 1; i >= 0; i = i - 1) {
+        for (let i = crossword.size - 1; i >= 0; i = i - 1) {
           if (solution[i][prevCol] !== null) {
             setCurrentCell({ x: i, y: prevCol });
             if (clearDestination) {
@@ -283,8 +288,8 @@ export const Crossword = ({
         // switch direction and start from last cell
         gotoPrevCell({
           cell: {
-            x: crossword.dimensions.height - 1,
-            y: crossword.dimensions.width,
+            x: crossword.size - 1,
+            y: crossword.size,
           },
           direction: "Across",
         });
@@ -326,7 +331,7 @@ export const Crossword = ({
         return;
       }
       // find empty cell in following rows
-      for (let i = cell.x + 1; i < crossword.dimensions.height; i += 1) {
+      for (let i = cell.x + 1; i < crossword.size; i += 1) {
         const row = i;
         const emptyRowCellIndex = solution[row].findIndex(
           (cell) => cell === ""
@@ -360,8 +365,8 @@ export const Crossword = ({
 
       // find empty cells in following columns
       const nextCol = currentCol + 1;
-      if (nextCol <= crossword.dimensions.width - 1) {
-        for (let i = nextCol; i < crossword.dimensions.width; i += 1) {
+      if (nextCol <= crossword.size - 1) {
+        for (let i = nextCol; i < crossword.size; i += 1) {
           const currentCol = i;
           const solutionCellsInCurrentCol = solution.map(
             (row) => row[currentCol]
@@ -415,15 +420,16 @@ export const Crossword = ({
     setDirection(direction);
   };
 
+  console.log(crossword.solution);
   return (
     <CrosswordContext.Provider
       value={{
         crossword,
-        currentCell: gameState.currentCell,
+        currentCell,
         setCurrentCell,
-        direction: gameState.direction,
+        direction,
         setDirection,
-        solution: gameState.solution,
+        solution,
         setSolution,
         gameId: gameId,
       }}
@@ -439,10 +445,11 @@ export const Crossword = ({
             <View className="py-3">
               {showResults ? null : (
                 <>
-                  {game?.game_type === "FRIENDLY" && (
-                    <FriendlyCrosswordHeader gameId={gameId as string} />
-                  )}
-                  {game?.game_type === "SOLO" && (
+                  {game?.gameType === "FRIENDLY" ||
+                    (game?.gameType === "RANKED" && (
+                      <FriendlyCrosswordHeader gameId={gameId as string} />
+                    ))}
+                  {game?.gameType === "SOLO" && (
                     <SoloCrosswordHeader gameId={gameId as string} />
                   )}
                 </>
@@ -526,7 +533,7 @@ const CrosswordCell = ({
   const { crossword, currentCell, setCurrentCell, direction } =
     useCrosswordContext();
   const { width } = useWindowDimensions();
-  const textInputFontSize = width / (crossword.dimensions.height * 2);
+  const textInputFontSize = width / (crossword.size * 2);
   const textInputRef = useRef<TextInput | null>(null);
 
   const { x: currentX, y: currentY } = currentCell;
@@ -772,9 +779,7 @@ const CrosswordClue = ({
         </TouchableOpacity>
       </View>
       <View className="flex-row">
-        <Text style={{ fontFamily: "Lato_400Regular" }}>
-          {currentClue?.clue}
-        </Text>
+        <Text className="font-[latoRegular]">{currentClue?.clue}</Text>
       </View>
       <View className="absolute right-0 inset-y-0 items-center justify-center">
         <TouchableOpacity

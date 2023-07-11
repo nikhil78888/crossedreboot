@@ -2,7 +2,7 @@ import auth from "@react-native-firebase/auth";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import axios from "axios";
-import { getSupabase } from "../lib/supabase";
+import { setSupabaseToken, supabase } from "../lib/supabase";
 
 export const useAuth = () => {
   const {
@@ -13,15 +13,14 @@ export const useAuth = () => {
   } = useSWR("auth-user", async () => {
     try {
       const user = auth().currentUser;
-      // const supabase = getSupabase();
       if (user) {
         const firebaseIdToken = await user.getIdToken(true);
         const response = await axios.post(
           "http://localhost:5001/api/auth/login-with-firebase-token",
           { firebaseToken: firebaseIdToken }
         );
-        console.log({ supabaseToken: response.data.supabaseToken });
-        getSupabase(response.data.supabaseToken);
+        const supabaseToken = response.data.supabaseToken;
+        setSupabaseToken(supabaseToken);
       }
       return user;
     } catch (error) {
@@ -41,12 +40,12 @@ export const useAuth = () => {
         const credentials = await auth().signInAnonymously();
         const { user } = credentials;
         await user.updateProfile({ displayName: arg.username });
-        const firebaseIdToken = await user.getIdToken(true);
+        const firebaseIdToken = await user.getIdToken();
         const response = await axios.post(
           "http://localhost:5001/api/auth/login-with-firebase-token",
           { firebaseToken: firebaseIdToken }
         );
-        const supabase = getSupabase(response.data.supabaseToken);
+        setSupabaseToken(response.data.supabaseToken);
         const { error } = await supabase
           .from("profiles")
           .upsert({ userId: user.uid, username: arg.username });
@@ -111,8 +110,8 @@ export const useAuth = () => {
   } = useSWRMutation("logout", async (_key) => {
     try {
       await auth().signOut();
+      setSupabaseToken("");
       await refreshUser();
-      // TODO - sign out from supabase
     } catch (error) {
       console.error(error);
       throw error;

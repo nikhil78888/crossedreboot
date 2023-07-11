@@ -11,10 +11,7 @@ export default function Welcome() {
     <Image source={images.splash_bg} className="flex-1 justify-between">
       <View className="mt-24 items-center">
         <Image source={images.logo} className="h-[173] aspect-square" />
-        <Text
-          className="mt-4 text-crossed-green-900 text-5xl"
-          style={{ fontFamily: "Lato_900Black" }}
-        >
+        <Text className="mt-4 text-crossed-green-900 text-5xl font-[latoBlack]">
           Crossed
         </Text>
       </View>

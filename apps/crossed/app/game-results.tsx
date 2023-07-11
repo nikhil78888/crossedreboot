@@ -16,7 +16,7 @@ export default function GameResults() {
 
   return (
     <View className="flex-1">
-      {game.game_type === "SOLO" ? (
+      {game.gameType === "SOLO" ? (
         <SoloGameResult gameId={gameId} />
       ) : (
         <FriendlyGameResult gameId={gameId} />

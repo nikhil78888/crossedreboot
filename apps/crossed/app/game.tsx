@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useGame } from "../hooks/use-game";
-import { Crossword } from "../components/Crossword";
-import { useCurrentUser } from "../hooks/use-current-user";
+import { CrosswordGrid } from "../components/Crossword";
 import { useEffect } from "react";
 
 export default function Game() {
@@ -10,10 +9,9 @@ export default function Game() {
   const navigation = useNavigation();
   const { gameId } = useLocalSearchParams();
   const { game } = useGame({ gameId: gameId as string | undefined });
-  const { user } = useCurrentUser();
 
-  const gamePlayState = game?.play_state;
-  const gameType = game?.game_type;
+  const gamePlayState = game?.playState;
+  const gameType = game?.gameType;
 
   useEffect(() => {
     switch (gameType) {
@@ -22,6 +20,9 @@ export default function Game() {
         break;
       case "SOLO":
         navigation.setOptions({ headerTitle: "SOLO MATCH" });
+        break;
+      case "RANKED":
+        navigation.setOptions({ headerTitle: "RANKED MATCH" });
         break;
       default:
         break;
@@ -34,7 +35,7 @@ export default function Game() {
     }
   }, [gamePlayState, gameId, router, navigation]);
 
-  if (!user || !game) {
+  if (!game) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
@@ -44,7 +45,7 @@ export default function Game() {
 
   return (
     <View className={`flex-1 bg-white`}>
-      <Crossword gameId={gameId as string} />
+      <CrosswordGrid gameId={gameId as string} />
     </View>
   );
 }

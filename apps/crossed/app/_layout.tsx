@@ -14,7 +14,6 @@ import { Alert } from "react-native";
 import Constants from "expo-constants";
 import LogRocket from "@logrocket/react-native";
 import { useAuth } from "../hooks/use-auth";
-import { useOnlineStatus } from "../hooks/use-online-status";
 
 Sentry.init({
   dsn: Constants.expoConfig?.extra?.sentryDSN,
@@ -24,19 +23,13 @@ Sentry.init({
 
 export default function IndexLayout() {
   const [fontsLoaded] = useFonts({
-    Lato_300Light,
     latoLight: Lato_300Light,
-    Lato_400Regular,
     latoRegular: Lato_400Regular,
-    Lato_700Bold,
     latoBold: Lato_700Bold,
-    Lato_900Black,
     latoBlack: Lato_900Black,
-    Bitter_700Bold,
     bitterBold: Bitter_700Bold,
   });
   const { user, isLoadingUser } = useAuth();
-  useOnlineStatus();
   const segments = useSegments();
   const router = useRouter();
 
@@ -89,7 +82,6 @@ export default function IndexLayout() {
     checkForUpdates();
   }, []);
 
-  console.log({ isReady });
   if (!isReady) {
     return <SplashScreen />;
   }
@@ -97,7 +89,7 @@ export default function IndexLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTitleStyle: { fontSize: 24, fontFamily: "Bitter_700Bold" },
+        headerTitleStyle: { fontSize: 24, fontFamily: "bitterBold" },
         headerBackVisible: false,
       }}
     >

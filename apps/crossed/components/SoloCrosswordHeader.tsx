@@ -23,7 +23,7 @@ export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
       >
         <Text
           className="text-white text-sm"
-          style={{ fontFamily: "Bitter_700Bold" }}
+          style={{ fontFamily: "bitterBold" }}
         >
           Submit Match
         </Text>
