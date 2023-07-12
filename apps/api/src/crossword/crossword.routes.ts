@@ -3,11 +3,8 @@
 import express, { Router } from "express";
 import { z } from "zod";
 import { validate } from "../lib/validate.middleware";
-import createHttpError from "http-errors";
-import { apiConfig } from "../api-config";
 import { CrosswordCategory } from "database";
 import { Crossword } from "types-and-validators";
-import { crosswordService } from "./crossword.service";
 
 export const crosswordRouter: Router = express.Router();
 
@@ -24,13 +21,6 @@ crosswordRouter.post<
   Crossword,
   { category: CrosswordCategory },
   Record<string, never>
->("/", validate(createCrosswordRequestSchema), async (req, res, next) => {
-  try {
-    const crossword = await crosswordService.generateCrossword(
-      req.body.category
-    );
-    res.send(crossword);
-  } catch (error) {
-    next(error);
-  }
+>("/", validate(createCrosswordRequestSchema), async (req, res) => {
+  res.send();
 });

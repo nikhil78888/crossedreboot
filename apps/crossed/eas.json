@@ -1,10 +1,12 @@
 {
   "cli": {
     "version": ">= 3.10.2",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "simulator": {
+      "node": "18.15.0",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
@@ -12,15 +14,18 @@
       }
     },
     "development": {
+      "node": "18.15.0",
       "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
+      "node": "18.15.0",
       "autoIncrement": true,
       "distribution": "internal",
       "channel": "preview"
     },
     "production": {
+      "node": "18.15.0",
       "autoIncrement": true,
       "channel": "production"
     }
