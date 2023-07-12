@@ -7,7 +7,7 @@ export const PlaySoloButton = ({ onPress }: { onPress: () => void }) => {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="h-[130] w-[121] bg-crossed-green-50"
+      className="h-[130] w-full max-w-[121] bg-crossed-green-50"
     >
       <Image
         source={images.card_ellipsis}

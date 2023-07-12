@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import * as Sentry from "sentry-expo";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
   Lato_300Light,
   Lato_400Regular,
@@ -87,36 +88,58 @@ export default function IndexLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerTitleStyle: { fontSize: 24, fontFamily: "bitterBold" },
-        headerBackVisible: false,
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(public)" options={{ headerShown: false }} />
-      <Stack.Screen name="(home-tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="invite-friend" options={{ headerShown: false }} />
-      <Stack.Screen name="join-game" options={{ headerShown: false }} />
-      <Stack.Screen name="game" options={{ headerTitle: "Match" }} />
-      <Stack.Screen name="game-results" options={{ headerTitle: "Results" }} />
-      <Stack.Screen name="view-answers" options={{ headerTitle: "Answers" }} />
-      <Stack.Screen
-        name="choose-avatar"
-        options={{ headerTitle: "Choose Avatar", headerBackVisible: true }}
-      />
-      <Stack.Screen
-        name="notifications"
-        options={{ headerTitle: "Notifications" }}
-      />
-      <Stack.Screen
-        name="feedback"
-        options={{
-          headerTitle: "Feedback",
-          presentation: "modal",
-          gestureEnabled: true,
+    <KeyboardProvider>
+      <Stack
+        screenOptions={{
+          headerTitleStyle: { fontSize: 24, fontFamily: "bitterBold" },
+          headerBackVisible: false,
         }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(public)" options={{ headerShown: false }} />
+        <Stack.Screen name="(home-tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="invite-friend" options={{ headerShown: false }} />
+        <Stack.Screen name="join-game" options={{ headerShown: false }} />
+        <Stack.Screen name="game" options={{ headerTitle: "Match" }} />
+        <Stack.Screen
+          name="game-results"
+          options={{ headerTitle: "Results" }}
+        />
+        <Stack.Screen
+          name="view-answers"
+          options={{ headerTitle: "Answers" }}
+        />
+        <Stack.Screen
+          name="choose-avatar"
+          options={{ headerTitle: "Choose Avatar", headerBackVisible: true }}
+        />
+        <Stack.Screen
+          name="notifications"
+          options={{ headerTitle: "Notifications" }}
+        />
+        <Stack.Screen
+          name="feedback"
+          options={{
+            headerTitle: "Feedback",
+            presentation: "modal",
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="update-profile"
+          options={{
+            headerTitle: "Update Profile",
+            gestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="ranked-lobby"
+          options={{
+            headerTitle: "Ranked Match",
+            gestureEnabled: true,
+          }}
+        />
+      </Stack>
+    </KeyboardProvider>
   );
 }

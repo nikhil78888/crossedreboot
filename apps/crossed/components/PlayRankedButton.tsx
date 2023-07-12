@@ -7,7 +7,7 @@ export const PlayRankedButton = ({ onPress }: { onPress: () => void }) => {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="h-[130] w-[121] bg-crossed-green-50"
+      className="h-[130] w-full max-w-[121] bg-crossed-green-50"
     >
       <Image
         source={images.card_ellipsis}
@@ -17,8 +17,8 @@ export const PlayRankedButton = ({ onPress }: { onPress: () => void }) => {
         Play{"\n"}Ranked
       </Text>
       <Image
-        source={images.friend}
-        className="absolute h-[35] w-[50.83] bottom-2 right-1"
+        source={images.ranked}
+        className="absolute h-10 aspect-square bottom-2 right-1"
       />
     </TouchableOpacity>
   );

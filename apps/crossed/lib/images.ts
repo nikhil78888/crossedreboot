@@ -4,6 +4,7 @@ export const images = {
   card_ellipsis: require("../assets/images/card_ellipsis.png"),
   solo: require("../assets/images/solo.png"),
   friend: require("../assets/images/friend.png"),
+  ranked: require("../assets/images/ranked.png"),
   logo: require("../assets/images/logo.png"),
   splash: require("../assets/images/splash.png"),
   splash_bg: require("../assets/images/splash_bg.png"),
@@ -14,6 +15,7 @@ export const images = {
   bell: require("../assets/images/bell.png"),
   tab_home: require("../assets/images/tab_home.png"),
   tab_my_account: require("../assets/images/tab_my_account.png"),
+  share_red: require("../assets/images/share_red.png"),
 };
 
 export const avatars = {

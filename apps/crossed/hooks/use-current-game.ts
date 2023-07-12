@@ -12,7 +12,7 @@ export const useCurrentGame = () => {
     if (myProfile) {
       const { data, error } = await supabase
         .from("games")
-        .select("*, profiles(*)")
+        .select("*, profiles!inner(*)")
         .filter("profiles.id", "eq", myProfile.id)
         .in("playState", ["PLAYING", "WAITING_FOR_OPPONENT"])
         .maybeSingle();

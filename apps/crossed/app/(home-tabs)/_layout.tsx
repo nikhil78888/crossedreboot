@@ -1,12 +1,10 @@
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import { useAuth } from "../../hooks/use-auth";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { images } from "../../lib/images";
 
 export default function HomeLayout() {
   const { user } = useAuth();
-  const router = useRouter();
   if (!user) {
     return null;
   }
@@ -18,14 +16,14 @@ export default function HomeLayout() {
           fontSize: 32,
           lineHeight: 38.4,
         },
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => router.push("/notifications")}
-            className="mr-4"
-          >
-            <Image source={images.bell} className="h-[25] w-[22.47]" />
-          </TouchableOpacity>
-        ),
+        // headerRight: () => (
+        //   <TouchableOpacity
+        //     onPress={() => router.push("/notifications")}
+        //     className="mr-4"
+        //   >
+        //     <Image source={images.bell} className="h-[25] w-[22.47]" />
+        //   </TouchableOpacity>
+        // ),
         tabBarLabelStyle: {
           fontFamily: "bitterBold",
           fontSize: 12,

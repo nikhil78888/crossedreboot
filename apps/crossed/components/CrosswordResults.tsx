@@ -5,7 +5,7 @@ import { images } from "../lib/images";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { PlayFriendlyButton } from "./PlayFriendlyButton";
 import { PlaySoloButton } from "./PlaySoloButton";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { calculateScore, useGame } from "../hooks/use-game";
 import { classNames } from "../lib/utils";
 import { PrimaryButton } from "./PrimaryButton";
@@ -48,12 +48,12 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
       className="absolute h-full w-full bg-white"
     >
       <ScrollView className="flex-1 px-5 py-4">
-        <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
+        <View className="rounded-sm border border-crossed-green-100 bg-crossed-green-50 shadow-sm">
           <Image
             source={images.card_ellipsis}
-            className="absolute right-0 bottom-0 w-1/2 aspect-square"
+            className="absolute bottom-0 right-0 aspect-square w-1/2"
           />
-          <View className="pt-4 pb-5 px-4">
+          <View className="px-4 pb-5 pt-4">
             <Text
               className={classNames(
                 "text-center text-3xl",
@@ -88,7 +88,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           </View>
         </View>
         <Text
-          className="mt-5 text-3xl text-center"
+          className="mt-5 text-center text-3xl"
           style={{ fontFamily: "bitterBold" }}
         >
           Checkout the Answers
@@ -102,7 +102,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
                 )
               }
             >
-              <View className="px-2 h-full w-full items-center justify-center">
+              <View className="h-full w-full items-center justify-center px-2">
                 <Text
                   className="text-white"
                   style={{ fontFamily: "bitterBold" }}
@@ -120,7 +120,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
                 )
               }
             >
-              <View className="px-2 h-full w-full items-center justify-center">
+              <View className="h-full w-full items-center justify-center px-2">
                 <Text
                   className="text-white"
                   style={{ fontFamily: "bitterBold" }}
@@ -133,7 +133,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         </View>
         <View className="mt-4">
           <TouchableOpacity
-            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+            className="h-10 w-full items-center justify-center border-2 border-crossed-blue-400 bg-neutral-100"
             onPress={() => {
               router.replace(`/view-answers?gameId=${gameId}`);
             }}
@@ -145,7 +145,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         </View>
         <View className="mt-4">
           <TouchableOpacity
-            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+            className="h-10 w-full items-center justify-center border-2 border-crossed-blue-400 bg-neutral-100"
             onPress={() => {
               router.push(`/feedback`);
             }}
@@ -154,13 +154,13 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           </TouchableOpacity>
         </View>
         <Text
-          className="mt-6 font-bold text-xl"
+          className="mt-6 text-xl font-bold"
           style={{ fontFamily: "bitterBold" }}
         >
           Start a New Match
         </Text>
         <View className="mt-2.5 flex-row justify-between space-x-2">
-          <View>
+          <View className="flex-1">
             <PlayFriendlyButton
               onPress={async () => {
                 try {
@@ -176,7 +176,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
               }}
             />
           </View>
-          <View>
+          <View className="flex-1">
             <PlaySoloButton
               onPress={async () => {
                 try {
@@ -196,9 +196,9 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         <View className="mt-8 flex-row items-center space-x-2">
           <View className="flex-1">
             <TouchableOpacity
-              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+              className="h-10 w-full items-center justify-center border-2 border-crossed-blue-400 bg-neutral-100"
               onPress={() => {
-                router.replace(`/`);
+                router.push("/home");
               }}
             >
               <Text style={{ fontFamily: "bitterBold" }}>Go Home</Text>
@@ -215,7 +215,6 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
 
 export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
-  const navigation = useNavigation();
   const { myProfile } = useMyProfile();
   const { createFriendlyGame, createSoloGame, game } = useGame({ gameId });
   if (!myProfile || !game) {
@@ -232,12 +231,12 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
       className="h-full w-full bg-white"
     >
       <ScrollView className="flex-1 px-5 py-4">
-        <View className="bg-crossed-green-50 border border-crossed-green-100 shadow-sm rounded-sm">
+        <View className="rounded-sm border border-crossed-green-100 bg-crossed-green-50 shadow-sm">
           <Image
             source={images.card_ellipsis}
-            className="absolute right-0 bottom-0 w-1/2 aspect-square"
+            className="absolute bottom-0 right-0 aspect-square w-1/2"
           />
-          <View className="pt-4 pb-5 px-4">
+          <View className="px-4 pb-5 pt-4">
             <Text
               className={classNames(
                 "text-center text-3xl",
@@ -276,14 +275,14 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
           </View>
         </View>
         <Text
-          className="mt-5 text-3xl text-center"
+          className="mt-5 text-center text-3xl"
           style={{ fontFamily: "bitterBold" }}
         >
           Checkout the Answers
         </Text>
         <View className="mt-4">
           <TouchableOpacity
-            className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+            className="h-10 w-full items-center justify-center border-2 border-crossed-blue-400 bg-neutral-100"
             onPress={() => {
               router.replace(`/view-answers?gameId=${gameId}`);
             }}
@@ -307,13 +306,13 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
           </PrimaryButton>
         </View>
         <Text
-          className="mt-6 font-bold text-xl"
+          className="mt-6 text-xl font-bold"
           style={{ fontFamily: "bitterBold" }}
         >
           Start a New Match
         </Text>
         <View className="mt-2.5 flex-row justify-between space-x-2">
-          <View>
+          <View className="flex-1">
             <PlayFriendlyButton
               onPress={async () => {
                 try {
@@ -329,7 +328,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
               }}
             />
           </View>
-          <View>
+          <View className="flex-1">
             <PlaySoloButton
               onPress={async () => {
                 try {
@@ -349,9 +348,9 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
         <View className="mt-8 flex-row items-center space-x-2">
           <View className="flex-1">
             <TouchableOpacity
-              className="w-full h-10 items-center justify-center bg-neutral-100 border-2 border-crossed-blue-400"
+              className="h-10 w-full items-center justify-center border-2 border-crossed-blue-400 bg-neutral-100"
               onPress={() => {
-                navigation.navigate("home");
+                router.push("/home");
               }}
             >
               <Text style={{ fontFamily: "bitterBold" }}>Go Home</Text>

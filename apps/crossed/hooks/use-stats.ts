@@ -13,7 +13,7 @@ export const useStats = () => {
       if (myProfile) {
         const { data, error } = await supabase
           .from("games")
-          .select("*, players:profiles(*), crossword:crosswords(*)")
+          .select("*, players:profiles!inner(*), crossword:crosswords(*)")
           .filter("profiles.id", "eq", myProfile.id)
           .returns<Game[]>();
         if (error) {

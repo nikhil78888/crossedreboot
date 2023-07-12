@@ -23,11 +23,11 @@ export default function JoinGame() {
       switch (gamePlayState) {
         case "COMPLETED":
           Alert.alert("The game has ended");
-          router.replace("/");
+          router.push("/home");
           break;
         case "ABORTED":
           Alert.alert("The game was aborted");
-          router.replace("/");
+          router.push("/home");
           break;
         case "PLAYING":
           // navigation.navigate("game", { gameId });
@@ -50,18 +50,18 @@ export default function JoinGame() {
   return (
     <Image
       source={images.splash_bg}
-      className="flex-1 px-4 items-center justify-center"
+      className="flex-1 items-center justify-center px-4"
     >
       <Text className="text-2xl" style={{ fontFamily: "bitterBold" }}>
         Friendly Match
       </Text>
-      <Text className="mt-2 mb-8 font-[latoRegular]">
+      <Text className="mb-8 mt-2 font-[latoRegular]">
         Play a friendly match with @{opponentUsername}
       </Text>
       <PrimaryButton onPress={startGame}>
         <View className="flex-1 items-center justify-center px-2">
           <Text
-            className="text-white text-lg"
+            className="text-lg text-white"
             style={{ fontFamily: "bitterBold" }}
           >
             Start Match

@@ -26,7 +26,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
           new Date(new Date().toUTCString())
         );
         if (secondsLeft < 0) {
-          finishGame();
+          // finishGame();
           return;
         }
         const duration = intervalToDuration({
@@ -67,7 +67,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     <View className="flex-row items-center justify-between">
       <View className="flex-row items-center">
         <Image source={images.stop_watch} className="h-5 w-[17.42]" />
-        <Text className="ml-1 text-crossed-green-700 text-sm font-[latoBold]">
+        <Text className="ml-1 font-[latoBold] text-sm text-crossed-green-700">
           {timeInGame}
         </Text>
         {/* <Text
@@ -79,7 +79,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         </Text> */}
       </View>
       <View className="w-1/2">
-        <Text className="text-sm font-[latoLight]">@{opponentUsername}</Text>
+        <Text className="font-[latoLight] text-sm">@{opponentUsername}</Text>
         <ProgressBar
           progress={opponentProgress}
           progressColor="#AFD8CA"

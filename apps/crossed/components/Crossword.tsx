@@ -1,10 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Text, useWindowDimensions, View } from "react-native";
-import Animated, {
-  KeyboardState,
-  useAnimatedKeyboard,
-  useAnimatedStyle,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import produce from "immer";
 import { useGame } from "../hooks/use-game";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
@@ -15,6 +11,7 @@ import { images } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { Crossword, GameState } from "types-and-validators";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 
 type CrosswordContextType = {
   crossword: Crossword;
@@ -51,22 +48,22 @@ export const CrosswordGrid = ({
   const { width } = useWindowDimensions();
   const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>();
-  const keyboard = useAnimatedKeyboard();
+  const { height, progress } = useReanimatedKeyboardAnimation();
 
   const crosswordContainerStyle = useAnimatedStyle(() => {
     const maxWidth = width * 0.9;
-    if (keyboard.state.value !== KeyboardState.OPEN || !containerHeight) {
+    if (progress.value !== 1 || !containerHeight) {
       return { width: maxWidth };
     }
-    const deductible = keyboard.height.value + 120;
+    const deductible = height.value - 130;
     return {
-      width: Math.min(containerHeight - deductible, maxWidth),
+      width: Math.min(containerHeight - Math.abs(deductible), maxWidth),
     };
   }, [containerHeight]);
 
   const clueContainerStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: -keyboard.height.value }],
+      transform: [{ translateY: height.value }],
     };
   });
 
@@ -420,7 +417,10 @@ export const CrosswordGrid = ({
     setDirection(direction);
   };
 
-  console.log(crossword.solution);
+  if (__DEV__) {
+    console.info(crossword.solution.map((row) => row.join(",")));
+  }
+
   return (
     <CrosswordContext.Provider
       value={{
@@ -455,7 +455,7 @@ export const CrosswordGrid = ({
                 </>
               )}
             </View>
-            <View className="border aspect-square">
+            <View className="aspect-square border">
               {crossword.puzzle.map((puzzleRow, rowIndex) => {
                 const rowKey = puzzleRow.join(",");
                 return (
@@ -477,7 +477,7 @@ export const CrosswordGrid = ({
                           {showResults &&
                             solution[rowIndex][colIndex] !==
                               game.crossword.solution[rowIndex][colIndex] && (
-                              <View className="absolute top-1 right-1 bg-red-700 h-1.5 w-1.5 rounded-full"></View>
+                              <View className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-red-700"></View>
                             )}
                         </View>
                       );
@@ -549,7 +549,7 @@ const CrosswordCell = ({
   }, [isCurrentCell, disabled]);
 
   if (puzzleCell === "#") {
-    return <View className="flex-1 border-0.5 bg-crossed-black-700" />;
+    return <View className="border-0.5 flex-1 bg-crossed-black-700" />;
   }
 
   const getBackgroundColor = () => {
@@ -581,7 +581,7 @@ const CrosswordCell = ({
   };
 
   return (
-    <View className={`flex-1 border-0.5 ${getBackgroundColor()}`}>
+    <View className={`border-0.5 flex-1 ${getBackgroundColor()}`}>
       {typeof puzzleCell === "object" ? (
         <>
           {puzzleCell.cell && puzzleCell.cell !== "0" && (
@@ -597,7 +597,7 @@ const CrosswordCell = ({
           </Text>
         )
       )}
-      <View className="flex-1 relative">
+      <View className="relative flex-1">
         <TextInput
           ref={textInputRef}
           value={value || ""}
@@ -769,8 +769,8 @@ const CrosswordClue = ({
   };
 
   return (
-    <View className="h-[53] w-full bg-crossed-green-300 px-10 items-center justify-center">
-      <View className="absolute left-0 inset-y-0 items-center justify-center">
+    <View className="h-[53] w-full items-center justify-center bg-crossed-green-300 px-10">
+      <View className="absolute inset-y-0 left-0 items-center justify-center">
         <TouchableOpacity
           onPress={gotoPrevClue}
           className="h-full w-10 items-center justify-center "
@@ -781,7 +781,7 @@ const CrosswordClue = ({
       <View className="flex-row">
         <Text className="font-[latoRegular]">{currentClue?.clue}</Text>
       </View>
-      <View className="absolute right-0 inset-y-0 items-center justify-center">
+      <View className="absolute inset-y-0 right-0 items-center justify-center">
         <TouchableOpacity
           onPress={gotoNextClue}
           className="h-full w-10 items-center justify-center"

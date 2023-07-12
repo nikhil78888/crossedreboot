@@ -9,12 +9,10 @@ import { useCurrentGame } from "../../hooks/use-current-game";
 import { useGame } from "../../hooks/use-game";
 import { useStats } from "../../hooks/use-stats";
 import { images } from "../../lib/images";
-import { useMyProfile } from "../../hooks/use-my-profile";
 import { PlayRankedButton } from "../../components/PlayRankedButton";
 
 export default function Home() {
   const { stats } = useStats();
-  const { myProfile } = useMyProfile();
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
   const { createSoloGame, createFriendlyGame, game } = useGame({
     gameId: currentGameId,
@@ -55,68 +53,42 @@ export default function Home() {
   }
 
   return (
-    <Image source={images.splash_bg} className="flex-1 px-4 items-center">
-      <View className="mt-32 items-center">
-        <Image source={images.logo} className="h-20 aspect-square" />
-        <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
-          Crossed
-        </Text>
-      </View>
-      <View className="w-full">
-        <Text
-          className="text-crossed-green-900 text-xl"
-          style={{ fontFamily: "bitterBold" }}
-        >
-          Welcome
-        </Text>
-        <Text
-          className="text-crossed-green-900 text-4xl"
-          style={{ fontFamily: "bitterBold" }}
-        >
-          @{myProfile?.username}
-        </Text>
-        <Text className="mt-16 text-xl" style={{ fontFamily: "bitterBold" }}>
-          Start a New Match
-        </Text>
-        <View className="mt-2 flex-row items-center space-x-2">
-          <View>
-            <PlaySoloButton
-              onPress={async () => {
-                try {
-                  const newGameId = await createSoloGame();
-                  router.push(`/game?gameId=${newGameId}`);
-                } catch (createSoloGameError) {
-                  Alert.alert(
-                    "Error",
-                    "Could not start game. Please try again"
-                  );
-                }
-              }}
-            />
-          </View>
-          <View>
-            <PlayFriendlyButton
-              onPress={async () => {
-                try {
-                  const newGameId = await createFriendlyGame();
-                  router.push(`/invite-friend?gameId=${newGameId}`);
-                } catch (createFriendlyGameError) {
-                  console.error(createFriendlyGameError);
-                  Alert.alert(
-                    "Error",
-                    "Could not start game. Please try again"
-                  );
-                }
-              }}
-            />
-          </View>
-          <View>
-            <PlayRankedButton
-              onPress={async () => {
-                router.push(`ranked-lobby`);
-              }}
-            />
-          </View>
+    <View className="flex-1 px-4 bg-white">
+      <Text className="mt-2.5 text-xl font-[bitterBold] text-crossed-black-700">
+        Start a New Match!
+      </Text>
+      <View className="mt-2 flex-row items-center space-x-2 w-full">
+        <View className="flex-1">
+          <PlaySoloButton
+            onPress={async () => {
+              try {
+                const newGameId = await createSoloGame();
+                router.push(`/game?gameId=${newGameId}`);
+              } catch (createSoloGameError) {
+                Alert.alert("Error", "Could not start game. Please try again");
+              }
+            }}
+          />
+        </View>
+        <View className="flex-1">
+          <PlayFriendlyButton
+            onPress={async () => {
+              try {
+                const newGameId = await createFriendlyGame();
+                router.push(`/invite-friend?gameId=${newGameId}`);
+              } catch (createFriendlyGameError) {
+                console.error(createFriendlyGameError);
+                Alert.alert("Error", "Could not start game. Please try again");
+              }
+            }}
+          />
+        </View>
+        <View className="flex-1">
+          <PlayRankedButton
+            onPress={async () => {
+              router.push(`ranked-lobby`);
+            }}
+          />
         </View>
       </View>
       <View className="mt-5 w-full">
@@ -155,6 +127,6 @@ export default function Home() {
           </View>
         </View>
       )}
-    </Image>
+    </View>
   );
 }

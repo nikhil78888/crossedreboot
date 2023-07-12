@@ -10,7 +10,7 @@ import { avatars, images } from "../../lib/images";
 import { Image } from "expo-image";
 import { Avatar } from "react-native-ui-lib";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import colors from "../../lib/colors";
 
 export default function MyAccount() {
@@ -42,45 +42,61 @@ export default function MyAccount() {
   }
 
   return (
-    <View className="flex-1 px-4 bg-gray-50">
-      <View className="mt-16 items-center">
+    <View className="flex-1 px-4 bg-white">
+      <View className="mt-8 items-center">
         <Avatar
-          size={128}
+          size={96}
           name={myProfile.name || ""}
           onPress={() => {
             router.push("/choose-avatar");
           }}
           imageStyle={{ backgroundColor: "white" }}
-          source={
-            myProfile.avatar
-              ? avatars[myProfile.avatar as keyof typeof avatars]
-              : images.tab_my_account
-          }
+          source={avatars[myProfile.avatar as keyof typeof avatars]}
+          ribbonLabel="Change"
+          ribbonStyle={{ backgroundColor: colors["crossed-gray"]["400"] }}
         />
-        <Text className="mt-4 text-crossed-green-900 text-xl font-[latoBold]">
-          {myProfile?.username}
+        <Text className="mt-2 text-gray-700 font-[latoLight]">
+          @{myProfile?.username}
         </Text>
       </View>
-      <View className="mt-8 bg-white shadow-sm divide-y divide-gray-50 px-3">
-        <View className="flex-row items-center py-3">
+      <View className="mt-8 flex-row items-center justify-between border-b-0.5 border-crossed-blue-300 pb-2">
+        <Text className="font-[bitterBold] text-lg tracking-widest">
+          My Profile
+        </Text>
+        <Feather
+          name="edit"
+          size={20}
+          onPress={() => router.push("/update-profile")}
+        />
+      </View>
+      <View className="px-2">
+        <View className="flex-row items-center space-x-4 py-4">
           <Ionicons
-            name="ios-person"
-            size={28}
-            color={colors["crossed-blue"][700]}
+            name="ios-person-circle-outline"
+            size={32}
+            color={colors["crossed-blue"]["300"]}
           />
-          <Text className="font-[latoLight] text-lg ml-4">
-            {myProfile.name}
-          </Text>
+          <View className="flex-1 border-b-0.5 border-crossed-blue-300 pb-2">
+            <Text className="text-xs text-gray-600 font-[latoLight]">Name</Text>
+            <Text className="text-lg text-crossed-green-900 font-[latoRegular]">
+              {myProfile.name}
+            </Text>
+          </View>
         </View>
-        <View className="flex-row items-center py-3">
+        <View className="flex-row items-center space-x-4 py-4">
           <Ionicons
-            name="ios-mail"
-            size={28}
-            color={colors["crossed-blue"][700]}
+            name="ios-mail-outline"
+            size={32}
+            color={colors["crossed-blue"]["300"]}
           />
-          <Text className="font-[latoLight] text-lg ml-4">
-            {myProfile.email}
-          </Text>
+          <View className="flex-1 border-b-0.5 border-crossed-blue-300 pb-2">
+            <Text className="text-xs text-gray-600 font-[latoLight]">
+              Email
+            </Text>
+            <Text className="text-lg text-crossed-green-900 font-[latoRegular]">
+              {myProfile.email}
+            </Text>
+          </View>
         </View>
       </View>
       <View className="items-center mt-8">
@@ -216,101 +232,6 @@ const CreateAccountForm = () => {
         <Button
           onPress={handleSubmit(onSubmit)}
           label={isLinkingAccount ? "Please wait..." : "Create Account"}
-          intent="primary"
-          size="large"
-        />
-      </View>
-    </View>
-  );
-};
-
-const updateAccountFormSchema = z.object({
-  name: z
-    .string({ required_error: "Please provide your name" })
-    .nonempty({ message: "Please provide your name" }),
-  email: z
-    .string({ required_error: "Please provide your email" })
-    .nonempty({ message: "Please provide your email" })
-    .email({ message: "Please provide a valid email" }),
-});
-
-const UpdateAccountForm = () => {
-  const {
-    control,
-    handleSubmit,
-    setError,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
-    resolver: zodResolver(updateAccountFormSchema),
-  });
-  const { user, isLinkingAccount } = useAuth();
-  const { updateProfile } = useMyProfile();
-
-  const onSubmit = async (
-    formValues: z.infer<typeof updateAccountFormSchema>
-  ) => {
-    if (user) {
-      await updateProfile({
-        userId: user.uid,
-        name: formValues.name,
-        email: formValues.email,
-      });
-    }
-  };
-
-  return (
-    <View>
-      <Controller
-        control={control}
-        render={({
-          field: { onChange, onBlur, value },
-          fieldState: { error },
-        }) => (
-          <FormTextInput
-            label="Your Name"
-            error={error?.message}
-            placeholder="Josh Cross"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            autoComplete="name"
-          />
-        )}
-        name="name"
-      />
-      <Controller
-        control={control}
-        render={({
-          field: { onChange, onBlur, value },
-          fieldState: { error },
-        }) => (
-          <FormTextInput
-            label="Email"
-            error={error?.message}
-            placeholder="example@gmail.com"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            autoComplete="email"
-            autoCapitalize="none"
-          />
-        )}
-        name="email"
-      />
-      {errors.root?.message && (
-        <Text className="text-xs text-red-500 text-center my-1">
-          {errors.root.message}
-        </Text>
-      )}
-      <View className="mt-4">
-        <Button
-          onPress={handleSubmit(onSubmit)}
-          label={isLinkingAccount ? "Please wait..." : "Update Account"}
           intent="primary"
           size="large"
         />
