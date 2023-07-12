@@ -4,15 +4,16 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
+    "simulator": {
+      "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "gradleCommand": ":app:assembleDebug"
-      },
       "ios": {
-        "buildConfiguration": "Debug"
-      },
-      "channel": "development"
+        "simulator": true
+      }
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
     },
     "preview": {
       "autoIncrement": true,

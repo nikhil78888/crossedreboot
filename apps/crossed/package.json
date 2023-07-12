@@ -9,8 +9,9 @@
     "ios": "dotenv -e .env -- expo run:ios",
     "web": "dotenv -e .env -- expo start --web",
     "prebuild": "dotenv -e .env -- expo prebuild --clean",
-    "release-to-store": "eas build --profile production --platform ios --auto-submit",
+    "build-simulator": "eas build --profile development --platform ios",
     "release-preview": "eas build --profile preview --platform ios",
+    "release-to-store": "eas build --profile production --platform ios --auto-submit",
     "ota-to-store": "eas update --branch production --message auto",
     "ota-to-preview": "eas update --branch preview --message auto"
   },
