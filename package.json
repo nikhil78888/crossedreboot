@@ -2,6 +2,8 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
+    "build:api": "turbo run build --filter api",
+    "start:api": "cd apps/api && yarn start",
     "clean": "turbo clean",
     "dev": "turbo dev --no-cache  --continue --concurrency 11",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
