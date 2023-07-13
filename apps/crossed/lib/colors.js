@@ -16,6 +16,7 @@ module.exports = {
     700: "#354646",
   },
   "crossed-gray": {
+    100: "#F5F5F5",
     200: "#BDCBCB",
     400: "#888888",
   },

@@ -5,7 +5,8 @@
     "PORT",
     "SUPABASE_JWT_SECRET",
     "SUPABASE_SERVICE_ROLE_KEY",
-    "SUPABASE_URL"
+    "SUPABASE_URL",
+    "FIREBASE_SERVICE_ACCOUNT"
   ],
   "pipeline": {
     "build": {

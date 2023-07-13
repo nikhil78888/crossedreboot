@@ -2,10 +2,10 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { useEffect } from "react";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
+import { Button } from "../components/Button";
 
 export default function JoinGame() {
   const { gameId } = useLocalSearchParams();
@@ -30,7 +30,6 @@ export default function JoinGame() {
           router.push("/home");
           break;
         case "PLAYING":
-          // navigation.navigate("game", { gameId });
           router.replace(`/game?gameId=${gameId}`);
           break;
         default:
@@ -58,16 +57,12 @@ export default function JoinGame() {
       <Text className="mb-8 mt-2 font-[latoRegular]">
         Play a friendly match with @{opponentUsername}
       </Text>
-      <PrimaryButton onPress={startGame}>
-        <View className="flex-1 items-center justify-center px-2">
-          <Text
-            className="text-lg text-white"
-            style={{ fontFamily: "bitterBold" }}
-          >
-            Start Match
-          </Text>
-        </View>
-      </PrimaryButton>
+      <Button
+        intent="primary"
+        size="medium"
+        label="Start Match"
+        onPress={() => startGame()}
+      />
     </Image>
   );
 }

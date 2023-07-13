@@ -73,22 +73,6 @@ export const CrosswordGrid = ({
   useEffect(() => {
     // initialize gameState
     if (game && crossword && myProfile && !gameState) {
-      if (showResults) {
-        const solutionToDisplay = showResults.playerId
-          ? game.gameState?.[showResults.playerId].solution
-          : crossword.solution;
-        setGameState({
-          direction: "Across",
-          currentCell: {
-            x: 0,
-            y: crossword.solution[0].findIndex(
-              (cellResult) => cellResult !== null
-            ),
-          },
-          solution: solutionToDisplay,
-        });
-        return;
-      }
       const playerGameState = game.gameState?.[myProfile.id];
       if (playerGameState) {
         setGameState(playerGameState);
@@ -115,7 +99,26 @@ export const CrosswordGrid = ({
         solution: initalSolutionState,
       });
     }
-  }, [crossword, game, gameState, showResults, myProfile]);
+  }, [crossword, game, gameState, myProfile]);
+
+  useEffect(() => {
+    // update game state if showResults
+    if (showResults && game && crossword) {
+      const solutionToDisplay = showResults.playerId
+        ? game.gameState?.[showResults.playerId].solution
+        : crossword.solution;
+      setGameState({
+        direction: "Across",
+        currentCell: {
+          x: 0,
+          y: crossword.solution[0].findIndex(
+            (cellResult) => cellResult !== null
+          ),
+        },
+        solution: solutionToDisplay,
+      });
+    }
+  }, [crossword, game, showResults]);
 
   useEffect(() => {
     // write gameState to database
@@ -391,8 +394,12 @@ export const CrosswordGrid = ({
 
   const handleKey = ({ x, y, key }: { x: number; y: number; key: string }) => {
     if (!isGameFinished) {
-      setSolution({ cell: { x, y }, value: key });
-      gotoNextCell({ cell: currentCell, direction, allowLoop: true });
+      if (solution[x][y] === "") {
+        setSolution({ cell: { x, y }, value: key });
+        gotoNextCell({ cell: currentCell, direction, allowLoop: true });
+      } else {
+        setSolution({ cell: { x, y }, value: key });
+      }
     }
   };
 
@@ -445,10 +452,10 @@ export const CrosswordGrid = ({
             <View className="py-3">
               {showResults ? null : (
                 <>
-                  {game?.gameType === "FRIENDLY" ||
-                    (game?.gameType === "RANKED" && (
-                      <FriendlyCrosswordHeader gameId={gameId as string} />
-                    ))}
+                  {(game?.gameType === "FRIENDLY" ||
+                    game?.gameType === "RANKED") && (
+                    <FriendlyCrosswordHeader gameId={gameId as string} />
+                  )}
                   {game?.gameType === "SOLO" && (
                     <SoloCrosswordHeader gameId={gameId as string} />
                   )}
@@ -496,6 +503,7 @@ export const CrosswordGrid = ({
             currentCell={currentCell}
             direction={direction}
             jumpToClue={jumpToClue}
+            toggleDirection={toggleDirection}
           />
         </Animated.View>
       </View>
@@ -648,6 +656,7 @@ const CrosswordClue = ({
   currentCell,
   direction,
   jumpToClue,
+  toggleDirection,
 }: {
   currentCell: { x: number; y: number };
   direction: "Across" | "Down";
@@ -658,6 +667,7 @@ const CrosswordClue = ({
     clue: { number: string; clue: string };
     direction: "Across" | "Down";
   }) => void;
+  toggleDirection: () => void;
 }) => {
   const { crossword } = useCrosswordContext();
   const { x: currentX, y: currentY } = currentCell;
@@ -778,9 +788,9 @@ const CrosswordClue = ({
           <Image source={images.arrow_left} className="h-3.5 w-2" />
         </TouchableOpacity>
       </View>
-      <View className="flex-row">
+      <TouchableOpacity className="flex-row" onPress={toggleDirection}>
         <Text className="font-[latoRegular]">{currentClue?.clue}</Text>
-      </View>
+      </TouchableOpacity>
       <View className="absolute inset-y-0 right-0 items-center justify-center">
         <TouchableOpacity
           onPress={gotoNextClue}

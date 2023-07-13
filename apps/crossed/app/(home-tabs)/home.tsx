@@ -1,20 +1,19 @@
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { PlayFriendlyButton } from "../../components/PlayFriendlyButton";
-import { PlaySoloButton } from "../../components/PlaySoloButton";
 import { ShareAppButton } from "../../components/ShareAppButton";
 import { useCurrentGame } from "../../hooks/use-current-game";
 import { useGame } from "../../hooks/use-game";
 import { useStats } from "../../hooks/use-stats";
 import { images } from "../../lib/images";
-import { PlayRankedButton } from "../../components/PlayRankedButton";
+import { Button } from "../../components/Button";
+import { NewGameButtons } from "../../components/NewGameButtons";
 
 export default function Home() {
   const { stats } = useStats();
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
-  const { createSoloGame, createFriendlyGame, game } = useGame({
+  const { game } = useGame({
     gameId: currentGameId,
   });
   const router = useRouter();
@@ -45,7 +44,7 @@ export default function Home() {
     return (
       <Image
         source={images.splash_bg}
-        className="flex-1 px-4 items-center justify-center"
+        className="flex-1 items-center justify-center px-4"
       >
         <ActivityIndicator />
       </Image>
@@ -53,11 +52,14 @@ export default function Home() {
   }
 
   return (
-    <View className="flex-1 px-4 bg-white">
-      <Text className="mt-2.5 text-xl font-[bitterBold] text-crossed-black-700">
+    <View className="flex-1 bg-white px-4">
+      <Text className="mt-2.5 font-[bitterBold] text-xl text-crossed-black-700">
         Start a New Match!
       </Text>
-      <View className="mt-2 flex-row items-center space-x-2 w-full">
+      <View className="mt-2">
+        <NewGameButtons />
+      </View>
+      {/* <View className="mt-2 w-full flex-row items-center space-x-2">
         <View className="flex-1">
           <PlaySoloButton
             onPress={async () => {
@@ -90,7 +92,7 @@ export default function Home() {
             }}
           />
         </View>
-      </View>
+      </View> */}
       <View className="mt-5 w-full">
         <ShareAppButton />
       </View>
@@ -99,34 +101,42 @@ export default function Home() {
           <Text className="mt-4 text-xl" style={{ fontFamily: "bitterBold" }}>
             My Stats
           </Text>
-          <View className="w-full mt-2 flex-row space-x-2">
+          <View className="mt-2 w-full flex-row space-x-2">
             <View className="flex-1 bg-crossed-green-50">
               <Image
                 source={images.card_ellipsis}
-                className="absolute right-0 bottom-0 w-3/5 h-full"
+                className="absolute bottom-0 right-0 h-full w-3/5"
               />
-              <Text className="text-crossed-black-700 text-xl mt-2.5 text-center font-[latoLight]">
+              <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
                 Games Played
               </Text>
-              <Text className="text-crossed-blue-700 text-6xl ml-2.5 mt-2.5 text-center font-[latoLight]">
+              <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-blue-700">
                 {stats.gamesPlayed}
               </Text>
             </View>
             <View className="flex-1 bg-crossed-green-50">
               <Image
                 source={images.card_ellipsis}
-                className="absolute right-0 bottom-0 w-3/5 h-full"
+                className="absolute bottom-0 right-0 h-full w-3/5"
               />
-              <Text className="text-crossed-black-700 text-xl mt-2.5 text-center font-[latoLight]">
+              <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
                 Games Won
               </Text>
-              <Text className="text-crossed-green-700 text-6xl ml-2.5 mt-2.5 text-center font-[latoLight]">
+              <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-green-700">
                 {stats.gamesWon}
               </Text>
             </View>
           </View>
         </View>
       )}
+      <View className="mt-5">
+        <Button
+          intent={"secondary"}
+          label="Feedback"
+          size={"medium"}
+          onPress={() => router.push("/feedback")}
+        />
+      </View>
     </View>
   );
 }

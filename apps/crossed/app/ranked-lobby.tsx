@@ -37,12 +37,6 @@ export default function RankedLobby() {
     }
   }, [gameId, gameStartingAt, router]);
 
-  // useEffect(() => {
-  //   if (gameId) {
-  //     router.replace(`/game?gameId=${gameId}`);
-  //   }
-  // }, [gameId, router]);
-
   return (
     <View className="flex-1 bg-white px-4">
       <View className="mt-4 rounded-sm border border-crossed-green-100 bg-crossed-green-50 p-8 shadow-sm">

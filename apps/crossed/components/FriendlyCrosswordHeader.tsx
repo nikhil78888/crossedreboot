@@ -5,6 +5,7 @@ import { ProgressBar } from "react-native-ui-lib";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
+import colors from "../lib/colors";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { opponentProgress, game, opponentUsername, finishGame } = useGame({
@@ -26,7 +27,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
           new Date(new Date().toUTCString())
         );
         if (secondsLeft < 0) {
-          // finishGame();
+          finishGame();
           return;
         }
         const duration = intervalToDuration({
@@ -79,11 +80,13 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         </Text> */}
       </View>
       <View className="w-1/2">
-        <Text className="font-[latoLight] text-sm">@{opponentUsername}</Text>
+        <Text className="font-[latoLight] tracking-wider text-xs mb-1">
+          @{opponentUsername}
+        </Text>
         <ProgressBar
           progress={opponentProgress}
-          progressColor="#AFD8CA"
-          style={{ height: 5 }}
+          progressColor={colors["crossed-red"]["400"]}
+          style={{ height: 12 }}
         />
       </View>
     </View>

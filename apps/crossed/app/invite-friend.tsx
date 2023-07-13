@@ -1,11 +1,10 @@
-import { Alert, Share, Text, View } from "react-native";
-import { PrimaryButton } from "../components/PrimaryButton";
+import { Alert, Share, Text } from "react-native";
 import { useNavigation, useRouter, useSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useGame } from "../hooks/use-game";
 import { useEffect } from "react";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { Button } from "../components/Button";
 
 export default function InviteFriend() {
   const { gameId } = useSearchParams();
@@ -23,11 +22,11 @@ export default function InviteFriend() {
       switch (gamePlayState) {
         case "COMPLETED":
           Alert.alert("The game has ended");
-          router.replace("/");
+          router.push("/home");
           break;
         case "ABORTED":
           Alert.alert("The game was aborted");
-          router.replace("/");
+          router.push("/home");
           break;
         case "PLAYING":
           router.replace(`/game?gameId=${gameId}`);
@@ -59,30 +58,24 @@ export default function InviteFriend() {
   return (
     <Image
       source={images.splash_bg}
-      className="flex-1 px-4 items-center justify-center"
+      className="flex-1 items-center justify-center px-4"
     >
       <Text className="text-2xl" style={{ fontFamily: "bitterBold" }}>
         Friendly Match
       </Text>
-      <Text className="mt-2 mb-8 font-[latoRegular]">Waiting for opponent</Text>
-      <PrimaryButton onPress={inviteFriend}>
-        <View className="flex-1 items-center justify-center px-2">
-          <Text
-            className="text-white text-lg"
-            style={{ fontFamily: "bitterBold" }}
-          >
-            Invite a Friend
-          </Text>
-        </View>
-      </PrimaryButton>
-      <TouchableOpacity
-        className="mt-8 h-10 px-2 justify-center"
+      <Text className="mb-8 mt-2 font-[latoRegular]">Waiting for opponent</Text>
+      <Button
+        intent="primary"
+        size="medium"
+        label="Invite a friend"
+        onPress={inviteFriend}
+      />
+      <Button
+        intent="text"
+        size="medium"
+        label="Exit Game"
         onPress={exitGame}
-      >
-        <Text className="text-gray-600 text-lg font-[latoRegular]">
-          Exit Game
-        </Text>
-      </TouchableOpacity>
+      />
     </Image>
   );
 }
