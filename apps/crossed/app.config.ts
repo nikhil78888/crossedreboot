@@ -3,7 +3,7 @@ module.exports = {
     name: "Crossed.",
     slug: "crossed",
     owner: "harshpillario",
-    version: "1.0.3",
+    version: "1.0.4",
     orientation: "portrait",
     icon: "./assets/images/logo_black.png",
     userInterfaceStyle: "light",
