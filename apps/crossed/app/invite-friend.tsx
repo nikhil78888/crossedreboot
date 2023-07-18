@@ -1,5 +1,5 @@
 import { Alert, Share, Text } from "react-native";
-import { useNavigation, useRouter, useSearchParams } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useGame } from "../hooks/use-game";
@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { Button } from "../components/Button";
 
 export default function InviteFriend() {
-  const { gameId } = useSearchParams();
+  const { gameId } = useLocalSearchParams();
   const router = useRouter();
   const { game, abortGame } = useGame({
     gameId: gameId as string | undefined,

@@ -11,24 +11,30 @@ export const useAuth = () => {
     isLoading: isLoadingUser,
     mutate: refreshUser,
     error: fetchUserError,
-  } = useSWR("auth-user", async () => {
-    try {
-      const user = auth().currentUser;
-      if (user) {
-        const firebaseIdToken = await user.getIdToken(true);
-        const response = await axios.post(
-          `${mobileConfig.apiBaseUrl}/api/auth/login-with-firebase-token`,
-          { firebaseToken: firebaseIdToken }
-        );
-        const supabaseToken = response.data.supabaseToken;
-        setSupabaseToken(supabaseToken);
+  } = useSWR(
+    "auth-user",
+    async () => {
+      try {
+        const user = auth().currentUser;
+        if (user) {
+          const firebaseIdToken = await user.getIdToken(true);
+          axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
+          const response = await axios.get(
+            `${mobileConfig.apiBaseUrl}/api/auth/supabase-token`
+          );
+          const supabaseToken = response.data.supabaseToken;
+          setSupabaseToken(supabaseToken);
+        }
+        return user;
+      } catch (error) {
+        console.error(error);
+        throw error;
       }
-      return user;
-    } catch (error) {
-      console.error(error);
-      throw error;
+    },
+    {
+      refreshInterval: 59 * 60 * 1000,
     }
-  });
+  );
 
   const {
     trigger: setDisplayName,
@@ -42,9 +48,9 @@ export const useAuth = () => {
         const { user } = credentials;
         await user.updateProfile({ displayName: arg.username });
         const firebaseIdToken = await user.getIdToken();
-        const response = await axios.post(
-          `${mobileConfig.apiBaseUrl}/api/auth/login-with-firebase-token`,
-          { firebaseToken: firebaseIdToken }
+        axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
+        const response = await axios.get(
+          `${mobileConfig.apiBaseUrl}/api/auth/supabase-token`
         );
         setSupabaseToken(response.data.supabaseToken);
         const { error } = await supabase
@@ -111,6 +117,7 @@ export const useAuth = () => {
   } = useSWRMutation("logout", async (_key) => {
     try {
       await auth().signOut();
+      axios.defaults.headers.Authorization = "";
       setSupabaseToken("");
       await refreshUser();
     } catch (error) {

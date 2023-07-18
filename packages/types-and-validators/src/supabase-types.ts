@@ -85,14 +85,17 @@ export interface Database {
         Row: {
           gamesId: string
           profilesId: string
+          score: number
         }
         Insert: {
           gamesId: string
           profilesId: string
+          score?: number
         }
         Update: {
           gamesId?: string
           profilesId?: string
+          score?: number
         }
         Relationships: [
           {
@@ -119,6 +122,7 @@ export interface Database {
           id: string
           playState: Database["public"]["Enums"]["PlayState"]
           startedAt: string | null
+          winnerId: string | null
         }
         Insert: {
           createdAt?: string
@@ -129,6 +133,7 @@ export interface Database {
           id?: string
           playState: Database["public"]["Enums"]["PlayState"]
           startedAt?: string | null
+          winnerId?: string | null
         }
         Update: {
           createdAt?: string
@@ -139,12 +144,19 @@ export interface Database {
           id?: string
           playState?: Database["public"]["Enums"]["PlayState"]
           startedAt?: string | null
+          winnerId?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "games_crosswordsId_fkey"
             columns: ["crosswordsId"]
             referencedRelation: "crosswords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_winnerId_fkey"
+            columns: ["winnerId"]
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]

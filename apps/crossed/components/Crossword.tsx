@@ -123,7 +123,7 @@ export const CrosswordGrid = ({
   useEffect(() => {
     // write gameState to database
     if (game && gameState && myProfile) {
-      if (game.playState !== "COMPLETED") {
+      if (!isGameFinished) {
         supabase
           .from("games")
           .update({
@@ -135,41 +135,38 @@ export const CrosswordGrid = ({
               : { [myProfile.id]: gameState },
           })
           .eq("id", gameId)
-          .then();
-      }
-    }
-  }, [game, gameId, gameState, myProfile]);
-
-  useEffect(() => {
-    if (game && gameState) {
-      if (!isGameFinished) {
-        const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
-        if (!hasEmptyCell) {
-          const isCorrectSolution =
-            JSON.stringify(gameState.solution) ===
-            JSON.stringify(game.crossword.solution);
-          if (!isCorrectSolution) {
-            if (!isPlayingAfterFilled) {
-              Alert.alert(
-                "So close ...",
-                "The puzzle is filled, but at least one square's amiss.",
-                [{ text: "Keep Trying" }]
-              );
-              setPlayingAfterFilled(true);
+          .then(() => {
+            const hasEmptyCell = gameState.solution.find((row) =>
+              row.includes("")
+            );
+            if (!hasEmptyCell) {
+              const isCorrectSolution =
+                JSON.stringify(gameState.solution) ===
+                JSON.stringify(game.crossword.solution);
+              if (!isCorrectSolution) {
+                if (!isPlayingAfterFilled) {
+                  Alert.alert(
+                    "So close ...",
+                    "The puzzle is filled, but at least one square's amiss.",
+                    [{ text: "Keep Trying" }]
+                  );
+                  setPlayingAfterFilled(true);
+                }
+              } else {
+                finishGame();
+              }
             }
-          } else {
-            finishGame();
-          }
-        }
+          });
       }
     }
   }, [
+    finishGame,
     game,
     gameId,
-    isPlayingAfterFilled,
-    isGameFinished,
     gameState,
-    finishGame,
+    isGameFinished,
+    isPlayingAfterFilled,
+    myProfile,
   ]);
 
   if (!game || !gameState || !crossword) {
@@ -676,9 +673,7 @@ const CrosswordClue = ({
   const puzzleCell = currentRow[currentY];
 
   const getCurrentClue = () => {
-    const clue = crossword.clues[direction].find(
-      (x) => x.number === puzzleCell
-    );
+    const clue = crossword.clues[direction].find((x) => x.number == puzzleCell);
     if (clue) {
       return clue;
     } else {

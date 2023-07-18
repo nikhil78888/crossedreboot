@@ -3,6 +3,7 @@ import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
 import { supabase } from "../lib/supabase";
 import { useMyProfile } from "./use-my-profile";
 import { Game } from "types-and-validators";
+import axios from "axios";
 
 export const calculateScore = ({
   correctSolution,
@@ -32,7 +33,7 @@ export const calculateScore = ({
   return score;
 };
 
-export const fixType = (game: Game) => {
+export const fixType = (game: any): Game => {
   return {
     ...game,
     crossword: {
@@ -60,22 +61,30 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             filter: `id=eq.${gameId}`,
           },
           async () => {
-            const { data: game } = await supabase
+            const { data: game, error: fetchGameError } = await supabase
               .from("games")
-              .select("*, players:profiles(*), crossword:crosswords(*)")
+              .select(
+                "*, players:profiles!gamePlayers(*), crossword:crosswords(*)"
+              )
               .eq("id", gameId)
-              .returns<Game>()
               .single();
+            if (fetchGameError) {
+              console.info({ fetchGameError });
+            }
             next(null, game ? fixType(game) : undefined);
           }
         )
         .subscribe(async () => {
-          const { data: game } = await supabase
+          const { data: game, error: fetchGameError } = await supabase
             .from("games")
-            .select("*, players:profiles(*), crossword:crosswords(*)")
+            .select(
+              "*, players:profiles!gamePlayers(*), crossword:crosswords(*)"
+            )
             .eq("id", gameId)
-            .returns<Game>()
             .single();
+          if (fetchGameError) {
+            console.info({ fetchGameError });
+          }
           next(null, game ? fixType(game) : undefined);
         });
 
@@ -88,12 +97,16 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation("create-solo-game", async () => {
       if (myProfile) {
-        const { data: played } = await supabase
+        const { data: played, error: fetchPlayedError } = await supabase
           .from("profiles")
-          .select("games(crosswordsId)")
+          .select("games!gamePlayers(crosswordsId)")
           .eq("id", myProfile.id)
           .limit(1)
           .single();
+
+        if (fetchPlayedError) {
+          console.info({ fetchPlayedError });
+        }
 
         const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
 
@@ -116,6 +129,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             .select("*")
             .single();
           if (createGameError) {
+            console.info({ createGameError });
             throw createGameError;
           }
           await supabase
@@ -129,12 +143,16 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createFriendlyGame, isMutating: creatingFriendlyGame } =
     useSWRMutation("create-friendly-game", async () => {
       if (myProfile) {
-        const { data: played } = await supabase
+        const { data: played, error: fetchPlayedError } = await supabase
           .from("profiles")
-          .select("games(crosswordsId)")
+          .select("games!gamePlayers(crosswordsId)")
           .eq("id", myProfile.id)
           .limit(1)
           .single();
+
+        if (fetchPlayedError) {
+          console.info({ fetchPlayedError });
+        }
 
         const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
 
@@ -157,6 +175,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             .select("*")
             .single();
           if (createGameError) {
+            console.info({ createGameError });
             throw createGameError;
           }
           await supabase
@@ -186,13 +205,17 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     "finish-game",
     async () => {
       if (gameId) {
-        const { error } = await supabase
-          .from("games")
-          .update({ playState: "COMPLETED" })
-          .eq("id", gameId);
-        if (error) {
-          throw error;
-        }
+        console.info("finishing game");
+        await axios.post("/api/games/finish-game", { gameId });
+      }
+    }
+  );
+
+  const { trigger: forfeitGame, isMutating: forfeitingGame } = useSWRMutation(
+    "forfeit-game",
+    async () => {
+      if (gameId) {
+        await axios.post("/api/games/forfeit-game", { gameId });
       }
     }
   );
@@ -246,5 +269,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     opponentUsername,
     startGame,
     startingGame,
+    forfeitGame,
+    forfeitingGame,
   };
 };

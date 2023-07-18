@@ -2,7 +2,6 @@ import useSWR from "swr";
 import { calculateScore, fixType } from "./use-game";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
-import { Game } from "types-and-validators";
 
 export const useStats = () => {
   const { myProfile } = useMyProfile();
@@ -11,13 +10,15 @@ export const useStats = () => {
     myProfile ? `stats-${myProfile.id}` : null,
     async () => {
       if (myProfile) {
-        const { data, error } = await supabase
+        const { data, error: fetchStatsError } = await supabase
           .from("games")
-          .select("*, players:profiles!inner(*), crossword:crosswords(*)")
-          .filter("profiles.id", "eq", myProfile.id)
-          .returns<Game[]>();
-        if (error) {
-          throw error;
+          .select(
+            "*, players:profiles!gamePlayers!inner(*), crossword:crosswords(*)"
+          )
+          .filter("profiles.id", "eq", myProfile.id);
+        if (fetchStatsError) {
+          console.info({ fetchStatsError });
+          throw fetchStatsError;
         }
         let gamesPlayed = 0;
         let gamesWon = 0;

@@ -3,7 +3,7 @@ import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 
 export const useCurrentGame = () => {
-  const { myProfile } = useMyProfile();
+  const { myProfile, isLoadingMyProfile } = useMyProfile();
   const {
     data: currentGameId,
     isLoading: loadingCurrentGameId,
@@ -12,7 +12,7 @@ export const useCurrentGame = () => {
     if (myProfile) {
       const { data, error } = await supabase
         .from("games")
-        .select("*, profiles!inner(*)")
+        .select("*, profiles!gamePlayers!inner(*)")
         .filter("profiles.id", "eq", myProfile.id)
         .in("playState", ["PLAYING", "WAITING_FOR_OPPONENT"])
         .maybeSingle();
@@ -30,6 +30,6 @@ export const useCurrentGame = () => {
 
   return {
     currentGameId,
-    loadingCurrentGameId,
+    loadingCurrentGameId: isLoadingMyProfile || loadingCurrentGameId,
   };
 };

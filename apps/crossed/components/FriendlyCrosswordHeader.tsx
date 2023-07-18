@@ -6,11 +6,13 @@ import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 import colors from "../lib/colors";
+import { Button } from "./Button";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
-  const { opponentProgress, game, opponentUsername, finishGame } = useGame({
-    gameId,
-  });
+  const { opponentProgress, game, opponentUsername, finishGame, forfeitGame } =
+    useGame({
+      gameId,
+    });
   const [timeInGame, setTimeInGame] = useState("");
 
   useEffect(() => {
@@ -89,6 +91,14 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
           style={{ height: 12 }}
         />
       </View>
+      <Button
+        intent={"text"}
+        size="small"
+        label="Leave Game"
+        onPress={() => {
+          forfeitGame();
+        }}
+      />
     </View>
   );
 };

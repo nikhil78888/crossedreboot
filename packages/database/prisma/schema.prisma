@@ -18,6 +18,7 @@ model profiles {
   id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt   DateTime      @default(now())
   gamePlayers gamePlayers[]
+  games       games[]
 
   @@index([userId])
 }
@@ -62,6 +63,8 @@ model games {
   playState             PlayState
   gameState             Json?
   gamePlayers           gamePlayers[]
+  winner                profiles?     @relation(fields: [winnerId], references: [id])
+  winnerId              String?       @db.Uuid
   startedAt             DateTime?
   createdAt             DateTime      @default(now())
 }
@@ -71,6 +74,7 @@ model gamePlayers {
   player     profiles @relation(fields: [profilesId], references: [id], onDelete: Cascade)
   gamesId    String   @db.Uuid
   profilesId String   @db.Uuid
+  score      Int      @default(0)
 
   @@id([gamesId, profilesId])
 }

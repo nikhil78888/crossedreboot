@@ -2,6 +2,10 @@ import { Tabs } from "expo-router";
 import { useAuth } from "../../hooks/use-auth";
 import { Image } from "expo-image";
 import { images } from "../../lib/images";
+import axios from "axios";
+import { mobileConfig } from "../../mobile-config";
+
+axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
 export default function HomeLayout() {
   const { user } = useAuth();

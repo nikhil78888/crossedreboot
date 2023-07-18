@@ -4,6 +4,7 @@
   "scripts": {
     "upload-puzzles": "ts-node ./upload-data/upload-puzzles",
     "clean": "rm -rf ios android .turbo node_modules .expo dist",
+    "lint": "eslint \"app/**/*.ts*\"",
     "start": "dotenv -e .env -- expo start --dev-client",
     "android": "dotenv -e .env -- expo run:android",
     "ios": "dotenv -e .env -- expo run:ios",
