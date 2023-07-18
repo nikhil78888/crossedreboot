@@ -41,7 +41,7 @@ const getWordsInCrossword = (ipuz: Ipuz) => {
 const getWordListForCrossword = async (theme: string, size = 7) => {
   const funcFilterB: SupabaseFilterRPCCall = (rpc) =>
     rpc
-      .filter("metadata->answerLength::int", "gte", 3)
+      .filter("metadata->answerLength::int", "gte", size - 3)
       .filter("metadata->answerLength::int", "lte", size);
 
   const results = await vectorStore.similaritySearch(
@@ -135,19 +135,21 @@ const updateClues = (
 
 const run = async () => {
   const categories = Object.keys(CrosswordCategory);
-  for (let i = 0; i < categories.length; i += 1) {
+  for (let i = 0; i < 1; i += 1) {
     const category = categories[i] as CrosswordCategory;
-    for (let j = 0; j < 5; j += 1) {
+    for (let j = 0; j < 1; j += 1) {
       const wordList = await getWordListForCrossword(category);
+      console.log({ wordList: wordList.length });
       const wiz = await generateCrossword(wordList);
       if (wiz.findIndex((row: string) => row.indexOf(".") >= 0) >= 0) {
         console.log("could not create crossword");
         return;
       }
       const ipuz: Ipuz = createIpuz(wiz);
-      const words = getWordsInCrossword(ipuz);
-      const clueWordsPairs = await generateClues(words, category);
-      updateClues(ipuz, clueWordsPairs);
+      // const words = getWordsInCrossword(ipuz);
+      // const clueWordsPairs = await generateClues(words, category);
+      // updateClues(ipuz, clueWordsPairs);
+      writeFileSync("data/crosswords.json", JSON.stringify(ipuz));
       // @ts-expect-error
       await remoteSupabaseClient.from("crosswords").insert({
         ...ipuz,

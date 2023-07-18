@@ -46,6 +46,7 @@ export interface Database {
         Row: {
           category: Database["public"]["Enums"]["CrosswordCategory"]
           clues: Json
+          createdAt: string
           difficulty: number
           id: string
           isPublished: boolean
@@ -57,6 +58,7 @@ export interface Database {
         Insert: {
           category: Database["public"]["Enums"]["CrosswordCategory"]
           clues: Json
+          createdAt?: string
           difficulty: number
           id?: string
           isPublished: boolean
@@ -68,6 +70,7 @@ export interface Database {
         Update: {
           category?: Database["public"]["Enums"]["CrosswordCategory"]
           clues?: Json
+          createdAt?: string
           difficulty?: number
           id?: string
           isPublished?: boolean
@@ -197,7 +200,7 @@ export interface Database {
         | "movies"
         | "television"
         | "pop_culture"
-      CrosswordSource: "wizium"
+      CrosswordSource: "wizium" | "aicross"
       GameType: "SOLO" | "FRIENDLY" | "RANKED"
       PlayState: "WAITING_FOR_OPPONENT" | "PLAYING" | "COMPLETED" | "ABORTED"
     }

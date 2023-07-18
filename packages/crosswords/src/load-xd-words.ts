@@ -1,7 +1,5 @@
-// loading data/clues.csv
-// https://cryptics.georgeho.org/data/clues#export
-
-// this is loaded
+// loading data/clues-xd.csv
+// https://xd.saul.pw/data/
 
 require("dotenv").config();
 
@@ -20,7 +18,7 @@ const run = async () => {
     queryName: "match_words",
   });
 
-  const loader = new CSVLoader(`data/clues.csv`);
+  const loader = new CSVLoader(`data/clues-xd.csv`);
 
   const allDocuments = await loader.load();
   const correctLengthDocuments = allDocuments.filter((record) => {
@@ -33,8 +31,18 @@ const run = async () => {
     const start = i;
     const end = start + pageSize;
     const documentsToLoad = correctLengthDocuments.slice(start, end);
-    let newDocumentsToLoad = [];
-    for (let i = 0; i < documentsToLoad.length; i += 1) {
+    const uniqueDocumentsToLoad = Object.values(
+      documentsToLoad.reduce((accumulated, record) => {
+        const answer = record.pageContent.split("answer: ")[1].split("\n")[0];
+        if (accumulated[answer]) {
+          return accumulated;
+        } else {
+          return { ...accumulated, [answer]: record };
+        }
+      }, {})
+    );
+    const newDocumentsToLoad = [];
+    for (let i = 0; i < uniqueDocumentsToLoad.length; i += 1) {
       const record = documentsToLoad[i];
       const answer = record.pageContent.split("answer: ")[1].split("\n")[0];
       const { data } = await localSupabaseClient
@@ -49,14 +57,11 @@ const run = async () => {
     if (newDocumentsToLoad.length) {
       const formattedDocumentsToLoad = newDocumentsToLoad.map((record) => {
         const word = record.pageContent.split("answer: ")[1].split("\n")[0];
-        const definition = record.pageContent
-          .split("definition: ")[1]
-          .split("\n")[0];
         const clue = record.pageContent.split("clue: ")[1].split("\n")[0];
         return {
           pageContent: word,
           metadata: {
-            definition,
+            word,
             clue,
             wordLength: word.length,
           },
@@ -65,7 +70,7 @@ const run = async () => {
       try {
         await vectorStore.addDocuments(formattedDocumentsToLoad);
       } catch (error: any) {
-        console.log(error.response.data);
+        console.log(error.message);
       }
     }
   }

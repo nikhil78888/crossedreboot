@@ -12,7 +12,9 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "lint": "eslint \"src/**/*.ts*\"",
     "load-words": "tsx src/load-words.ts",
-    "create-crossword": "tsx src/create-crossword.ts"
+    "load-xd-words": "tsx src/load-xd-words.ts",
+    "create-crossword": "tsx src/create-crossword.ts",
+    "create-crossword-from-aicrossword": "tsx src/create-crosswords-from-aicrossword.ts"
   },
   "dependencies": {
     "@prisma/client": "4.15.0",
