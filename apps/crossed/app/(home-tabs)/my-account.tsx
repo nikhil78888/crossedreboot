@@ -9,14 +9,26 @@ import { FormTextInput } from "../../components/FormTextInput";
 import { avatars, images } from "../../lib/images";
 import { Image } from "expo-image";
 import { Avatar } from "react-native-ui-lib";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { AvoidSoftInput } from "react-native-avoid-softinput";
 import colors from "../../lib/colors";
+import { useCallback } from "react";
+import { ScrollView } from "react-native-gesture-handler";
 
 export default function MyAccount() {
   const { user, logout } = useAuth();
   const { myProfile } = useMyProfile();
   const router = useRouter();
+  const handleSoftInput = useCallback(() => {
+    AvoidSoftInput.setShouldMimicIOSBehavior(true);
+    AvoidSoftInput.setEnabled(true);
+    return () => {
+      AvoidSoftInput.setEnabled(false);
+      AvoidSoftInput.setShouldMimicIOSBehavior(false);
+    };
+  }, []);
+  useFocusEffect(handleSoftInput);
 
   if (!user || !myProfile) {
     return null;
@@ -24,25 +36,30 @@ export default function MyAccount() {
 
   if (user.isAnonymous) {
     return (
-      <Image source={images.splash_bg} className="flex-1 px-4">
-        <View className="mt-16 items-center">
-          <Image source={images.logo} className="h-20 aspect-square" />
-          <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
-            {myProfile?.username}
-          </Text>
-          <Text className="mt-6 text-crossed-blue-700 text-[36px] font-[bitterBold]">
-            Create your account
-          </Text>
-        </View>
-        <View className="mt-6">
-          <CreateAccountForm />
-        </View>
+      <Image source={images.splash_bg} className="flex-1">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+        >
+          <View className="mt-16 items-center">
+            <Image source={images.logo} className="aspect-square h-20" />
+            <Text className="mt-1 font-[latoBold] text-xl text-crossed-green-900">
+              {myProfile?.username}
+            </Text>
+            <Text className="mt-6 font-[bitterBold] text-[36px] text-crossed-blue-700">
+              Create your account
+            </Text>
+          </View>
+          <View className="mt-6">
+            <CreateAccountForm />
+          </View>
+        </ScrollView>
       </Image>
     );
   }
 
   return (
-    <View className="flex-1 px-4 bg-white">
+    <View className="flex-1 bg-white px-4">
       <View className="mt-8 items-center">
         <Avatar
           size={96}
@@ -55,11 +72,11 @@ export default function MyAccount() {
           ribbonLabel="Change"
           ribbonStyle={{ backgroundColor: colors["crossed-gray"]["400"] }}
         />
-        <Text className="mt-2 text-gray-700 font-[latoLight]">
+        <Text className="mt-2 font-[latoLight] text-gray-700">
           @{myProfile?.username}
         </Text>
       </View>
-      <View className="mt-8 flex-row items-center justify-between border-b-0.5 border-crossed-blue-300 pb-2">
+      <View className="border-b-0.5 mt-8 flex-row items-center justify-between border-crossed-blue-300 pb-2">
         <Text className="font-[bitterBold] text-lg tracking-widest">
           My Profile
         </Text>
@@ -76,9 +93,9 @@ export default function MyAccount() {
             size={32}
             color={colors["crossed-blue"]["300"]}
           />
-          <View className="flex-1 border-b-0.5 border-crossed-blue-300 pb-2">
-            <Text className="text-xs text-gray-600 font-[latoLight]">Name</Text>
-            <Text className="text-lg text-crossed-green-900 font-[latoRegular]">
+          <View className="border-b-0.5 flex-1 border-crossed-blue-300 pb-2">
+            <Text className="font-[latoLight] text-xs text-gray-600">Name</Text>
+            <Text className="font-[latoRegular] text-lg text-crossed-green-900">
               {myProfile.name}
             </Text>
           </View>
@@ -89,17 +106,17 @@ export default function MyAccount() {
             size={32}
             color={colors["crossed-blue"]["300"]}
           />
-          <View className="flex-1 border-b-0.5 border-crossed-blue-300 pb-2">
-            <Text className="text-xs text-gray-600 font-[latoLight]">
+          <View className="border-b-0.5 flex-1 border-crossed-blue-300 pb-2">
+            <Text className="font-[latoLight] text-xs text-gray-600">
               Email
             </Text>
-            <Text className="text-lg text-crossed-green-900 font-[latoRegular]">
+            <Text className="font-[latoRegular] text-lg text-crossed-green-900">
               {myProfile.email}
             </Text>
           </View>
         </View>
       </View>
-      <View className="items-center mt-8">
+      <View className="mt-8 items-center">
         <Button
           intent="text"
           label="Logout"
@@ -224,7 +241,7 @@ const CreateAccountForm = () => {
         name="password"
       />
       {errors.root?.message && (
-        <Text className="text-xs text-red-500 text-center my-1">
+        <Text className="my-1 text-center text-xs text-red-500">
           {errors.root.message}
         </Text>
       )}

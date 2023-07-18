@@ -22,6 +22,8 @@ Sentry.init({
   debug: __DEV__,
 });
 
+SplashScreen.preventAutoHideAsync();
+
 export default function IndexLayout() {
   const [fontsLoaded] = useFonts({
     latoLight: Lato_300Light,
@@ -83,8 +85,14 @@ export default function IndexLayout() {
     checkForUpdates();
   }, []);
 
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [isReady]);
+
   if (!isReady) {
-    return <SplashScreen />;
+    null;
   }
 
   return (
