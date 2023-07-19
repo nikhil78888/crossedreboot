@@ -1,5 +1,4 @@
 import useSWR from "swr";
-import { calculateScore, fixType } from "./use-game";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 
@@ -10,55 +9,34 @@ export const useStats = () => {
     myProfile ? `stats-${myProfile.id}` : null,
     async () => {
       if (myProfile) {
-        const { data, error: fetchStatsError } = await supabase
+        const { count: gamesPlayed, error: fetchGamesPlayedError } =
+          await supabase
+            .from("games")
+            .select("*, players:profiles!gamePlayers!inner(*)", {
+              count: "exact",
+              head: true,
+            })
+            .eq("playState", "COMPLETED")
+            .filter("profiles.id", "eq", myProfile.id);
+
+        if (fetchGamesPlayedError) {
+          console.info({ fetchGamesPlayedError });
+          throw fetchGamesPlayedError;
+        }
+
+        const { count: gamesWon, error: fetchGamesWonError } = await supabase
           .from("games")
-          .select(
-            "*, players:profiles!gamePlayers!inner(*), crossword:crosswords(*)"
-          )
-          .filter("profiles.id", "eq", myProfile.id);
-        if (fetchStatsError) {
-          console.info({ fetchStatsError });
-          throw fetchStatsError;
+          .select("*, players:profiles!gamePlayers!inner(*)", {
+            count: "exact",
+            head: true,
+          })
+          .eq("winnerId", myProfile.id);
+
+        if (fetchGamesWonError) {
+          console.info({ fetchGamesWonError });
+          throw fetchGamesWonError;
         }
-        let gamesPlayed = 0;
-        let gamesWon = 0;
-        for (let i = 0; i < data.length; i += 1) {
-          const gameData = fixType(data[i]);
-          if (gameData.playState === "COMPLETED") {
-            gamesPlayed += 1;
-            const correctSolution = gameData.crossword.solution;
-            const mySolution = gameData.gameState?.[myProfile.id]?.solution;
-            const myScore = mySolution
-              ? calculateScore({
-                  correctSolution,
-                  solution: mySolution,
-                })
-              : 0;
-            if (gameData.gameType === "SOLO") {
-              if (myScore === 100) {
-                gamesWon += 1;
-              }
-            }
-            if (gameData.gameType === "FRIENDLY") {
-              const opponent = gameData.players.find(
-                (p) => p.id !== myProfile.id
-              );
-              if (opponent) {
-                const opponentSolution =
-                  gameData.gameState?.[opponent.id]?.solution;
-                const opponentScore = opponentSolution
-                  ? calculateScore({
-                      correctSolution,
-                      solution: opponentSolution,
-                    })
-                  : 0;
-                if (myScore > opponentScore) {
-                  gamesWon += 1;
-                }
-              }
-            }
-          }
-        }
+
         return { gamesPlayed, gamesWon };
       }
     }

@@ -42,12 +42,9 @@ export default function Home() {
 
   if (loadingCurrentGameId) {
     return (
-      <Image
-        source={images.splash_bg}
-        className="flex-1 items-center justify-center px-4"
-      >
+      <View className="flex-1 items-center justify-center px-4 bg-white">
         <ActivityIndicator />
-      </Image>
+      </View>
     );
   }
 

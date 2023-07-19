@@ -15,6 +15,7 @@ model profiles {
   email       String?       @unique
   name        String?
   avatar      String?
+  eloRating   Float         @default(1000)
   id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt   DateTime      @default(now())
   gamePlayers gamePlayers[]

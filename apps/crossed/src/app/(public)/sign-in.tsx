@@ -10,7 +10,7 @@ import { Button } from "../../components/Button";
 
 export default function SignIn() {
   return (
-    <Image source={images.splash_bg} className="flex-1 px-4">
+    <View className="flex-1 px-4">
       <View className="mt-32 items-center">
         <Image source={images.logo} className="h-20 aspect-square" />
         <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
@@ -21,7 +21,7 @@ export default function SignIn() {
         Sign In
       </Text>
       <LoginForm />
-    </Image>
+    </View>
   );
 }
 

@@ -36,25 +36,23 @@ export default function MyAccount() {
 
   if (user.isAnonymous) {
     return (
-      <Image source={images.splash_bg} className="flex-1">
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 16 }}
-        >
-          <View className="mt-16 items-center">
-            <Image source={images.logo} className="aspect-square h-20" />
-            <Text className="mt-1 font-[latoBold] text-xl text-crossed-green-900">
-              {myProfile?.username}
-            </Text>
-            <Text className="mt-6 font-[bitterBold] text-[36px] text-crossed-blue-700">
-              Create your account
-            </Text>
-          </View>
-          <View className="mt-6">
-            <CreateAccountForm />
-          </View>
-        </ScrollView>
-      </Image>
+      <ScrollView
+        className="flex-1 bg-white"
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+      >
+        <View className="mt-16 items-center">
+          <Image source={images.logo} className="aspect-square h-20" />
+          <Text className="mt-1 font-[latoBold] text-xl text-crossed-green-900">
+            {myProfile?.username}
+          </Text>
+          <Text className="mt-6 font-[bitterBold] text-[36px] text-crossed-blue-700">
+            Create your account
+          </Text>
+        </View>
+        <View className="mt-6">
+          <CreateAccountForm />
+        </View>
+      </ScrollView>
     );
   }
 

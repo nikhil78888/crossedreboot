@@ -166,6 +166,7 @@ export interface Database {
           avatar: string | null
           country: string | null
           createdAt: string
+          eloRating: number
           email: string | null
           id: string
           name: string | null
@@ -176,6 +177,7 @@ export interface Database {
           avatar?: string | null
           country?: string | null
           createdAt?: string
+          eloRating?: number
           email?: string | null
           id?: string
           name?: string | null
@@ -186,6 +188,7 @@ export interface Database {
           avatar?: string | null
           country?: string | null
           createdAt?: string
+          eloRating?: number
           email?: string | null
           id?: string
           name?: string | null

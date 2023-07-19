@@ -5,10 +5,10 @@ module.exports = {
     owner: "harshpillario",
     version: "1.0.4",
     orientation: "portrait",
-    icon: "./assets/images/logo_black.png",
+    icon: "./src/assets/images/logo_black.png",
     userInterfaceStyle: "light",
     splash: {
-      image: "./assets/images/splash.png",
+      image: "./src/assets/images/splash.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff",
     },
@@ -26,7 +26,7 @@ module.exports = {
       googleServicesFile: "./google-services.json",
     },
     web: {
-      favicon: "./assets/favicon.png",
+      favicon: "./src/assets/images/logo_black.png",
     },
     plugins: [
       "expo-router",
@@ -50,7 +50,7 @@ module.exports = {
       },
       sentryDSN: process.env.SENTRY_DSN,
     },
-    runtimeVersion: "1.0.3",
+    runtimeVersion: "1.0.4",
     updates: {
       url: "https://u.expo.dev/95dd38ca-d0be-41ad-8148-56a2b4f5460e",
     },

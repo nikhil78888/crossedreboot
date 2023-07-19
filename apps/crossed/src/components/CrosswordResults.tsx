@@ -16,19 +16,12 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   if (!myProfile || !game) {
     return null;
   }
-  const mySolution = game.gameState?.[myProfile.id].solution;
-  const correctSolution = game.crossword.solution;
-  const myPoints = calculateScore({
-    solution: mySolution,
-    correctSolution,
-  });
+  const myPoints =
+    game.scores.find((s) => s.profilesId === myProfile.id)?.score || 0;
   const opponent = game.players.find((p) => p.id !== myProfile.id);
   const opponentUid = opponent?.id as string;
-  const opponentSolution = game.gameState?.[opponentUid].solution;
-  const opponentPoints = calculateScore({
-    solution: opponentSolution,
-    correctSolution,
-  });
+  const opponentPoints =
+    game.scores.find((s) => s.profilesId === opponent?.id)?.score || 0;
 
   const result =
     myPoints === 100

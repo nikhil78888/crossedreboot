@@ -25,7 +25,6 @@ authRouter.get<
   "/supabase-token",
   validate(loginWithFirebaseTokenRequestSchema),
   async (req, res, next) => {
-    console.log(req.decodedFirebaseToken);
     try {
       try {
         const secret = new TextEncoder().encode(apiConfig.supabaseJwtSecret);

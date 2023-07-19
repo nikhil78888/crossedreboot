@@ -64,7 +64,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             const { data: game, error: fetchGameError } = await supabase
               .from("games")
               .select(
-                "*, players:profiles!gamePlayers(*), crossword:crosswords(*)"
+                "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*)"
               )
               .eq("id", gameId)
               .single();
@@ -78,7 +78,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           const { data: game, error: fetchGameError } = await supabase
             .from("games")
             .select(
-              "*, players:profiles!gamePlayers(*), crossword:crosswords(*)"
+              "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*)"
             )
             .eq("id", gameId)
             .single();

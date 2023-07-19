@@ -116,14 +116,15 @@ gameRouter.post("/finish-game", async (req, res) => {
 gameRouter.post("/forfeit-game", async (req, res) => {
   const { gameId } = req.body;
   const firebaseUid = req.decodedFirebaseToken.uid;
-  console.log({ gameId });
   const { data: games, error } = await supabase
     .from("games")
     .select("*, players:profiles!gamePlayers(*), crossword:crosswords(*)")
     .eq("id", gameId)
     .returns<Game[]>();
 
-  console.log(error, games);
+  if (error) {
+    console.log({ error });
+  }
 
   if (!games?.length) {
     res.status(400).send("Game not found");
@@ -142,10 +143,8 @@ gameRouter.post("/forfeit-game", async (req, res) => {
     },
     [] as { playerId: string; score: number }[]
   );
-  console.log(scores);
   const winner = scores.sort((a, b) => b.score - a.score)[0];
   const winnerId = winner.playerId;
-  console.log(winner);
   await supabase
     .from("games")
     .update({ playState: "COMPLETED", winnerId })
@@ -157,8 +156,66 @@ gameRouter.post("/forfeit-game", async (req, res) => {
       .eq("gamesId", gameId)
       .eq("profilesId", scores[i].playerId);
   }
+  if (game.gameType !== "SOLO" && winnerId !== null) {
+    const updatedRatings = updateEloRatings(
+      { id: game.players[0].id, eloRating: game.players[0].eloRating },
+      { id: game.players[1].id, eloRating: game.players[1].eloRating },
+      winnerId
+    );
+    console.log({ updatedRatings });
+    for (let i = 0; i < updatedRatings.length; i += 1) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          eloRating: Math.round(updatedRatings[i].rating),
+        })
+        .eq("id", updatedRatings[i].playerId);
+      if (error) {
+        console.log({ error });
+      }
+    }
+  }
   res.send(200);
 });
+
+const updateEloRatings = (
+  playerOne: { eloRating: number; id: string },
+  playerTwo: { eloRating: number; id: string },
+  winnerId: string
+) => {
+  const K = 32;
+  const Pa = winningProbability(playerOne.eloRating, playerTwo.eloRating);
+  const Pb = winningProbability(playerTwo.eloRating, playerOne.eloRating);
+  if (winnerId === playerOne.id) {
+    return [
+      {
+        playerId: playerOne.id,
+        rating: playerOne.eloRating + K * (1 - Pa),
+      },
+      {
+        playerId: playerTwo.id,
+        rating: playerTwo.eloRating + K * (0 - Pb),
+      },
+    ];
+  } else {
+    return [
+      {
+        playerId: playerOne.id,
+        rating: playerOne.eloRating + K * (0 - Pa),
+      },
+      {
+        playerId: playerTwo.id,
+        rating: playerTwo.eloRating + K * (1 - Pb),
+      },
+    ];
+  }
+};
+
+function winningProbability(rating1: number, rating2: number) {
+  return (
+    (1.0 * 1.0) / (1 + 1.0 * Math.pow(10, (1.0 * (rating1 - rating2)) / 400))
+  );
+}
 
 const calculateScore = ({
   correctSolution,

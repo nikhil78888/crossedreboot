@@ -11,7 +11,7 @@ import { Button } from "../../components/Button";
 export default function ChooseUsername() {
   const router = useRouter();
   return (
-    <Image source={images.splash_bg} className="flex-1">
+    <View className="flex-1">
       <View className="mt-24 items-center">
         <Image source={images.logo} className="h-20 aspect-square" />
         <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
@@ -24,7 +24,7 @@ export default function ChooseUsername() {
       <View className="mt-24 px-4">
         <UsernameForm onDone={router.back} />
       </View>
-    </Image>
+    </View>
   );
 }
 
