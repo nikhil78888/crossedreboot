@@ -7,6 +7,8 @@ import colors from "../lib/colors";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
 import { differenceInSeconds, isAfter } from "date-fns";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
+import { mobileConfig } from "../mobile-config";
 
 export default function RankedLobby() {
   const router = useRouter();
@@ -66,6 +68,12 @@ export default function RankedLobby() {
             </View>
           </View>
         )}
+      </View>
+      <View className="mt-12 -mx-4">
+        <BannerAd
+          unitId={mobileConfig.inviteFriendScreenAdId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        />
       </View>
     </View>
   );

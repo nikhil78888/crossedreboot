@@ -9,6 +9,10 @@ import { useStats } from "../../hooks/use-stats";
 import { images } from "../../lib/images";
 import { Button } from "../../components/Button";
 import { NewGameButtons } from "../../components/NewGameButtons";
+import { useMyProfile } from "../../hooks/use-my-profile";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
+import { mobileConfig } from "../../mobile-config";
+import { ScrollView } from "react-native-gesture-handler";
 
 export default function Home() {
   const { stats } = useStats();
@@ -18,6 +22,7 @@ export default function Home() {
   });
   const router = useRouter();
   const navigation = useNavigation();
+  const { myProfile } = useMyProfile();
 
   const gamePlayState = game?.playState;
 
@@ -49,7 +54,10 @@ export default function Home() {
   }
 
   return (
-    <View className="flex-1 bg-white px-4">
+    <ScrollView
+      contentContainerStyle={{ paddingBottom: 40 }}
+      className="flex-1 bg-white px-4"
+    >
       <Text className="mt-2.5 font-[bitterBold] text-xl text-crossed-black-700">
         Start a New Match!
       </Text>
@@ -126,6 +134,18 @@ export default function Home() {
           </View>
         </View>
       )}
+      <View className="mt-2 h-32 bg-crossed-green-50">
+        <Image
+          source={images.card_ellipsis}
+          className="absolute bottom-0 right-0 h-full w-3/5"
+        />
+        <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
+          Points
+        </Text>
+        <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-blue-700">
+          {myProfile?.eloRating}
+        </Text>
+      </View>
       <View className="mt-5">
         <Button
           intent={"secondary"}
@@ -134,6 +154,12 @@ export default function Home() {
           onPress={() => router.push("/feedback")}
         />
       </View>
-    </View>
+      <View className="mt-6 -mx-4">
+        <BannerAd
+          unitId={mobileConfig.homeScreenAdId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        />
+      </View>
+    </ScrollView>
   );
 }

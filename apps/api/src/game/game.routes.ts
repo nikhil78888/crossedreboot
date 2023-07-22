@@ -17,7 +17,7 @@ gameRouter.post("/ranked", async (req, res) => {
   if (opponentId) {
     const { data: played } = await supabase
       .from("profiles")
-      .select("games(crosswordsId)")
+      .select("games!gamePlayers(crosswordsId)")
       .in("id", [userId, opponentId])
       .limit(1)
       .single();

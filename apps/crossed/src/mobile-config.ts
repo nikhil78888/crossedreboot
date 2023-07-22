@@ -1,4 +1,18 @@
+import { TestIds } from "react-native-google-mobile-ads";
+
 export const mobileConfig = {
-  // apiBaseUrl: "https://crossed-turbo-production.up.railway.app",
-  apiBaseUrl: "http://localhost:5001",
+  sentryDSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL,
+  homeScreenAdId: __DEV__
+    ? TestIds.BANNER
+    : "ca-app-pub-2740483950780206/4682712660",
+  resultsScreenAdId: __DEV__
+    ? TestIds.BANNER
+    : "ca-app-pub-2740483950780206/4231803446",
+  inviteFriendScreenAdId: __DEV__
+    ? TestIds.BANNER
+    : "ca-app-pub-2740483950780206/2603344239",
+  lobbyScreenAdId: __DEV__
+    ? TestIds.BANNER
+    : "ca-app-pub-2740483950780206/7417467460",
 };

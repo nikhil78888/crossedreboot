@@ -8,6 +8,8 @@ import { ShareAppButton } from "./ShareAppButton";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { NewGameButtons } from "./NewGameButtons";
 import { Button } from "./Button";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
+import { mobileConfig } from "../mobile-config";
 
 export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
@@ -122,6 +124,12 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           onPress={() => router.push("/feedback")}
         />
       </View>
+      <View className="mt-6 -mx-4">
+        <BannerAd
+          unitId={mobileConfig.resultsScreenAdId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        />
+      </View>
       <Text
         className="mt-6 text-xl font-bold"
         style={{ fontFamily: "bitterBold" }}
@@ -227,6 +235,12 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             onPress={() => {
               router.push(`/feedback`);
             }}
+          />
+        </View>
+        <View className="mt-6 -mx-4">
+          <BannerAd
+            unitId={mobileConfig.resultsScreenAdId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
           />
         </View>
         <Text

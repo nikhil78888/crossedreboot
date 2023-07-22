@@ -7,10 +7,8 @@ import { images } from "../../lib/images";
 import { useAuth } from "../../hooks/use-auth";
 import { FormTextInput } from "../../components/FormTextInput";
 import { Button } from "../../components/Button";
-import { useRouter } from "expo-router";
 
-export default function SignIn() {
-  const router = useRouter();
+export default function ForgotPassword() {
   return (
     <View className="flex-1 px-4">
       <View className="mt-32 items-center">
@@ -20,45 +18,45 @@ export default function SignIn() {
         </Text>
       </View>
       <Text className="my-6 text-4xl text-center text-crossed-blue-700 font-[bitterBold]">
-        Sign In
+        Reset Password
       </Text>
-      <LoginForm />
-      <View className="mt-5">
-        <Button
-          intent="text"
-          label="Forgot Password?"
-          onPress={() => router.push("/forgot-password")}
-        />
-      </View>
+      <ForgotPasswordForm />
     </View>
   );
 }
 
-const loginFormSchema = z.object({
+const forgotPasswordFormSchema = z.object({
   email: z
     .string({ required_error: "Please provide your email" })
     .email({ message: "Please provide a valid email" }),
-  password: z
-    .string({ required_error: "Please choose a password" })
-    .min(8, { message: "Password should be at least 8 characters" }),
 });
 
-const LoginForm = () => {
+const ForgotPasswordForm = () => {
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm({
     defaultValues: {
       email: "",
-      password: "",
     },
-    resolver: zodResolver(loginFormSchema),
+    resolver: zodResolver(forgotPasswordFormSchema),
   });
-  const { signInWithEmail } = useAuth();
+  const { sendPasswordResetEmail, isSendPasswordResetEmail } = useAuth();
 
-  const onSubmit = (formValues: z.infer<typeof loginFormSchema>) => {
-    signInWithEmail(formValues);
+  const onSubmit = async (
+    formValues: z.infer<typeof forgotPasswordFormSchema>
+  ) => {
+    try {
+      await sendPasswordResetEmail(formValues);
+    } catch (error: any) {
+      if (error.code === "auth/user-not-found") {
+        setError("root", { message: "The email does not exist." });
+      } else {
+        setError("root", { message: "Something went wrong." });
+      }
+    }
   };
 
   return (
@@ -83,26 +81,6 @@ const LoginForm = () => {
         )}
         name="email"
       />
-      <Controller
-        control={control}
-        render={({
-          field: { onChange, onBlur, value },
-          fieldState: { error },
-        }) => (
-          <FormTextInput
-            label="Password"
-            error={error?.message}
-            placeholder="xxxxxxxxx"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            secureTextEntry
-            autoComplete="password"
-            autoCapitalize="none"
-          />
-        )}
-        name="password"
-      />
       {errors.root?.message && (
         <Text className="text-xs text-red-500 text-center my-1">
           {errors.root.message}
@@ -112,7 +90,7 @@ const LoginForm = () => {
         <Button
           intent="primary"
           size="large"
-          label="Login"
+          label={isSendPasswordResetEmail ? "Please wait..." : "Reset Password"}
           onPress={handleSubmit(onSubmit)}
         />
       </View>

@@ -12,12 +12,12 @@ import {
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { Alert } from "react-native";
-import Constants from "expo-constants";
 import LogRocket from "@logrocket/react-native";
 import { useAuth } from "../hooks/use-auth";
+import { mobileConfig } from "../mobile-config";
 
 Sentry.init({
-  dsn: Constants.expoConfig?.extra?.sentryDSN,
+  dsn: mobileConfig.sentryDSN,
   enableInExpoDevelopment: false,
   debug: __DEV__,
 });

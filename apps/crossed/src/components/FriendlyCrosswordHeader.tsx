@@ -1,18 +1,21 @@
 import { Image } from "expo-image";
 import { Text, View } from "react-native";
-import { images } from "../lib/images";
-import { ProgressBar } from "react-native-ui-lib";
+import { avatars, images } from "../lib/images";
+import { Avatar, ProgressBar } from "react-native-ui-lib";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 import colors from "../lib/colors";
 import { Button } from "./Button";
+import { useMyProfile } from "../hooks/use-my-profile";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
+  const { myProfile } = useMyProfile();
   const { opponentProgress, game, opponentUsername, finishGame, forfeitGame } =
     useGame({
       gameId,
     });
+  const opponent = game?.players.find((p) => p.id !== myProfile?.id);
   const [timeInGame, setTimeInGame] = useState("");
 
   useEffect(() => {
@@ -82,14 +85,27 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         </Text> */}
       </View>
       <View className="w-1/2">
-        <Text className="font-[latoLight] tracking-wider text-xs mb-1">
-          @{opponentUsername}
-        </Text>
-        <ProgressBar
-          progress={opponentProgress}
-          progressColor={colors["crossed-red"]["400"]}
-          style={{ height: 12 }}
-        />
+        <View className="flex-row items-center justify-between">
+          <Avatar
+            size={20}
+            name={opponentUsername || ""}
+            imageStyle={{ backgroundColor: "white" }}
+            source={avatars[opponent?.avatar as keyof typeof avatars]}
+          />
+          <Text className="font-[latoLight] tracking-wider text-xs mb-1">
+            @{opponentUsername}
+          </Text>
+          <Text className="font-[latoBold] tracking-wider text-xs mb-1">
+            {opponent?.eloRating}
+          </Text>
+        </View>
+        <View className="mt-1">
+          <ProgressBar
+            progress={opponentProgress}
+            progressColor={colors["crossed-red"]["400"]}
+            style={{ height: 12 }}
+          />
+        </View>
       </View>
       <Button
         intent={"text"}

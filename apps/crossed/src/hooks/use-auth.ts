@@ -111,6 +111,22 @@ export const useAuth = () => {
   );
 
   const {
+    trigger: sendPasswordResetEmail,
+    isMutating: isSendPasswordResetEmail,
+    error: sendPasswordResetEmailError,
+  } = useSWRMutation(
+    "send-password-reset-email",
+    async (_key, { arg }: { arg: { email: string } }) => {
+      try {
+        await auth().sendPasswordResetEmail(arg.email);
+      } catch (error) {
+        console.error(error);
+        throw error;
+      }
+    }
+  );
+
+  const {
     trigger: logout,
     isMutating: isLoggingOut,
     error: logoutError,
@@ -143,5 +159,8 @@ export const useAuth = () => {
     logout,
     isLoggingOut,
     logoutError,
+    sendPasswordResetEmail,
+    isSendPasswordResetEmail,
+    sendPasswordResetEmailError,
   };
 };

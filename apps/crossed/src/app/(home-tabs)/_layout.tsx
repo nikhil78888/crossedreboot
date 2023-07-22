@@ -4,14 +4,45 @@ import { Image } from "expo-image";
 import { images } from "../../lib/images";
 import axios from "axios";
 import { mobileConfig } from "../../mobile-config";
+import { useEffect, useState } from "react";
+import mobileAds, { MaxAdContentRating } from "react-native-google-mobile-ads";
 
 axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
 export default function HomeLayout() {
   const { user } = useAuth();
-  if (!user) {
+  const [adReady, setAdReady] = useState(false);
+
+  useEffect(() => {
+    mobileAds()
+      .setRequestConfiguration({
+        // Update all future requests suitable for parental guidance
+        maxAdContentRating: MaxAdContentRating.PG,
+
+        // Indicates that you want your content treated as child-directed for purposes of COPPA.
+        tagForChildDirectedTreatment: true,
+
+        // Indicates that you want the ad request to be handled in a
+        // manner suitable for users under the age of consent.
+        tagForUnderAgeOfConsent: true,
+
+        // An array of test device IDs to allow.
+        testDeviceIdentifiers: ["EMULATOR"],
+      })
+      .then(() => {
+        // Request config successfully set!
+        mobileAds()
+          .initialize()
+          .then(() => {
+            setAdReady(true);
+          });
+      });
+  }, []);
+
+  if (!user || !adReady) {
     return null;
   }
+
   return (
     <Tabs
       screenOptions={{

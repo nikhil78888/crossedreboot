@@ -673,7 +673,9 @@ const CrosswordClue = ({
   const puzzleCell = currentRow[currentY];
 
   const getCurrentClue = () => {
-    const clue = crossword.clues[direction].find((x) => x.number == puzzleCell);
+    const clue = crossword.clues[direction].find(
+      (x) => String(x.number) === String(puzzleCell)
+    );
     if (clue) {
       return clue;
     } else {
@@ -696,7 +698,7 @@ const CrosswordClue = ({
         }
         const clueCell = crossword.puzzle[currentX][clueCellColIndex];
         const clue = crossword.clues[direction].find(
-          (x) => x.number === clueCell
+          (x) => String(x.number) === String(clueCell)
         );
         if (clue) {
           return clue;
@@ -722,7 +724,7 @@ const CrosswordClue = ({
       }
       const clueCell = crossword.puzzle[clueCellRowIndex][currentY];
       const clue = crossword.clues[direction].find(
-        (x) => x.number === clueCell
+        (x) => String(x.number) === String(clueCell)
       );
       if (clue) {
         return clue;
