@@ -1,9 +1,10 @@
 import { Image } from "expo-image";
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { images } from "../../lib/images";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import { Button } from "../../components/Button";
+import { mobileConfig } from "../../mobile-config";
 
 export default function Welcome() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function Welcome() {
           size="large"
           onPress={() => {
             router.push("/choose-username");
+          }}
+          onLongPress={() => {
+            Alert.alert(JSON.stringify(mobileConfig));
           }}
           label="Get Started"
         />

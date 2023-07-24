@@ -77,7 +77,7 @@ gameRouter.post("/finish-game", async (req, res) => {
   }
   const scores: { playerId: string; score: number }[] = game.players.reduce(
     (prevScores, player) => {
-      const score = game.gameState?.[player.id].solution
+      const score = game.gameState?.[player.id]?.solution
         ? calculateScore({
             correctSolution: game.crossword?.solution as unknown as string[][],
             solution: game.gameState[player.id]

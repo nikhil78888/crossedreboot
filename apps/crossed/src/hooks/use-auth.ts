@@ -3,7 +3,6 @@ import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import axios from "axios";
 import { setSupabaseToken, supabase } from "../lib/supabase";
-import { mobileConfig } from "../mobile-config";
 
 export const useAuth = () => {
   const {
@@ -19,9 +18,7 @@ export const useAuth = () => {
         if (user) {
           const firebaseIdToken = await user.getIdToken(true);
           axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
-          const response = await axios.get(
-            `${mobileConfig.apiBaseUrl}/api/auth/supabase-token`
-          );
+          const response = await axios.get(`/api/auth/supabase-token`);
           const supabaseToken = response.data.supabaseToken;
           setSupabaseToken(supabaseToken);
         }
@@ -49,9 +46,7 @@ export const useAuth = () => {
         await user.updateProfile({ displayName: arg.username });
         const firebaseIdToken = await user.getIdToken();
         axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
-        const response = await axios.get(
-          `${mobileConfig.apiBaseUrl}/api/auth/supabase-token`
-        );
+        const response = await axios.get(`/api/auth/supabase-token`);
         setSupabaseToken(response.data.supabaseToken);
         const { error } = await supabase
           .from("profiles")

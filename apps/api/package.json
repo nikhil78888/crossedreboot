@@ -10,12 +10,14 @@
     "start": "node dist/index.js",
     "test": "jest --detectOpenHandles",
     "load-words": "tsup scripts/load-words.ts --format cjs --onSuccess \"node dist/load-words.js\"",
-    "create-crossword": "tsup scripts/create-crossword.ts --format cjs --onSuccess \"node dist/create-crossword.js\""
+    "create-crossword": "tsup scripts/create-crossword.ts --format cjs --onSuccess \"node dist/create-crossword.js\"",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org crossed --project node-express ./dist && sentry-cli sourcemaps upload --org crossed --project node-express ./dist"
   },
   "jest": {
     "preset": "jest-presets/jest/node"
   },
   "dependencies": {
+    "@sentry/node": "^7.60.0",
     "@supabase/supabase-js": "^2.24.0",
     "axios": "^1.4.0",
     "body-parser": "^1.19.0",

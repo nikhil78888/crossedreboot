@@ -15,6 +15,9 @@ import { Alert } from "react-native";
 import LogRocket from "@logrocket/react-native";
 import { useAuth } from "../hooks/use-auth";
 import { mobileConfig } from "../mobile-config";
+import axios from "axios";
+
+axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
 Sentry.init({
   dsn: mobileConfig.sentryDSN,

@@ -31,10 +31,7 @@ type ButtonProps = TouchableOpacityProps &
 export const Button = (props: ButtonProps) => {
   const { intent, size } = props;
   return (
-    <TouchableOpacity
-      onPress={props.onPress}
-      className={button({ intent, size })}
-    >
+    <TouchableOpacity className={button({ intent, size })} {...props}>
       <Text className={buttonLabel({ intent, size })}>{props.label}</Text>
     </TouchableOpacity>
   );

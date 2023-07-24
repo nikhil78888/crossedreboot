@@ -20,3 +20,4 @@ ios/
 yarn-error.log
 upload-data/crossed-live-firebase-adminsdk-2upwl-5dd2a10c36.json
 .env
+.env.*

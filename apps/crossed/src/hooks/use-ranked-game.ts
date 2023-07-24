@@ -2,7 +2,6 @@ import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 import axios from "axios";
-import { mobileConfig } from "../mobile-config";
 
 export const useRankedGame = () => {
   const { myProfile } = useMyProfile();
@@ -33,7 +32,7 @@ export const useRankedGame = () => {
 
   const startRankedGame = async () => {
     if (myProfile) {
-      await axios.post(`${mobileConfig.apiBaseUrl}/api/games/ranked`, {
+      await axios.post(`/api/games/ranked`, {
         userId: myProfile.id,
       });
     }

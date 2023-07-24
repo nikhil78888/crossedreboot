@@ -4,7 +4,10 @@
     "target": "ES2020",
     "module": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "sourceMap": true,
+    "inlineSources": true,
+    "sourceRoot": "/"
   },
   "exclude": ["node_modules"],
   "extends": "tsconfig/base.json",
