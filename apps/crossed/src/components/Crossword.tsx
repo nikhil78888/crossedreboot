@@ -415,8 +415,12 @@ export const CrosswordGrid = ({
     clue: { number: string; clue: string };
     direction: "Down" | "Across";
   }) => {
-    const x = crossword.puzzle.findIndex((row) => row.includes(clue.number));
-    const y = crossword.puzzle[x].findIndex((cell) => cell === clue.number);
+    const x = crossword.puzzle.findIndex((row) =>
+      row.includes(String(clue.number))
+    );
+    const y = crossword.puzzle[x].findIndex(
+      (cell) => cell === String(clue.number)
+    );
     setCurrentCell({ x, y });
     setDirection(direction);
   };

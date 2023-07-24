@@ -23,9 +23,10 @@ export default function RankedLobby() {
   }, []);
 
   const gameStartingAt = game?.startedAt;
+  const playState = game?.playState;
 
   useEffect(() => {
-    if (gameStartingAt) {
+    if (playState !== "COMPLETED" && gameStartingAt) {
       const interval = setInterval(() => {
         if (isAfter(new Date(`${gameStartingAt}Z`), new Date())) {
           setSecondsToStart(
@@ -37,7 +38,7 @@ export default function RankedLobby() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [gameId, gameStartingAt, router]);
+  }, [gameId, gameStartingAt, playState, router]);
 
   return (
     <View className="flex-1 bg-white px-4">

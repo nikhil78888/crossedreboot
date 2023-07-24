@@ -18,7 +18,10 @@ export const useRankedGame = () => {
             table: "gamePlayers",
           },
           async (data) => {
-            if (data.new.profilesId === myProfile?.id)
+            if (
+              data.new.profilesId === myProfile?.id &&
+              data.new.playState !== "COMPLETED"
+            )
               next(null, data.new.gamesId);
           }
         )

@@ -17,7 +17,7 @@ export const ShareAppButton = () => {
         <Text className="font-[latoLight] text-crossed-black-700 text-base">
           Invite Your Friends & Play a Friendly Match
         </Text>
-        <View className="absolute right-0 h-full aspect-square bg-crossed-green-100 rounded-l-[20] rounded-r-sm items-center justify-center">
+        <View className="absolute right-0 h-full aspect-square bg-crossed-green-100 rounded-l-[20px] rounded-r-sm items-center justify-center">
           <Image source={images.share_red} className="h-[25] w-[25]" />
         </View>
       </View>

@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabase";
 import { useMyProfile } from "./use-my-profile";
 import { Game } from "types-and-validators";
 import axios from "axios";
+import { useStats } from "./use-stats";
+import { useEffect } from "react";
 
 export const calculateScore = ({
   correctSolution,
@@ -46,6 +48,7 @@ export const fixType = (game: any): Game => {
 
 export const useGame = ({ gameId }: { gameId?: string }) => {
   const { myProfile } = useMyProfile();
+  const { refreshStats } = useStats();
 
   const { data: game } = useSWRSubscription(
     gameId ? ["game", gameId] : null,
@@ -93,6 +96,13 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       };
     }
   );
+
+  const playState = game?.playState;
+  useEffect(() => {
+    if (playState === "COMPLETED" || playState === "ABORTED") {
+      refreshStats();
+    }
+  }, [playState, refreshStats]);
 
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation("create-solo-game", async () => {

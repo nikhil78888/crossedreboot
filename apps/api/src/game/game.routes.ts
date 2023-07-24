@@ -110,6 +110,25 @@ gameRouter.post("/finish-game", async (req, res) => {
       .eq("gamesId", gameId)
       .eq("profilesId", scores[i].playerId);
   }
+  if (game.gameType !== "SOLO" && winnerId !== null) {
+    const updatedRatings = updateEloRatings(
+      { id: game.players[0].id, eloRating: game.players[0].eloRating },
+      { id: game.players[1].id, eloRating: game.players[1].eloRating },
+      winnerId
+    );
+    console.log({ updatedRatings });
+    for (let i = 0; i < updatedRatings.length; i += 1) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          eloRating: Math.round(updatedRatings[i].rating),
+        })
+        .eq("id", updatedRatings[i].playerId);
+      if (error) {
+        console.log({ error });
+      }
+    }
+  }
   res.send(200);
 });
 

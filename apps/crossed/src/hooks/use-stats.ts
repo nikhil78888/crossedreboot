@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 export const useStats = () => {
   const { myProfile } = useMyProfile();
 
-  const { data: stats } = useSWR(
+  const { data: stats, mutate: refreshStats } = useSWR(
     myProfile ? `stats-${myProfile.id}` : null,
     async () => {
       if (myProfile) {
@@ -42,5 +42,5 @@ export const useStats = () => {
     }
   );
 
-  return { stats };
+  return { stats, refreshStats };
 };
