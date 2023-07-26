@@ -15,4 +15,5 @@ export const mobileConfig = {
   lobbyScreenAdId: __DEV__
     ? TestIds.BANNER
     : "ca-app-pub-2740483950780206/7417467460",
+  revenueCatAPIKey: "appl_wtDAWNsfUysrDEiBbTZdIhgesdW",
 };
