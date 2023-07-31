@@ -4,10 +4,55 @@ import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
+import { useStats } from "../hooks/use-stats";
+import { useSubscriptionInfo } from "../hooks/use-subscription-info";
+import { useInterstitialAd } from "react-native-google-mobile-ads";
+import { useCallback, useEffect, useState } from "react";
+import { mobileConfig } from "../mobile-config";
 
 export const NewGameButtons = () => {
+  const { currentSubscription } = useSubscriptionInfo();
+  const { stats } = useStats();
   const router = useRouter();
+  const { isLoaded, isClosed, load, show } = useInterstitialAd(
+    mobileConfig.interstitialAdId,
+    {
+      requestNonPersonalizedAdsOnly: true,
+    }
+  );
+  const [onAdClose, setOnAdClose] = useState<"SOLO" | "FRIENDLY" | "">("");
   const { createFriendlyGame, createSoloGame } = useGame({ gameId: undefined });
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const playSolo = useCallback(async () => {
+    setOnAdClose("");
+    const gameId = await createSoloGame();
+    router.push(`/game?gameId=${gameId}`);
+  }, [createSoloGame, router]);
+
+  const playFriendly = useCallback(async () => {
+    setOnAdClose("");
+    const gameId = await createFriendlyGame();
+    router.push(`/invite-friend?gameId=${gameId}`);
+  }, [createFriendlyGame, router]);
+
+  useEffect(() => {
+    if (isClosed) {
+      switch (onAdClose) {
+        case "SOLO":
+          playSolo();
+          break;
+        case "FRIENDLY":
+          playFriendly();
+          break;
+        default:
+          break;
+      }
+    }
+  }, [isClosed, onAdClose, playFriendly, playSolo]);
 
   return (
     <View className="flex-row items-center space-x-2">
@@ -33,9 +78,18 @@ export const NewGameButtons = () => {
       </View>
       <View className="flex-1">
         <TouchableOpacity
-          onPress={async () => {
-            const gameId = await createFriendlyGame();
-            router.push(`/invite-friend?gameId=${gameId}`);
+          onPress={() => {
+            if (
+              !currentSubscription &&
+              stats?.gamesPlayedToday &&
+              stats?.gamesPlayedToday > 4 &&
+              isLoaded
+            ) {
+              setOnAdClose("FRIENDLY");
+              show();
+            } else {
+              playFriendly();
+            }
           }}
           className="h-[130] w-full max-w-[121] bg-crossed-green-50"
         >
@@ -54,9 +108,18 @@ export const NewGameButtons = () => {
       </View>
       <View className="flex-1">
         <TouchableOpacity
-          onPress={async () => {
-            const gameId = await createSoloGame();
-            router.push(`/game?gameId=${gameId}`);
+          onPress={() => {
+            if (
+              !currentSubscription &&
+              stats?.gamesPlayedToday &&
+              stats?.gamesPlayedToday > 4 &&
+              isLoaded
+            ) {
+              setOnAdClose("SOLO");
+              show();
+            } else {
+              playSolo();
+            }
           }}
           className="h-[130] w-full max-w-[121] bg-crossed-green-50"
         >

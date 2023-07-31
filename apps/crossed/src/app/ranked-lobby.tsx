@@ -31,9 +31,14 @@ export default function RankedLobby() {
     if (playState !== "COMPLETED" && gameStartingAt) {
       const interval = setInterval(() => {
         if (isAfter(new Date(`${gameStartingAt}Z`), new Date())) {
-          setSecondsToStart(
-            differenceInSeconds(new Date(`${gameStartingAt}Z`), new Date())
+          const secToStart = differenceInSeconds(
+            new Date(`${gameStartingAt}Z`),
+            new Date()
           );
+          console.log(secToStart);
+          if (secToStart < 6) {
+            setSecondsToStart(secToStart);
+          }
         } else {
           router.replace(`/game?gameId=${gameId}`);
         }
@@ -51,7 +56,7 @@ export default function RankedLobby() {
         <Text className="mt-7 text-center font-[latoLight] text-xl">
           We are finding the best player for you to compete with.
         </Text>
-        {game ? (
+        {secondsToStart > 0 ? (
           <View className="mt-8 items-center">
             <Text>Match starting in {secondsToStart} seconds...</Text>
           </View>

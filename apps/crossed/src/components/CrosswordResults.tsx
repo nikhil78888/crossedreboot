@@ -76,6 +76,28 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           >
             You got {myPoints} Points
           </Text>
+          <Text
+            className={classNames(
+              "text-center text-3xl",
+              result === "PERFECT_SCORE" ? "text-crossed-green-700" : "",
+              result === "WON" ? "text-crossed-yellow-400" : "",
+              result === "LOST" ? "text-crossed-red-400" : ""
+            )}
+            style={{ fontFamily: "bitterBold" }}
+          >
+            My Rank: {myProfile.eloRating}
+          </Text>
+          <Text
+            className={classNames(
+              "text-center text-3xl",
+              result === "PERFECT_SCORE" ? "text-crossed-green-700" : "",
+              result === "WON" ? "text-crossed-yellow-400" : "",
+              result === "LOST" ? "text-crossed-red-400" : ""
+            )}
+            style={{ fontFamily: "bitterBold" }}
+          >
+            {opponent?.username} Rank: {opponent?.eloRating}
+          </Text>
         </View>
       </View>
       <Text

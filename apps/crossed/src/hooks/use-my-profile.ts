@@ -82,6 +82,7 @@ export const useMyProfile = () => {
 
   return {
     myProfile,
+    refreshMyProfile,
     isLoadingMyProfile,
     createProfile,
     isCreatingProfile,

@@ -18,7 +18,9 @@ gameRouter.post("/ranked", async (req, res) => {
   );
   const userIndex =
     rankedOnlinePlayerProfiles?.findIndex((p) => p.id === userId) || 0;
-  const opponentId = rankedOnlinePlayerProfiles?.[userIndex + 1].id;
+  const opponentId =
+    rankedOnlinePlayerProfiles?.[userIndex + 1]?.id ||
+    rankedOnlinePlayerProfiles?.[userIndex - 1]?.id;
   console.log(`match ${userId} with ${opponentId}`);
   if (opponentId) {
     const { data: played } = await supabase
@@ -105,10 +107,6 @@ gameRouter.post("/finish-game", async (req, res) => {
     winnerId = winner.playerId;
   }
   console.log(winner);
-  await supabase
-    .from("games")
-    .update({ playState: "COMPLETED", winnerId })
-    .eq("id", gameId);
   for (let i = 0; i < scores.length; i += 1) {
     await supabase
       .from("gamePlayers")
@@ -116,7 +114,7 @@ gameRouter.post("/finish-game", async (req, res) => {
       .eq("gamesId", gameId)
       .eq("profilesId", scores[i].playerId);
   }
-  if (game.gameType !== "SOLO" && winnerId !== null) {
+  if (game.gameType === "RANKED" && winnerId !== null) {
     const updatedRatings = updateEloRatings(
       { id: game.players[0].id, eloRating: game.players[0].eloRating },
       { id: game.players[1].id, eloRating: game.players[1].eloRating },
@@ -135,6 +133,10 @@ gameRouter.post("/finish-game", async (req, res) => {
       }
     }
   }
+  await supabase
+    .from("games")
+    .update({ playState: "COMPLETED", winnerId })
+    .eq("id", gameId);
   res.send(200);
 });
 
@@ -170,10 +172,6 @@ gameRouter.post("/forfeit-game", async (req, res) => {
   );
   const winner = scores.sort((a, b) => b.score - a.score)[0];
   const winnerId = winner.playerId;
-  await supabase
-    .from("games")
-    .update({ playState: "COMPLETED", winnerId })
-    .eq("id", gameId);
   for (let i = 0; i < scores.length; i += 1) {
     await supabase
       .from("gamePlayers")
@@ -181,7 +179,7 @@ gameRouter.post("/forfeit-game", async (req, res) => {
       .eq("gamesId", gameId)
       .eq("profilesId", scores[i].playerId);
   }
-  if (game.gameType !== "SOLO" && winnerId !== null) {
+  if (game.gameType === "RANKED" && winnerId !== null) {
     const updatedRatings = updateEloRatings(
       { id: game.players[0].id, eloRating: game.players[0].eloRating },
       { id: game.players[1].id, eloRating: game.players[1].eloRating },
@@ -200,6 +198,10 @@ gameRouter.post("/forfeit-game", async (req, res) => {
       }
     }
   }
+  await supabase
+    .from("games")
+    .update({ playState: "COMPLETED", winnerId })
+    .eq("id", gameId);
   res.send(200);
 });
 

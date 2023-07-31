@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
+import { startOfDay } from "date-fns";
 
 export const useStats = () => {
   const { myProfile } = useMyProfile();
@@ -16,11 +17,28 @@ export const useStats = () => {
               count: "exact",
               head: true,
             })
+            .eq("gameType", "RANKED")
             .eq("playState", "COMPLETED")
             .filter("profiles.id", "eq", myProfile.id);
 
         if (fetchGamesPlayedError) {
           console.info({ fetchGamesPlayedError });
+          throw fetchGamesPlayedError;
+        }
+
+        const { count: gamesPlayedToday, error: fetchGamesPlayedTodayError } =
+          await supabase
+            .from("games")
+            .select("*, players:profiles!gamePlayers!inner(*)", {
+              count: "exact",
+              head: true,
+            })
+            .eq("playState", "COMPLETED")
+            .gte("createdAt", startOfDay(new Date()).toISOString())
+            .filter("profiles.id", "eq", myProfile.id);
+
+        if (fetchGamesPlayedTodayError) {
+          console.info({ fetchGamesPlayedTodayError });
           throw fetchGamesPlayedError;
         }
 
@@ -30,6 +48,7 @@ export const useStats = () => {
             count: "exact",
             head: true,
           })
+          .eq("gameType", "RANKED")
           .eq("winnerId", myProfile.id);
 
         if (fetchGamesWonError) {
@@ -37,7 +56,7 @@ export const useStats = () => {
           throw fetchGamesWonError;
         }
 
-        return { gamesPlayed, gamesWon };
+        return { gamesPlayed, gamesPlayedToday, gamesWon };
       }
     }
   );

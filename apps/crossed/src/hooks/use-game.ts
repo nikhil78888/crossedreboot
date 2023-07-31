@@ -47,7 +47,7 @@ export const fixType = (game: any): Game => {
 };
 
 export const useGame = ({ gameId }: { gameId?: string }) => {
-  const { myProfile } = useMyProfile();
+  const { myProfile, refreshMyProfile } = useMyProfile();
   const { refreshStats } = useStats();
 
   const { data: game } = useSWRSubscription(
@@ -101,8 +101,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   useEffect(() => {
     if (playState === "COMPLETED" || playState === "ABORTED") {
       refreshStats();
+      refreshMyProfile();
     }
-  }, [playState, refreshStats]);
+  }, [playState, refreshStats, refreshMyProfile]);
 
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation("create-solo-game", async () => {
