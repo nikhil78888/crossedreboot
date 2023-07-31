@@ -179,6 +179,12 @@ export default function IndexLayout() {
             headerTitle: "Upgrade",
           }}
         />
+        <Stack.Screen
+          name="create-account"
+          options={{
+            headerTitle: "Create Account",
+          }}
+        />
       </Stack>
     </KeyboardProvider>
   );
