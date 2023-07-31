@@ -1648,6 +1648,11 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.37.0.tgz#cf1b5fa24217fe007f6487a26d765274925efa7d"
   integrity sha512-x5vzdtOOGgFVDCUs81QRB2+liax8rFg3+7hqM+QhBG0/G3F1ZsoYl97UrqgHgQ9KKT7G6c4V+aTUCgu/n22v1A==
 
+"@expo-google-fonts/besley@^0.2.3":
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/besley/-/besley-0.2.3.tgz#2d4c25732bec8145f44a6f39ccd82cc70cf936ce"
+  integrity sha512-cnau9kTSrrYc25sg5s6kj3EaqSbXGerWQNLOgG+PdzFnlQKKDcmzC7ojLKh4tIPXYKlvgr0igRuFpdqvi0fk+Q==
+
 "@expo-google-fonts/bitter@^0.2.3":
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/bitter/-/bitter-0.2.3.tgz#62dd8d130878fedb10bcc72f928c22761510c1be"
@@ -1657,6 +1662,11 @@
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/lato/-/lato-0.2.3.tgz#32456b5c49d9f84d2b22ecfa8f50027555439e9c"
   integrity sha512-X56FEZn2GNYtI2/UqyOps7TShuDwi/k9JKa7VzM0x2ywBOnhTtXGq2IsZyNPzT9KnQA/ID84F9yiMS8e3obu0g==
+
+"@expo-google-fonts/prompt@^0.2.3":
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/prompt/-/prompt-0.2.3.tgz#e640c08968d0fac97ede90539d98035340d7e6fe"
+  integrity sha512-GVSoDWUsG5rtBxKPdqE4yttEKgNwmJiz+162zHloordJzQyxq064QBMrAVelGLAIfLio7pVgcPwWUg6GnsdDfA==
 
 "@expo/bunyan@4.0.0", "@expo/bunyan@^4.0.0":
   version "4.0.0"

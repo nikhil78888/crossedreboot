@@ -7,21 +7,26 @@ import { useRouter } from "expo-router";
 import { images } from "../../lib/images";
 import { useAuth } from "../../hooks/use-auth";
 import { Button } from "../../components/Button";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ChooseUsername() {
   const router = useRouter();
   return (
-    <View className="flex-1">
-      <View className="mt-24 items-center">
-        <Image source={images.logo} className="h-20 aspect-square" />
-        <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
-          Crossed
-        </Text>
-        <Text className="mt-6 text-crossed-blue-700 text-[40px] font-[bitterBold]">
+    <View className="flex-1 bg-crossed-gray-50">
+      <View className="absolute top-6 left-1">
+        <Ionicons
+          size={32}
+          name="ios-chevron-back-sharp"
+          onPress={router.back}
+        />
+      </View>
+      <View className="mt-20 flex-row items-center">
+        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
+        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
           Pick a Username
         </Text>
       </View>
-      <View className="mt-24 px-4">
+      <View className="mt-10 px-10">
         <UsernameForm onDone={router.back} />
       </View>
     </View>
@@ -76,8 +81,8 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
 
   return (
     <View>
-      <Text className="text-crossed-green-900 font-[latoRegular]">
-        Username
+      <Text className="text-black text-sm font-[promptRegular] tracking-widest">
+        USERNAME
       </Text>
       <Controller
         control={control}
@@ -85,12 +90,18 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
           required: true,
         }}
         render={({ field: { onChange, onBlur, value } }) => (
-          <View className="flex-row items-center border h-[60] mt-1 border-gray-200 px-3 rounded-sm">
-            <Text className={usernameValue.length ? "" : "text-gray-400"}>
+          <View className="bg-white flex-row items-center border h-[54px] mt-1 border-gray-200 px-4 rounded-sm">
+            <Text
+              className={
+                usernameValue.length
+                  ? "font-[promptLight]"
+                  : "font-[promptLight] text-gray-400"
+              }
+            >
               @
             </Text>
             <TextInput
-              className="flex-1 h-full px-1"
+              className="flex-1 h-full px-1 font-[promptLight]"
               placeholder="josh.cross"
               onBlur={onBlur}
               onChangeText={onChange}
@@ -109,7 +120,7 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
       />
       <View className="h-4">
         {errors.username && (
-          <Text className="text-xs text-red-500">
+          <Text className="font-[promptLight] text-xs text-red-500 tracking-widest">
             {errors.username.message}
           </Text>
         )}
@@ -122,7 +133,8 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
       <View className="mt-4">
         <Button
           onPress={handleSubmit(onSubmit)}
-          label={isSettingDisplayName ? "Please wait..." : "Let's go"}
+          isLoading={isSettingDisplayName}
+          label={"Let's go"}
           intent="primary"
           size="large"
         />

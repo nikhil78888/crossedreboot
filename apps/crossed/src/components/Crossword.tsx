@@ -558,12 +558,12 @@ const CrosswordCell = ({
   }, [isCurrentCell, disabled]);
 
   if (puzzleCell === "#") {
-    return <View className="border-0.5 flex-1 bg-crossed-black-700" />;
+    return <View className="border-0.5 flex-1 bg-black" />;
   }
 
   const getBackgroundColor = () => {
     if (isCurrentCell) {
-      return "bg-yellow-300";
+      return "bg-blue-600";
     }
     if (direction === "Across" && currentX === rowIndex) {
       const leftMark = Math.min(colIndex, currentY);
@@ -573,7 +573,7 @@ const CrosswordCell = ({
           return true;
         }
       });
-      return hasBreak ? "bg-white" : "bg-crossed-green-300";
+      return hasBreak ? "bg-white" : "bg-crossed-blue-100";
     }
     if (direction === "Down" && currentY === colIndex) {
       const currentCol = crossword.puzzle.map((row) => row[currentY]);
@@ -584,7 +584,7 @@ const CrosswordCell = ({
           return true;
         }
       });
-      return hasBreak ? "bg-white" : "bg-crossed-green-300";
+      return hasBreak ? "bg-white" : "bg-crossed-blue-100";
     }
     return "bg-white";
   };
@@ -780,7 +780,7 @@ const CrosswordClue = ({
   };
 
   return (
-    <View className="h-[53] w-full items-center justify-center bg-crossed-green-300 px-10">
+    <View className="h-[53] w-full items-center justify-center bg-crossed-yellow-300 px-10">
       <View className="absolute inset-y-0 left-0 items-center justify-center">
         <TouchableOpacity
           onPress={gotoPrevClue}
@@ -790,7 +790,9 @@ const CrosswordClue = ({
         </TouchableOpacity>
       </View>
       <TouchableOpacity className="flex-row" onPress={toggleDirection}>
-        <Text className="font-[latoRegular]">{currentClue?.clue}</Text>
+        <Text className="font-[promptLight] text-base">
+          {currentClue?.clue}
+        </Text>
       </TouchableOpacity>
       <View className="absolute inset-y-0 right-0 items-center justify-center">
         <TouchableOpacity

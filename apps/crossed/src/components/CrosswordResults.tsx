@@ -10,10 +10,12 @@ import { NewGameButtons } from "./NewGameButtons";
 import { Button } from "./Button";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
+import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 
 export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
+  const { currentSubscription } = useSubscriptionInfo();
   const { game, opponentUsername } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
@@ -124,12 +126,14 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           onPress={() => router.push("/feedback")}
         />
       </View>
-      <View className="mt-6 -mx-4">
-        <BannerAd
-          unitId={mobileConfig.resultsScreenAdId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        />
-      </View>
+      {!currentSubscription && (
+        <View className="mt-6 -mx-4">
+          <BannerAd
+            unitId={mobileConfig.resultsScreenAdId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          />
+        </View>
+      )}
       <Text
         className="mt-6 text-xl font-bold"
         style={{ fontFamily: "bitterBold" }}
@@ -157,6 +161,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
 export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
+  const { currentSubscription } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
@@ -167,7 +172,10 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const result = points === 100 ? "PERFECT_SCORE" : points > 0 ? "WON" : "LOST";
   return (
     <View className="h-full w-full bg-white">
-      <ScrollView className="flex-1 px-5 py-4">
+      <ScrollView
+        className="flex-1 px-5"
+        contentContainerStyle={{ paddingBottom: 40, paddingTop: 20 }}
+      >
         <View className="rounded-sm border border-crossed-green-100 bg-crossed-green-50 shadow-sm">
           <Image
             source={images.card_ellipsis}
@@ -237,12 +245,14 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             }}
           />
         </View>
-        <View className="mt-6 -mx-4">
-          <BannerAd
-            unitId={mobileConfig.resultsScreenAdId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          />
-        </View>
+        {!currentSubscription && (
+          <View className="mt-6 -mx-4">
+            <BannerAd
+              unitId={mobileConfig.resultsScreenAdId}
+              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            />
+          </View>
+        )}
         <Text
           className="mt-6 text-xl font-bold"
           style={{ fontFamily: "bitterBold" }}

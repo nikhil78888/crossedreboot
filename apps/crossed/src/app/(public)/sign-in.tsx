@@ -1,34 +1,39 @@
-import { Image } from "expo-image";
 import { Text, View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { images } from "../../lib/images";
 import { useAuth } from "../../hooks/use-auth";
 import { FormTextInput } from "../../components/FormTextInput";
 import { Button } from "../../components/Button";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SignIn() {
   const router = useRouter();
   return (
-    <View className="flex-1 px-4">
-      <View className="mt-32 items-center">
-        <Image source={images.logo} className="h-20 aspect-square" />
-        <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
-          Crossed
+    <View className="flex-1 bg-crossed-gray-50">
+      <View className="absolute top-6 left-1">
+        <Ionicons
+          size={32}
+          name="ios-chevron-back-sharp"
+          onPress={router.back}
+        />
+      </View>
+      <View className="mt-20 flex-row items-center">
+        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
+        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
+          Sign In
         </Text>
       </View>
-      <Text className="my-6 text-4xl text-center text-crossed-blue-700 font-[bitterBold]">
-        Sign In
-      </Text>
-      <LoginForm />
-      <View className="mt-5">
-        <Button
-          intent="text"
-          label="Forgot Password?"
-          onPress={() => router.push("/forgot-password")}
-        />
+      <View className="mt-10 px-10">
+        <LoginForm />
+        <View className="mt-5">
+          <Button
+            intent="text"
+            label="Forgot Password?"
+            onPress={() => router.push("/forgot-password")}
+          />
+        </View>
       </View>
     </View>
   );
@@ -55,7 +60,7 @@ const LoginForm = () => {
     },
     resolver: zodResolver(loginFormSchema),
   });
-  const { signInWithEmail } = useAuth();
+  const { signInWithEmail, isSigningInWithEmail } = useAuth();
 
   const onSubmit = (formValues: z.infer<typeof loginFormSchema>) => {
     signInWithEmail(formValues);
@@ -112,7 +117,8 @@ const LoginForm = () => {
         <Button
           intent="primary"
           size="large"
-          label="Login"
+          isLoading={isSigningInWithEmail}
+          label={"Login"}
           onPress={handleSubmit(onSubmit)}
         />
       </View>

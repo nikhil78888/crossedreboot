@@ -17,8 +17,10 @@
     "ota-to-preview": "eas update --branch preview --message auto"
   },
   "dependencies": {
+    "@expo-google-fonts/besley": "^0.2.3",
     "@expo-google-fonts/bitter": "^0.2.3",
     "@expo-google-fonts/lato": "^0.2.3",
+    "@expo-google-fonts/prompt": "^0.2.3",
     "@expo/vector-icons": "^13.0.0",
     "@hookform/resolvers": "^3.1.0",
     "@logrocket/react-native": "^1.15.0",

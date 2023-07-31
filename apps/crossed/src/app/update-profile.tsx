@@ -7,7 +7,7 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
 
 export default function UpdateAccountForm() {
-  const { myProfile, updateProfile } = useMyProfile();
+  const { myProfile, updateProfile, isUpdatingProfile } = useMyProfile();
   const {
     control,
     handleSubmit,
@@ -62,6 +62,7 @@ export default function UpdateAccountForm() {
         <View className="mt-4">
           <Button
             onPress={handleSubmit(onSubmit)}
+            isLoading={isUpdatingProfile}
             label={"Update Account"}
             intent="primary"
             size="large"

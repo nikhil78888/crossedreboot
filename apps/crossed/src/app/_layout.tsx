@@ -9,6 +9,13 @@ import {
   Lato_700Bold,
   Lato_900Black,
 } from "@expo-google-fonts/lato";
+import {
+  Prompt_300Light,
+  Prompt_400Regular,
+  Prompt_500Medium,
+  Prompt_600SemiBold,
+} from "@expo-google-fonts/prompt";
+import { Besley_500Medium } from "@expo-google-fonts/besley";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { Alert } from "react-native";
@@ -33,6 +40,11 @@ export default function IndexLayout() {
     latoRegular: Lato_400Regular,
     latoBold: Lato_700Bold,
     latoBlack: Lato_900Black,
+    promptLight: Prompt_300Light,
+    promptRegular: Prompt_400Regular,
+    promptMedium: Prompt_500Medium,
+    promptSemiBold: Prompt_600SemiBold,
+    besleyMedium: Besley_500Medium,
     bitterBold: Bitter_700Bold,
   });
   const { user, isLoadingUser } = useAuth();
@@ -159,6 +171,12 @@ export default function IndexLayout() {
           name="ranked-lobby"
           options={{
             headerTitle: "Ranked Match",
+          }}
+        />
+        <Stack.Screen
+          name="upgrade-to-pro"
+          options={{
+            headerTitle: "Upgrade",
           }}
         />
       </Stack>

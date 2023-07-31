@@ -77,7 +77,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
           {timeInGame}
         </Text>
         {/* <Text
-          className=" text-crossed-gray-200 text-sm"
+          className=" text-crossed-gray-300 text-sm"
           style={{ fontFamily: "Lato_400Regular" }}
         >
           {" "}

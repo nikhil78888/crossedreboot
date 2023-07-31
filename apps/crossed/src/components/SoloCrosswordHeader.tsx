@@ -1,6 +1,6 @@
-import { Text, View } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { View } from "react-native";
 import { useGame } from "../hooks/use-game";
+import { Button } from "./Button";
 
 export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { game, finishGame } = useGame({
@@ -17,17 +17,12 @@ export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
 
   return (
     <View className="flex-row items-center justify-end">
-      <TouchableOpacity
+      <Button
+        intent="secondary"
+        size="small"
         onPress={submitMatch}
-        className="bg-crossed-blue-400 h-[30] w-[110] rounded-sm items-center justify-center ml-3"
-      >
-        <Text
-          className="text-white text-sm"
-          style={{ fontFamily: "bitterBold" }}
-        >
-          Submit Match
-        </Text>
-      </TouchableOpacity>
+        label="Submit Match"
+      />
     </View>
   );
 };

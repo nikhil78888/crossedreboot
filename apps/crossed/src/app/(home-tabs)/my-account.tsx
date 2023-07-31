@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { FormTextInput } from "../../components/FormTextInput";
-import { avatars, images } from "../../lib/images";
-import { Image } from "expo-image";
+import { avatars } from "../../lib/images";
 import { Avatar } from "react-native-ui-lib";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -17,7 +16,7 @@ import { useCallback } from "react";
 import { ScrollView } from "react-native-gesture-handler";
 
 export default function MyAccount() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   const { myProfile } = useMyProfile();
   const router = useRouter();
   const handleSoftInput = useCallback(() => {
@@ -35,25 +34,7 @@ export default function MyAccount() {
   }
 
   if (user.isAnonymous) {
-    return (
-      <ScrollView
-        className="flex-1 bg-white"
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
-        <View className="mt-16 items-center">
-          <Image source={images.logo} className="aspect-square h-20" />
-          <Text className="mt-1 font-[latoBold] text-xl text-crossed-green-900">
-            {myProfile?.username}
-          </Text>
-          <Text className="mt-6 font-[bitterBold] text-[36px] text-crossed-blue-700">
-            Create your account
-          </Text>
-        </View>
-        <View className="mt-6">
-          <CreateAccountForm />
-        </View>
-      </ScrollView>
-    );
+    return <CreateAccountForm />;
   }
 
   return (
@@ -119,6 +100,7 @@ export default function MyAccount() {
           intent="text"
           label="Logout"
           size="medium"
+          isLoading={isLoggingOut}
           onPress={() => {
             logout();
           }}
@@ -180,77 +162,90 @@ const CreateAccountForm = () => {
   };
 
   return (
-    <View>
-      <Controller
-        control={control}
-        render={({
-          field: { onChange, onBlur, value },
-          fieldState: { error },
-        }) => (
-          <FormTextInput
-            label="Your Name"
-            error={error?.message}
-            placeholder="Josh Cross"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            autoComplete="name"
-          />
-        )}
-        name="name"
-      />
-      <Controller
-        control={control}
-        render={({
-          field: { onChange, onBlur, value },
-          fieldState: { error },
-        }) => (
-          <FormTextInput
-            label="Email"
-            error={error?.message}
-            placeholder="example@gmail.com"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            autoComplete="email"
-            autoCapitalize="none"
-          />
-        )}
-        name="email"
-      />
-      <Controller
-        control={control}
-        render={({
-          field: { onChange, onBlur, value },
-          fieldState: { error },
-        }) => (
-          <FormTextInput
-            label="Password"
-            error={error?.message}
-            placeholder="xxxxxxxx"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            autoComplete="password"
-            autoCapitalize="none"
-            secureTextEntry
-          />
-        )}
-        name="password"
-      />
-      {errors.root?.message && (
-        <Text className="my-1 text-center text-xs text-red-500">
-          {errors.root.message}
+    <ScrollView
+      className="flex-1 bg-crossed-gray-50"
+      contentContainerStyle={{ paddingBottom: 20 }}
+    >
+      <View className="mt-16 flex-row items-center">
+        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
+        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
+          Create your {"\n"} account.
         </Text>
-      )}
-      <View className="mt-4">
-        <Button
-          onPress={handleSubmit(onSubmit)}
-          label={isLinkingAccount ? "Please wait..." : "Create Account"}
-          intent="primary"
-          size="large"
-        />
       </View>
-    </View>
+
+      <View className="px-10 mt-10">
+        <Controller
+          control={control}
+          render={({
+            field: { onChange, onBlur, value },
+            fieldState: { error },
+          }) => (
+            <FormTextInput
+              label="Your Name"
+              error={error?.message}
+              placeholder="Josh Cross"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              autoComplete="name"
+            />
+          )}
+          name="name"
+        />
+        <Controller
+          control={control}
+          render={({
+            field: { onChange, onBlur, value },
+            fieldState: { error },
+          }) => (
+            <FormTextInput
+              label="Email"
+              error={error?.message}
+              placeholder="example@gmail.com"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              autoComplete="email"
+              autoCapitalize="none"
+            />
+          )}
+          name="email"
+        />
+        <Controller
+          control={control}
+          render={({
+            field: { onChange, onBlur, value },
+            fieldState: { error },
+          }) => (
+            <FormTextInput
+              label="Password"
+              error={error?.message}
+              placeholder="xxxxxxxx"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              autoComplete="password"
+              autoCapitalize="none"
+              secureTextEntry
+            />
+          )}
+          name="password"
+        />
+        {errors.root?.message && (
+          <Text className="my-1 text-center text-xs text-red-500">
+            {errors.root.message}
+          </Text>
+        )}
+        <View className="mt-4">
+          <Button
+            onPress={handleSubmit(onSubmit)}
+            isLoading={isLinkingAccount}
+            label={"Create Account"}
+            intent="primary"
+            size="large"
+          />
+        </View>
+      </View>
+    </ScrollView>
   );
 };

@@ -13,6 +13,7 @@ import { useMyProfile } from "../../hooks/use-my-profile";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../../mobile-config";
 import { ScrollView } from "react-native-gesture-handler";
+import { useSubscriptionInfo } from "../../hooks/use-subscription-info";
 
 export default function Home() {
   const { stats } = useStats();
@@ -23,6 +24,7 @@ export default function Home() {
   const router = useRouter();
   const navigation = useNavigation();
   const { myProfile } = useMyProfile();
+  const { currentSubscription } = useSubscriptionInfo();
 
   const gamePlayState = game?.playState;
 
@@ -64,40 +66,6 @@ export default function Home() {
       <View className="mt-2">
         <NewGameButtons />
       </View>
-      {/* <View className="mt-2 w-full flex-row items-center space-x-2">
-        <View className="flex-1">
-          <PlaySoloButton
-            onPress={async () => {
-              try {
-                const newGameId = await createSoloGame();
-                router.push(`/game?gameId=${newGameId}`);
-              } catch (createSoloGameError) {
-                Alert.alert("Error", "Could not start game. Please try again");
-              }
-            }}
-          />
-        </View>
-        <View className="flex-1">
-          <PlayFriendlyButton
-            onPress={async () => {
-              try {
-                const newGameId = await createFriendlyGame();
-                router.push(`/invite-friend?gameId=${newGameId}`);
-              } catch (createFriendlyGameError) {
-                console.error(createFriendlyGameError);
-                Alert.alert("Error", "Could not start game. Please try again");
-              }
-            }}
-          />
-        </View>
-        <View className="flex-1">
-          <PlayRankedButton
-            onPress={async () => {
-              router.push(`ranked-lobby`);
-            }}
-          />
-        </View>
-      </View> */}
       <View className="mt-5 w-full">
         <ShareAppButton />
       </View>
@@ -154,12 +122,24 @@ export default function Home() {
           onPress={() => router.push("/feedback")}
         />
       </View>
-      <View className="mt-6 -mx-4">
-        <BannerAd
-          unitId={mobileConfig.homeScreenAdId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        />
-      </View>
+      {!currentSubscription && (
+        <View className="mt-6 -mx-4">
+          <BannerAd
+            unitId={mobileConfig.homeScreenAdId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          />
+        </View>
+      )}
+      {!currentSubscription && (
+        <View className="mt-5">
+          <Button
+            intent={"secondary"}
+            label="Remove Ads"
+            size={"medium"}
+            onPress={() => router.push("/upgrade-to-pro")}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 }

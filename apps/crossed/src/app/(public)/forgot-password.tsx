@@ -90,7 +90,8 @@ const ForgotPasswordForm = () => {
         <Button
           intent="primary"
           size="large"
-          label={isSendPasswordResetEmail ? "Please wait..." : "Reset Password"}
+          isLoading={isSendPasswordResetEmail}
+          label={"Reset Password"}
           onPress={handleSubmit(onSubmit)}
         />
       </View>

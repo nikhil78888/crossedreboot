@@ -9,11 +9,13 @@ import { useGame } from "../hooks/use-game";
 import { differenceInSeconds, isAfter } from "date-fns";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
+import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 
 export default function RankedLobby() {
   const router = useRouter();
   useOnlineStatus();
   const { gameId, startRankedGame } = useRankedGame();
+  const { currentSubscription } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   const [secondsToStart, setSecondsToStart] = useState(0);
 
@@ -70,12 +72,14 @@ export default function RankedLobby() {
           </View>
         )}
       </View>
-      <View className="mt-12 -mx-4">
-        <BannerAd
-          unitId={mobileConfig.inviteFriendScreenAdId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        />
-      </View>
+      {!currentSubscription && (
+        <View className="mt-12 -mx-4">
+          <BannerAd
+            unitId={mobileConfig.inviteFriendScreenAdId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          />
+        </View>
+      )}
     </View>
   );
 }

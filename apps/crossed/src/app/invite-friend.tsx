@@ -1,15 +1,15 @@
 import { Alert, Share, Text, View } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Image } from "expo-image";
-import { images } from "../lib/images";
 import { useGame } from "../hooks/use-game";
 import { useEffect } from "react";
 import { Button } from "../components/Button";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
+import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 
 export default function InviteFriend() {
   const { gameId } = useLocalSearchParams();
+  const { currentSubscription } = useSubscriptionInfo();
   const router = useRouter();
   const { game, abortGame } = useGame({
     gameId: gameId as string | undefined,
@@ -58,7 +58,7 @@ export default function InviteFriend() {
   };
 
   return (
-    <Image source={images.splash_bg} className="flex-1 items-center px-4 pt-60">
+    <View className="flex-1 items-center px-4 pt-60">
       <Text className="text-2xl" style={{ fontFamily: "bitterBold" }}>
         Friendly Match
       </Text>
@@ -75,12 +75,14 @@ export default function InviteFriend() {
         label="Exit Game"
         onPress={exitGame}
       />
-      <View className="mt-12">
-        <BannerAd
-          unitId={mobileConfig.inviteFriendScreenAdId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        />
-      </View>
-    </Image>
+      {!currentSubscription && (
+        <View className="mt-12">
+          <BannerAd
+            unitId={mobileConfig.inviteFriendScreenAdId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          />
+        </View>
+      )}
+    </View>
   );
 }

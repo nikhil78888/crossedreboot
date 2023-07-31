@@ -8,19 +8,26 @@ module.exports = {
     900: "#354646",
   },
   "crossed-blue": {
+    100: "#C5DFFF",
     300: "#83C1D7",
     400: "#63A2B8",
+    500: "#0E6DE1",
+    600: "#6EACF9",
     700: "#316C81",
   },
   "crossed-black": {
     700: "#354646",
   },
   "crossed-gray": {
+    50: "#FCFCFC",
     100: "#F5F5F5",
-    200: "#BDCBCB",
+    200: "#DFDFDF",
+    300: "#BDCBCB",
     400: "#888888",
+    900: "#1E2123",
   },
   "crossed-yellow": {
+    300: "#FFCD1B",
     400: "#E7B402",
   },
   "crossed-red": {

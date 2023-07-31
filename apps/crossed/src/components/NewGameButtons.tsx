@@ -65,7 +65,7 @@ export const NewGameButtons = () => {
             className="absolute bottom-0 right-0 aspect-square w-3/5"
           />
           <Text className="ml-2.5 mt-2.5 font-[latoLight] text-xl text-crossed-black-700">
-            Play{"\n"}Solo
+            Practice{"\n"}Mode
           </Text>
           <Image
             source={images.solo}

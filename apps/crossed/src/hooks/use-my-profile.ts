@@ -29,59 +29,63 @@ export const useMyProfile = () => {
     }
   });
 
-  const { trigger: createProfile } = useSWRMutation(
-    user ? "create-profile" : null,
-    async (
-      _key,
-      {
-        arg,
-      }: {
-        arg: Database["public"]["Tables"]["profiles"]["Insert"];
-      }
-    ) => {
-      try {
-        const { error } = await supabase.from("profiles").insert(arg);
-        if (error) {
+  const { trigger: createProfile, isMutating: isCreatingProfile } =
+    useSWRMutation(
+      user ? "create-profile" : null,
+      async (
+        _key,
+        {
+          arg,
+        }: {
+          arg: Database["public"]["Tables"]["profiles"]["Insert"];
+        }
+      ) => {
+        try {
+          const { error } = await supabase.from("profiles").insert(arg);
+          if (error) {
+            throw error;
+          }
+          await refreshMyProfile();
+        } catch (error) {
+          console.error(error);
           throw error;
         }
-        await refreshMyProfile();
-      } catch (error) {
-        console.error(error);
-        throw error;
       }
-    }
-  );
+    );
 
-  const { trigger: updateProfile } = useSWRMutation(
-    user ? "update-profile" : null,
-    async (
-      _key,
-      {
-        arg,
-      }: {
-        arg: Database["public"]["Tables"]["profiles"]["Update"];
-      }
-    ) => {
-      try {
-        const { error } = await supabase
-          .from("profiles")
-          .update(arg)
-          .eq("userId", arg.userId);
-        if (error) {
+  const { trigger: updateProfile, isMutating: isUpdatingProfile } =
+    useSWRMutation(
+      user ? "update-profile" : null,
+      async (
+        _key,
+        {
+          arg,
+        }: {
+          arg: Database["public"]["Tables"]["profiles"]["Update"];
+        }
+      ) => {
+        try {
+          const { error } = await supabase
+            .from("profiles")
+            .update(arg)
+            .eq("userId", arg.userId);
+          if (error) {
+            throw error;
+          }
+          await refreshMyProfile();
+        } catch (error) {
+          console.error(error);
           throw error;
         }
-        await refreshMyProfile();
-      } catch (error) {
-        console.error(error);
-        throw error;
       }
-    }
-  );
+    );
 
   return {
     myProfile,
     isLoadingMyProfile,
     createProfile,
+    isCreatingProfile,
     updateProfile,
+    isUpdatingProfile,
   };
 };
