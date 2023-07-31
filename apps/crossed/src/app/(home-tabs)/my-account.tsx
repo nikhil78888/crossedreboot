@@ -9,7 +9,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { AvoidSoftInput } from "react-native-avoid-softinput";
 import colors from "../../lib/colors";
 import { useCallback } from "react";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { GenericTouchableProps } from "react-native-gesture-handler/lib/typescript/components/touchables/GenericTouchable";
 import { events, trackEvent } from "../../lib/track-event";
 
@@ -27,12 +27,27 @@ export default function MyAccount() {
   }, []);
   useFocusEffect(handleSoftInput);
 
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action is irreversible.",
+      [
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => router.push("delete-account"),
+        },
+        { text: "Cancel", style: "default" },
+      ]
+    );
+  };
+
   if (!user || !myProfile) {
     return null;
   }
 
   return (
-    <View className="flex-1 bg-white px-4">
+    <ScrollView className="flex-1 bg-white px-4">
       <View className="mt-8 items-center">
         <Avatar
           size={96}
@@ -109,6 +124,7 @@ export default function MyAccount() {
               }}
             />
           </View>
+          <AccountPageButton label="Delete Account" onPress={confirmDelete} />
         </>
       )}
       <AccountPageButton
@@ -147,7 +163,7 @@ export default function MyAccount() {
           )
         }
       />
-    </View>
+    </ScrollView>
   );
 }
 

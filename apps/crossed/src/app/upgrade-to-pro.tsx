@@ -28,6 +28,9 @@ export default function UpgradeToPro() {
           Upgrade to {"\n"} Crossed pro
         </Text>
       </View>
+      <Text className="ml-4 pt-4 text-crossed-gray-900 text-base font-[besleyMedium] leading-none ">
+        Upgrading to Crossed pro gets rid of all ads in the app.
+      </Text>
       <View className="mt-12 px-5 space-y-5">
         {avaialbleSubscriptions?.map((pack) => {
           return (

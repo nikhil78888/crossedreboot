@@ -137,6 +137,25 @@ export const useAuth = () => {
     }
   });
 
+  const {
+    trigger: deleteAccount,
+    isMutating: isDeletingAccount,
+    error: deleteAccountError,
+  } = useSWRMutation("deleteAccount", async (_key) => {
+    try {
+      if (user) {
+        const user = auth().currentUser;
+        await user?.delete();
+        axios.defaults.headers.Authorization = "";
+        setSupabaseToken("");
+        await refreshUser();
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  });
+
   return {
     user,
     isLoadingUser,
@@ -157,5 +176,8 @@ export const useAuth = () => {
     sendPasswordResetEmail,
     isSendPasswordResetEmail,
     sendPasswordResetEmailError,
+    deleteAccount,
+    isDeletingAccount,
+    deleteAccountError,
   };
 };
