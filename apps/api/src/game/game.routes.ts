@@ -9,11 +9,17 @@ export const gameRouter: Router = express.Router();
 gameRouter.post("/ranked", async (req, res) => {
   const { userId } = req.body;
   const onlinePlayers = await getUsersInLobby();
-  const onlineOpponents = onlinePlayers.filter(
-    (playerId) => playerId !== userId
+  const { data: onlinePlayerProfiles } = await supabase
+    .from("profiles")
+    .select("*")
+    .in("id", [...onlinePlayers, userId]);
+  const rankedOnlinePlayerProfiles = onlinePlayerProfiles?.sort(
+    (a, b) => a.eloRating - b.eloRating
   );
-  console.log(`match ${userId} with ${onlineOpponents[0]}`);
-  const opponentId = onlineOpponents[0];
+  const userIndex =
+    rankedOnlinePlayerProfiles?.findIndex((p) => p.id === userId) || 0;
+  const opponentId = rankedOnlinePlayerProfiles?.[userIndex + 1].id;
+  console.log(`match ${userId} with ${opponentId}`);
   if (opponentId) {
     const { data: played } = await supabase
       .from("profiles")
