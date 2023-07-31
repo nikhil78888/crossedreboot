@@ -318,20 +318,20 @@ export const CrosswordGrid = ({
       return;
     }
     if (direction === "Across") {
-      // find empty cell in current row
+      // find non black cell in current row
       const emptyRowCellIndex = solution[cell.x].findIndex(
-        (c, col) => c === "" && col > cell.y
+        (c, col) => c !== null && col > cell.y
       );
-      if (emptyRowCellIndex > 0) {
+      if (emptyRowCellIndex >= 0) {
         setCurrentCell({ x: cell.x, y: emptyRowCellIndex });
         setDirection(direction);
         return;
       }
-      // find empty cell in following rows
+      // find non black cell in following rows
       for (let i = cell.x + 1; i < crossword.size; i += 1) {
         const row = i;
         const emptyRowCellIndex = solution[row].findIndex(
-          (cell) => cell === ""
+          (cell) => cell !== null
         );
         if (emptyRowCellIndex >= 0) {
           setCurrentCell({ x: row, y: emptyRowCellIndex });
@@ -341,18 +341,18 @@ export const CrosswordGrid = ({
       }
       if (allowLoop) {
         gotoNextCell({
-          cell: { x: 0, y: 0 },
+          cell: { x: -1, y: 0 },
           direction: "Down",
           allowLoop: false,
         });
       }
     }
     if (direction === "Down") {
-      // find empty cell in current col
+      // find non black in current col
       const currentCol = cell.y;
       const solutionCellsInCurrentCol = solution.map((row) => row[currentCol]);
       const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
-        (c, index) => c === "" && index > cell.x
+        (c, index) => c !== null && index > cell.x
       );
       if (emptyRowIndexInCurrentCol >= 0) {
         setCurrentCell({ x: emptyRowIndexInCurrentCol, y: currentCol });
@@ -360,7 +360,7 @@ export const CrosswordGrid = ({
         return;
       }
 
-      // find empty cells in following columns
+      // find non black cells in following columns
       const nextCol = currentCol + 1;
       if (nextCol <= crossword.size - 1) {
         for (let i = nextCol; i < crossword.size; i += 1) {
@@ -369,7 +369,7 @@ export const CrosswordGrid = ({
             (row) => row[currentCol]
           );
           const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
-            (c) => c === ""
+            (c) => c !== null
           );
           if (emptyRowIndexInCurrentCol >= 0) {
             setCurrentCell({ x: emptyRowIndexInCurrentCol, y: i });
@@ -381,7 +381,7 @@ export const CrosswordGrid = ({
       // change direction and start from first cell
       if (allowLoop) {
         gotoNextCell({
-          cell: { x: 0, y: 0 },
+          cell: { x: 0, y: -1 },
           direction: "Across",
           allowLoop: false,
         });
@@ -396,6 +396,7 @@ export const CrosswordGrid = ({
         gotoNextCell({ cell: currentCell, direction, allowLoop: true });
       } else {
         setSolution({ cell: { x, y }, value: key });
+        gotoNextCell({ cell: currentCell, direction, allowLoop: true });
       }
     }
   };
