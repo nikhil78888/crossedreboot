@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { Button } from "./Button";
+import { events, trackEvent } from "../lib/track-event";
 
 export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { game, finishGame } = useGame({
@@ -12,6 +13,7 @@ export const SoloCrosswordHeader = ({ gameId }: { gameId: string }) => {
   }
 
   const submitMatch = () => {
+    trackEvent(events.SUBMIT_SOLO_MATCH_CLICK);
     finishGame();
   };
 

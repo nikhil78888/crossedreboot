@@ -14,6 +14,7 @@ import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../../mobile-config";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSubscriptionInfo } from "../../hooks/use-subscription-info";
+import { events, trackEvent } from "../../lib/track-event";
 
 export default function Home() {
   const { stats } = useStats();
@@ -136,7 +137,10 @@ export default function Home() {
             intent={"secondary"}
             label="Remove Ads"
             size={"medium"}
-            onPress={() => router.push("/upgrade-to-pro")}
+            onPress={() => {
+              trackEvent(events.FEEDBACK_CLICK);
+              router.push("/upgrade-to-pro");
+            }}
           />
         </View>
       )}

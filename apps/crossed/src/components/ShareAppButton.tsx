@@ -2,9 +2,11 @@ import { Image } from "expo-image";
 import { Share, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { images } from "../lib/images";
+import { events, trackEvent } from "../lib/track-event";
 
 export const ShareAppButton = () => {
   const shareApp = () => {
+    trackEvent(events.SHARE_CROSSED_CLICK);
     Share.share({
       title: "Checkout Crossed.",
       message: `https://testflight.apple.com/join/J4vOwUyk`,

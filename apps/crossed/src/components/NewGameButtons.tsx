@@ -9,6 +9,7 @@ import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { useInterstitialAd } from "react-native-google-mobile-ads";
 import { useCallback, useEffect, useState } from "react";
 import { mobileConfig } from "../mobile-config";
+import { events, trackEvent } from "../lib/track-event";
 
 export const NewGameButtons = () => {
   const { currentSubscription } = useSubscriptionInfo();
@@ -59,6 +60,7 @@ export const NewGameButtons = () => {
       <View className="flex-1">
         <TouchableOpacity
           onPress={() => {
+            trackEvent(events.START_RANKED_GAME_CLICK);
             router.push("/ranked-lobby");
           }}
           className="h-[130] w-full max-w-[121] bg-crossed-green-50"
@@ -79,6 +81,7 @@ export const NewGameButtons = () => {
       <View className="flex-1">
         <TouchableOpacity
           onPress={() => {
+            trackEvent(events.START_FRIENDLY_GAME_CLICK);
             if (
               !currentSubscription &&
               stats?.gamesPlayedToday &&
@@ -109,6 +112,7 @@ export const NewGameButtons = () => {
       <View className="flex-1">
         <TouchableOpacity
           onPress={() => {
+            trackEvent(events.START_SOLO_GAME_CLICK);
             if (
               !currentSubscription &&
               stats?.gamesPlayedToday &&

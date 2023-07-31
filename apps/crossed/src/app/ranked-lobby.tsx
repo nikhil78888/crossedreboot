@@ -10,6 +10,7 @@ import { differenceInSeconds, isAfter } from "date-fns";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
+import { events, trackEvent } from "../lib/track-event";
 
 export default function RankedLobby() {
   const router = useRouter();
@@ -29,13 +30,13 @@ export default function RankedLobby() {
 
   useEffect(() => {
     if (playState !== "COMPLETED" && gameStartingAt) {
+      trackEvent(events.RANKED_MATCH_OPPONENT_FOUND);
       const interval = setInterval(() => {
         if (isAfter(new Date(`${gameStartingAt}Z`), new Date())) {
           const secToStart = differenceInSeconds(
             new Date(`${gameStartingAt}Z`),
             new Date()
           );
-          console.log(secToStart);
           if (secToStart < 6) {
             setSecondsToStart(secToStart);
           }
@@ -71,7 +72,10 @@ export default function RankedLobby() {
                 label="Go Back"
                 intent={"secondary"}
                 size={"medium"}
-                onPress={router.back}
+                onPress={() => {
+                  trackEvent(events.LEAVE_LOBBY_CLICK);
+                  router.back();
+                }}
               />
             </View>
           </View>

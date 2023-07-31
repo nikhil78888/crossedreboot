@@ -11,6 +11,7 @@ import colors from "../../lib/colors";
 import { useCallback } from "react";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { GenericTouchableProps } from "react-native-gesture-handler/lib/typescript/components/touchables/GenericTouchable";
+import { events, trackEvent } from "../../lib/track-event";
 
 export default function MyAccount() {
   const { user, logout, isLoggingOut } = useAuth();
@@ -113,6 +114,7 @@ export default function MyAccount() {
       <AccountPageButton
         label="Upgrade to Pro"
         onPress={() => {
+          trackEvent(events.MY_ACCOUNT_UPGRADE_TO_PRO_CLICK);
           if (user.isAnonymous) {
             Alert.alert(
               "Create Account",

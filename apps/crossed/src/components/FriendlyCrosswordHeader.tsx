@@ -8,6 +8,7 @@ import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 import colors from "../lib/colors";
 import { Button } from "./Button";
 import { useMyProfile } from "../hooks/use-my-profile";
+import { events, trackEvent } from "../lib/track-event";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { myProfile } = useMyProfile();
@@ -112,6 +113,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         size="small"
         label="Leave Game"
         onPress={() => {
+          trackEvent(events.FORFEIT_MATCH_CLICK);
           forfeitGame();
         }}
       />

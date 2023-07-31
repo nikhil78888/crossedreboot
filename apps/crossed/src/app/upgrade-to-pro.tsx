@@ -4,6 +4,7 @@ import Purchases from "react-native-purchases";
 import { Button } from "../components/Button";
 import { useState } from "react";
 import { LoaderScreen } from "react-native-ui-lib";
+import { events, trackEvent } from "../lib/track-event";
 
 const getSubscriptionPeriod = (period: string) => {
   switch (period) {
@@ -41,6 +42,7 @@ export default function UpgradeToPro() {
               )}`}
               onPress={async () => {
                 try {
+                  trackEvent(events.UPGRADE_CLICK);
                   setIsPurchasing(true);
                   await Purchases.purchaseStoreProduct(pack.product);
                 } catch (error) {
@@ -60,6 +62,7 @@ export default function UpgradeToPro() {
           label="Restore Purchases"
           onPress={async () => {
             try {
+              trackEvent(events.RESTORE_PURCHASES_CLICK);
               setIsPurchasing(true);
               await Purchases.restorePurchases();
             } catch (error) {
