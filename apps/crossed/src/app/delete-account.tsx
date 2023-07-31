@@ -2,8 +2,6 @@ import { Alert, Linking, Text, View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/use-auth";
 import { FormTextInput } from "../components/FormTextInput";
 import { Button } from "../components/Button";
