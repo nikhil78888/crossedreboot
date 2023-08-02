@@ -6,6 +6,8 @@ import { firebaseAdminApp } from "./lib/firebase";
 
 export const apiRouter: Router = express.Router();
 
+// middleware for authentication firebase idToken
+// in the request header.
 const authenticateJWT = async (
   req: Request,
   res: Response,

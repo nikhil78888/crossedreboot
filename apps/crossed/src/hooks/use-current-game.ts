@@ -2,6 +2,12 @@ import useSWR from "swr";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 
+/*
+useCurrentGame checks if there is an existing game in progress
+when the app is launched. If found, the home screen redirects
+to the game page.
+*/
+
 export const useCurrentGame = () => {
   const { myProfile, isLoadingMyProfile } = useMyProfile();
   const {

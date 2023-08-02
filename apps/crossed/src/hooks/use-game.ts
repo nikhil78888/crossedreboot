@@ -46,6 +46,14 @@ export const fixType = (game: any): Game => {
   };
 };
 
+/*
+useGame uses an swr subscription combined with
+supabse realtime updates to track and update a game state.
+
+It subscribes to a game in the `games` table with `gameId`
+for changes, and updates the game variable.
+*/
+
 export const useGame = ({ gameId }: { gameId?: string }) => {
   const { myProfile, refreshMyProfile } = useMyProfile();
   const { refreshStats } = useStats();

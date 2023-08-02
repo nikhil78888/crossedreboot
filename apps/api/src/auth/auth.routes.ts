@@ -16,6 +16,8 @@ const loginWithFirebaseTokenRequestSchema = z.object({
   body: z.object({}),
 });
 
+// returns a new supabase token for the user
+// authenticated by firebase idToken
 authRouter.get<
   Record<string, never>,
   { supabaseToken: string },

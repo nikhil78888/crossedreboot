@@ -4,6 +4,12 @@ import { useAuth } from "./use-auth";
 import { Database } from "types-and-validators";
 import { supabase } from "../lib/supabase";
 
+/*
+This hook deals with a user's profile in the profiles tables
+in supabase. The `userId` column in the profiles table maps 
+to the firebase user's uid. 
+*/
+
 export const useMyProfile = () => {
   const { user } = useAuth();
 

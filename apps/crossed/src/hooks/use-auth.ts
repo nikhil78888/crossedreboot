@@ -4,6 +4,22 @@ import useSWRMutation from "swr/mutation";
 import axios from "axios";
 import { setSupabaseToken, supabase } from "../lib/supabase";
 
+/* 
+The useAuth hook manages authentication functions.
+It acts as a bridge between firebase authentication,
+and supabase authentication.
+
+When the hook is called, it fetches the current firebase
+user and idToken.
+
+The idToken is then set in the axios header for authenticating
+all API calls to our backend.
+
+It then fetches a signed JWT token from our backend,
+and sets the JWT token in supabase headers for authenticating
+calls to supabase.
+*/
+
 export const useAuth = () => {
   const {
     data: user,
@@ -14,12 +30,17 @@ export const useAuth = () => {
     "auth-user",
     async () => {
       try {
+        // get current firebase user
         const user = auth().currentUser;
         if (user) {
+          // get idToken for current firebase user
           const firebaseIdToken = await user.getIdToken(true);
+          // set Authorization header for all API calls to crossed backend
           axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
+          // get supabse token from crossed backend
           const response = await axios.get(`/api/auth/supabase-token`);
           const supabaseToken = response.data.supabaseToken;
+          // set supabase token for authenticating supabase calls.
           setSupabaseToken(supabaseToken);
         }
         return user;
