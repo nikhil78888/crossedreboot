@@ -72,6 +72,9 @@ export default function CreateAccountForm() {
           Create your {"\n"} account.
         </Text>
       </View>
+      <Text className="ml-4 pt-4 text-crossed-gray-900 text-base font-[besleyMedium] leading-none ">
+        Sync your stats and progress across devices.
+      </Text>
 
       <View className="px-10 mt-10">
         <Controller

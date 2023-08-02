@@ -30,7 +30,7 @@ export default function Welcome() {
           onLongPress={() => {
             Alert.alert(JSON.stringify(mobileConfig));
           }}
-          label="SIGN UP"
+          label="GET STARTED"
         />
         <View className="w-full my-9 flex-row space-x-12 px-4">
           <View
