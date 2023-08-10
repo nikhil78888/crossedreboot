@@ -85,8 +85,8 @@ const generateClues = async (wordsInCrossword: string[], theme: string) => {
       " to populate a crossword." +
       "\n The clues should be ${theme} related where possible." +
       "\n Make sure that the clues are both fun and challenging." +
-      "\n- On a difficuly scale of 1 to 7," +
-      " where 1 being the easiest and 7 being the toughest," +
+      "\n- On a difficuly scale of 1 to 10," +
+      " where 1 being the easiest and 10 being the toughest," +
       " clues should be of level {difficulty} difficulty" +
       "\nList of words -" +
       "\n\n{words}" +

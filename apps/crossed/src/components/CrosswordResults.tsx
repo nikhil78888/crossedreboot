@@ -85,7 +85,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
             )}
             style={{ fontFamily: "bitterBold" }}
           >
-            My Rank: {myProfile.eloRating}
+            My Rating: {myProfile.eloRating}
           </Text>
           <Text
             className={classNames(
@@ -96,7 +96,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
             )}
             style={{ fontFamily: "bitterBold" }}
           >
-            {opponent?.username} Rank: {opponent?.eloRating}
+            {opponent?.username} Rating: {opponent?.eloRating}
           </Text>
         </View>
       </View>

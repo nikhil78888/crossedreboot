@@ -109,7 +109,7 @@ export default function Home() {
           className="absolute bottom-0 right-0 h-full w-3/5"
         />
         <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
-          Points
+          Ratings
         </Text>
         <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-blue-700">
           {myProfile?.eloRating}

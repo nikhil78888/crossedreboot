@@ -21,7 +21,9 @@ export const NewGameButtons = () => {
       requestNonPersonalizedAdsOnly: true,
     }
   );
-  const [onAdClose, setOnAdClose] = useState<"SOLO" | "FRIENDLY" | "">("");
+  const [onAdClose, setOnAdClose] = useState<
+    "SOLO" | "FRIENDLY" | "RANKED" | ""
+  >("");
   const { createFriendlyGame, createSoloGame } = useGame({ gameId: undefined });
 
   useEffect(() => {
@@ -40,6 +42,11 @@ export const NewGameButtons = () => {
     router.push(`/invite-friend?gameId=${gameId}`);
   }, [createFriendlyGame, router]);
 
+  const playRanked = useCallback(() => {
+    setOnAdClose("");
+    router.push("/ranked-lobby");
+  }, [router]);
+
   useEffect(() => {
     if (isClosed) {
       switch (onAdClose) {
@@ -49,11 +56,14 @@ export const NewGameButtons = () => {
         case "FRIENDLY":
           playFriendly();
           break;
+        case "RANKED":
+          playRanked();
+          break;
         default:
           break;
       }
     }
-  }, [isClosed, onAdClose, playFriendly, playSolo]);
+  }, [isClosed, onAdClose, playFriendly, playRanked, playSolo]);
 
   return (
     <View className="flex-row items-center space-x-2">
@@ -61,7 +71,17 @@ export const NewGameButtons = () => {
         <TouchableOpacity
           onPress={() => {
             trackEvent(events.START_RANKED_GAME_CLICK);
-            router.push("/ranked-lobby");
+            if (
+              !currentSubscription &&
+              stats?.gamesPlayedToday &&
+              stats?.gamesPlayedToday > 4 &&
+              isLoaded
+            ) {
+              setOnAdClose("RANKED");
+              show();
+            } else {
+              playRanked();
+            }
           }}
           className="h-[130] w-full max-w-[121] bg-crossed-green-50"
         >

@@ -1,4 +1,4 @@
-import analytics from "@react-native-firebase/analytics";
+import { Mixpanel } from "mixpanel-react-native";
 
 export const events = {
   START_SOLO_GAME_CLICK: "START_SOLO_GAME_CLICK",
@@ -16,6 +16,9 @@ export const events = {
   RESTORE_PURCHASES_CLICK: "RESTORE_PURCHASES_CLICK",
 };
 
-export const trackEvent = async (eventName: string) => {
-  await analytics().logEvent(eventName);
+const mixpanel = new Mixpanel("e146dee916ae6ea6a891a8bd3861e0ca", true);
+mixpanel.init();
+
+export const trackEvent = (eventName: string) => {
+  mixpanel.track(eventName);
 };

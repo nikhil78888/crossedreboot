@@ -35,6 +35,10 @@ export const CrosswordView = ({ id }: { id: string }) => {
   );
   const data = useIpuz(ipuz || null);
 
+  if (!ipuz) {
+    return null;
+  }
+
   return (
     <div className="flex space-x-4">
       <div className="flex-1">{data && <Crossword data={data} />}</div>

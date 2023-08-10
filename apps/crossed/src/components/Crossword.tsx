@@ -646,6 +646,7 @@ const CrosswordCell = ({
           }}
           blurOnSubmit={disabled}
           enabled={!disabled}
+          editable={!disabled}
           showSoftInputOnFocus={!disabled}
         />
         {/* {disabled && <View className="absolute inset-0 h-full w-full" />} */}
@@ -739,6 +740,8 @@ const CrosswordClue = ({
 
   const currentClue = getCurrentClue();
 
+  console.log({ currentClue });
+
   const gotoPrevClue = () => {
     if (currentClue) {
       const currentClueIndex = crossword.clues[direction].indexOf(currentClue);
@@ -791,8 +794,8 @@ const CrosswordClue = ({
         </TouchableOpacity>
       </View>
       <TouchableOpacity className="flex-row" onPress={toggleDirection}>
-        <Text className="font-[promptLight] text-base">
-          {currentClue?.clue}
+        <Text className="font-[promptLight] text-base whitespace-normal">
+          {currentClue?.clue.trim().replace(/(\r\n|\n|\r)/gm, " ")}
         </Text>
       </TouchableOpacity>
       <View className="absolute inset-y-0 right-0 items-center justify-center">

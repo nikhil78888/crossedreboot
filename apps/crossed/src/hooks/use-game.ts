@@ -189,7 +189,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               crosswordsId: crossword.id,
               gameType: "FRIENDLY",
               playState: "WAITING_FOR_OPPONENT",
-              gameDurationInSeconds: 300,
+              gameDurationInSeconds: 180,
             })
             .select("*")
             .single();
