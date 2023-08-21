@@ -38,32 +38,36 @@ const getWordsInCrossword = (ipuz: Ipuz) => {
   return words;
 };
 
-const getWordListForCrossword = async (theme: string, size = 7) => {
+const getWordListForCrossword = async (theme: string, size: number) => {
   const funcFilterB: SupabaseFilterRPCCall = (rpc) =>
     rpc
-      .filter("metadata->answerLength::int", "gte", size - 3)
-      .filter("metadata->answerLength::int", "lte", size);
+      .filter("metadata->wordLength::int", "gte", size - 2)
+      .filter("metadata->wordLength::int", "lte", size);
 
   const results = await vectorStore.similaritySearch(
     `belonging to ${theme} category`,
     10000,
     funcFilterB
   );
-  const wordList = results.map((result) => result.metadata.answer);
+  const wordList = results.map((result) => result.pageContent);
   const unique = new Set(wordList);
   return [...unique];
 };
 
-const generateCrossword = async (wordList: string[]) => {
+const generateCrossword = async (wordList: string[], size: number) => {
   const response = await axios.post(
-    "https://wizium.boringoldev.repl.co/generate-crossword",
-    { words: wordList }
+    "https://crossword-generator-v4.boringoldev.repl.co/generate-crossword",
+    { words: wordList, size }
   );
   const wiz = response.data;
   return wiz;
 };
 
-const generateClues = async (wordsInCrossword: string[], theme: string) => {
+const generateClues = async (
+  wordsInCrossword: string[],
+  theme: string,
+  difficulty: number
+) => {
   const parser = StructuredOutputParser.fromZodSchema(
     z
       .array(
@@ -84,7 +88,10 @@ const generateClues = async (wordsInCrossword: string[], theme: string) => {
       " generate a list of clues that will be used" +
       " to populate a crossword." +
       "\n The clues should be ${theme} related where possible." +
-      "\n Make sure that the clues are both fun and challenging." +
+      "\n Ensure that the clues are both fun and challenging." +
+      "\n Ensure that the word itself is not in the clue." +
+      "\n Ensure that the clue isn't offensive." +
+      "\n Ensure that the clue is gramatically correct in relation to the word." +
       "\n- On a difficuly scale of 1 to 10," +
       " where 1 being the easiest and 10 being the toughest," +
       " clues should be of level {difficulty} difficulty" +
@@ -98,7 +105,7 @@ const generateClues = async (wordsInCrossword: string[], theme: string) => {
   const input = await prompt.format({
     words: wordsInCrossword.join("\n"),
     theme,
-    difficulty: 7,
+    difficulty: difficulty,
   });
   const res = await openAILLM.call(input);
   try {
@@ -108,7 +115,7 @@ const generateClues = async (wordsInCrossword: string[], theme: string) => {
     const formattedInput = await prompt.formatPromptValue({
       words: wordsInCrossword.join("\n"),
       theme,
-      difficulty: 7,
+      difficulty: difficulty,
     });
     const fixParser = OutputFixingParser.fromLLM(openAILLM, parser);
     const fixed = await fixParser.parseWithPrompt(res, formattedInput);
@@ -134,29 +141,31 @@ const updateClues = (
 };
 
 const run = async () => {
+  const size = 5;
+  const difficulty = 3;
   const categories = Object.keys(CrosswordCategory);
   for (let i = 0; i < 1; i += 1) {
     const category = categories[i] as CrosswordCategory;
-    for (let j = 0; j < 1; j += 1) {
-      const wordList = await getWordListForCrossword(category);
+    for (let j = 0; j < 4; j += 1) {
+      const wordList = await getWordListForCrossword(category, size);
       console.log({ wordList: wordList.length });
-      const wiz = await generateCrossword(wordList);
+      const wiz = await generateCrossword(wordList, size);
       if (wiz.findIndex((row: string) => row.indexOf(".") >= 0) >= 0) {
         console.log("could not create crossword");
         return;
       }
       const ipuz: Ipuz = createIpuz(wiz);
-      // const words = getWordsInCrossword(ipuz);
-      // const clueWordsPairs = await generateClues(words, category);
-      // updateClues(ipuz, clueWordsPairs);
-      writeFileSync("data/crosswords.json", JSON.stringify(ipuz));
+      const words = getWordsInCrossword(ipuz);
+      const clueWordsPairs = await generateClues(words, category, difficulty);
+      updateClues(ipuz, clueWordsPairs);
+      writeFileSync("data/crossword.json", JSON.stringify(ipuz));
       // @ts-expect-error
       await remoteSupabaseClient.from("crosswords").insert({
         ...ipuz,
-        size: 7,
+        size,
         source: "wizium",
-        difficulty: 7,
-        isPublished: true,
+        difficulty,
+        isPublished: false,
         category,
       });
     }
