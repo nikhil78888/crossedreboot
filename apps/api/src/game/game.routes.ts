@@ -211,8 +211,8 @@ const updateEloRatings = (
   winnerId: string
 ) => {
   const K = 32;
-  const Pa = winningProbability(playerOne.eloRating, playerTwo.eloRating);
-  const Pb = winningProbability(playerTwo.eloRating, playerOne.eloRating);
+  const Pa = winningProbability(playerTwo.eloRating, playerOne.eloRating);
+  const Pb = winningProbability(playerOne.eloRating, playerTwo.eloRating);
   if (winnerId === playerOne.id) {
     return [
       {
@@ -239,9 +239,8 @@ const updateEloRatings = (
 };
 
 function winningProbability(rating1: number, rating2: number) {
-  return (
-    (1.0 * 1.0) / (1 + 1.0 * Math.pow(10, (1.0 * (rating1 - rating2)) / 400))
-  );
+  const diff = rating1 - rating2;
+  return 1 / (1 + Math.pow(10, diff / 400));
 }
 
 const calculateScore = ({
