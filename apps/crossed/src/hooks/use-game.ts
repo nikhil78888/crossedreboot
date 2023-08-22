@@ -61,6 +61,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { data: game } = useSWRSubscription(
     gameId ? ["game", gameId] : null,
     (key, { next }: SWRSubscriptionOptions<Game, Error>) => {
+      console.info(`fetching game - ${gameId}`);
       const subscription = supabase
         .channel(`game-updates-${gameId}`)
         .on(
@@ -127,14 +128,20 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           console.info({ fetchPlayedError });
         }
 
-        const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
+        const playedCrosswordIds = played?.games
+          .slice(0, 200)
+          .map((g) => g.crosswordsId);
 
-        const { data: crossword } = await supabase
+        const { data: crossword, error: findCrosswordError } = await supabase
           .from("crosswords")
           .select("*")
           .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
           .limit(1)
           .single();
+
+        if (findCrosswordError) {
+          console.info({ findCrosswordError });
+        }
 
         if (crossword) {
           const { data: game, error: createGameError } = await supabase
@@ -173,7 +180,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           console.info({ fetchPlayedError });
         }
 
-        const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
+        const playedCrosswordIds = played?.games
+          .slice(0, 200)
+          .map((g) => g.crosswordsId);
 
         const { data: crossword } = await supabase
           .from("crosswords")

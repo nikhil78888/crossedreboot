@@ -29,7 +29,9 @@ gameRouter.post("/ranked", async (req, res) => {
       .in("id", [userId, opponentId])
       .limit(1)
       .single();
-    const playedCrosswordIds = played?.games.map((g) => g.crosswordsId);
+    const playedCrosswordIds = played?.games
+      .slice(0, 200)
+      .map((g) => g.crosswordsId);
 
     const { data: crossword } = await supabase
       .from("crosswords")
