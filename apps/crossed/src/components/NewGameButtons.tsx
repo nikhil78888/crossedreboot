@@ -66,99 +66,86 @@ export const NewGameButtons = () => {
   }, [isClosed, onAdClose, playFriendly, playRanked, playSolo]);
 
   return (
-    <View className="flex-row items-center space-x-2">
-      <View className="flex-1">
-        <TouchableOpacity
-          onPress={() => {
-            trackEvent(events.START_RANKED_GAME_CLICK);
-            if (
-              !currentSubscription &&
-              stats?.gamesPlayedToday &&
-              stats?.gamesPlayedToday > 4 &&
-              isLoaded
-            ) {
-              setOnAdClose("RANKED");
-              show();
-            } else {
-              playRanked();
-            }
-          }}
-          className="h-[130] w-full max-w-[121] bg-crossed-green-50"
-        >
+    <View>
+      <TouchableOpacity
+        onPress={() => {
+          trackEvent(events.START_RANKED_GAME_CLICK);
+          if (
+            !currentSubscription &&
+            stats?.gamesPlayedToday &&
+            stats?.gamesPlayedToday > 4 &&
+            isLoaded
+          ) {
+            setOnAdClose("RANKED");
+            show();
+          } else {
+            playRanked();
+          }
+        }}
+        className="bg-crossed-blue-50 h-[175px] rounded-2xl shadow-md"
+      >
+        <View className="flex-row items-center">
           <Image
-            source={images.card_ellipsis}
-            className="absolute bottom-0 right-0 aspect-square w-3/5"
+            source={images.play_ranked}
+            className="h-[119px] w-[126px] ml-[25] my-6"
           />
-          <Text className="ml-2.5 mt-2.5 font-[latoLight] text-xl text-crossed-black-700">
-            Play{"\n"}Ranked
-          </Text>
-          <Image
-            source={images.ranked}
-            className="absolute bottom-2 right-1 aspect-square h-10"
-          />
-        </TouchableOpacity>
-      </View>
-      <View className="flex-1">
-        <TouchableOpacity
-          onPress={() => {
-            trackEvent(events.START_FRIENDLY_GAME_CLICK);
-            if (
-              !currentSubscription &&
-              stats?.gamesPlayedToday &&
-              stats?.gamesPlayedToday > 4 &&
-              isLoaded
-            ) {
-              setOnAdClose("FRIENDLY");
-              show();
-            } else {
-              playFriendly();
-            }
-          }}
-          className="h-[130] w-full max-w-[121] bg-crossed-green-50"
-        >
-          <Image
-            source={images.card_ellipsis}
-            className="absolute bottom-0 right-0 aspect-square w-3/5"
-          />
-          <Text className="ml-2.5 mt-2.5 font-[latoLight] text-xl text-crossed-black-700">
-            With{"\n"}Your{"\n"}Friend
-          </Text>
-          <Image
-            source={images.friend}
-            className="absolute bottom-2 right-1 h-[35] w-[50.83]"
-          />
-        </TouchableOpacity>
-      </View>
-      <View className="flex-1">
-        <TouchableOpacity
-          onPress={() => {
-            trackEvent(events.START_SOLO_GAME_CLICK);
-            if (
-              !currentSubscription &&
-              stats?.gamesPlayedToday &&
-              stats?.gamesPlayedToday > 4 &&
-              isLoaded
-            ) {
-              setOnAdClose("SOLO");
-              show();
-            } else {
-              playSolo();
-            }
-          }}
-          className="h-[130] w-full max-w-[121] bg-crossed-green-50"
-        >
-          <Image
-            source={images.card_ellipsis}
-            className="absolute bottom-0 right-0 aspect-square w-3/5"
-          />
-          <Text className="ml-2.5 mt-2.5 font-[latoLight] text-xl text-crossed-black-700">
-            Practice{"\n"}Mode
-          </Text>
-          <Image
-            source={images.solo}
-            className="absolute bottom-2 right-2 h-10 w-9"
-          />
-        </TouchableOpacity>
+          <Text className="ml-7 font-[jost600] text-[26px]">Play Ranked</Text>
+        </View>
+      </TouchableOpacity>
+      <View className="flex-row space-x-4 mt-3">
+        <View className="flex-1">
+          <TouchableOpacity
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              if (
+                !currentSubscription &&
+                stats?.gamesPlayedToday &&
+                stats?.gamesPlayedToday > 4 &&
+                isLoaded
+              ) {
+                setOnAdClose("FRIENDLY");
+                show();
+              } else {
+                playFriendly();
+              }
+            }}
+            className="bg-crossed-blue-50 h-[175px] w-full rounded-2xl shadow-md items-center"
+          >
+            <Image
+              source={images.play_friendly}
+              className="h-[94px] w-[94px] mt-[35px]"
+            />
+            <Text className="mt-2 font-[jost600] text-base">
+              With Your Friend
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View className="flex-1">
+          <TouchableOpacity
+            onPress={() => {
+              trackEvent(events.START_SOLO_GAME_CLICK);
+              if (
+                !currentSubscription &&
+                stats?.gamesPlayedToday &&
+                stats?.gamesPlayedToday > 4 &&
+                isLoaded
+              ) {
+                setOnAdClose("SOLO");
+                show();
+              } else {
+                playSolo();
+              }
+            }}
+            className="bg-crossed-blue-50 h-[175px] w-full rounded-2xl shadow-md items-center"
+          >
+            <Image
+              source={images.play_solo}
+              className="h-[100px] w-[100px] mt-[25px]"
+              contentFit="contain"
+            />
+            <Text className="mt-2 font-[jost600] text-base">Practice Mode</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

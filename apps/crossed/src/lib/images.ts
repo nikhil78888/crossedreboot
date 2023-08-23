@@ -6,6 +6,7 @@ export const images = {
   friend: require("../assets/images/friend.png"),
   ranked: require("../assets/images/ranked.png"),
   logo: require("../assets/images/logo.png"),
+  name_logo: require("../assets/images/name_logo.png"),
   splash: require("../assets/images/splash.png"),
   splash_bg: require("../assets/images/splash_bg.png"),
   input_check: require("../assets/images/input_check.png"),
@@ -16,6 +17,15 @@ export const images = {
   tab_home: require("../assets/images/tab_home.png"),
   tab_my_account: require("../assets/images/tab_my_account.png"),
   share_red: require("../assets/images/share_red.png"),
+  form_username: require("../assets/images/form_username.png"),
+  form_email: require("../assets/images/form_email.png"),
+  form_password: require("../assets/images/form_password.png"),
+  back_arrow_left: require("../assets/images/back_arrow_left.png"),
+  play_ranked: require("../assets/images/play_ranked.png"),
+  play_friendly: require("../assets/images/play_friendly.png"),
+  play_solo: require("../assets/images/play_solo.png"),
+  share: require("../assets/images/share.png"),
+  rating: require("../assets/images/rating.png"),
 };
 
 export const avatars = {

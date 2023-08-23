@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,26 +7,36 @@ import { useRouter } from "expo-router";
 import { images } from "../../lib/images";
 import { useAuth } from "../../hooks/use-auth";
 import { Button } from "../../components/Button";
-import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FormTextInput } from "../../components/FormTextInput";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function ChooseUsername() {
   const router = useRouter();
+  const { top } = useSafeAreaInsets();
   return (
-    <View className="flex-1 bg-crossed-gray-50">
-      <View className="absolute top-6 left-1">
-        <Ionicons
-          size={32}
-          name="ios-chevron-back-sharp"
-          onPress={router.back}
-        />
-      </View>
-      <View className="mt-20 flex-row items-center">
-        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
-        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
-          Pick a Username
+    <View className="flex-1 bg-white" style={{ paddingTop: top }}>
+      <View className="mt-1.5 flex items-center justify-center">
+        <View className="absolute left-5 inset-y-0 items-center justify-center">
+          <TouchableOpacity onPress={router.back} className="py-2 px-1.5">
+            <Image
+              source={images.back_arrow_left}
+              className="h-6 w-4"
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-cr-gray-800 text-[28px] leading-normal font-[jost600]">
+          Get Started
         </Text>
       </View>
-      <View className="mt-10 px-10">
+      <Text className="text-cr-gray-600 mt-3 font-[jost400] text-sm text-center">
+        Hi There! Choose a username.
+      </Text>
+      <View className="mt-[30px] items-center">
+        <Image className="w-[85px] h-[112px]" source={images.name_logo} />
+      </View>
+      <View className="mt-10 px-5">
         <UsernameForm onDone={router.back} />
       </View>
     </View>
@@ -45,10 +55,10 @@ const usernameFormSchema = z.object({
 });
 
 const UsernameForm = ({ onDone }: { onDone: () => void }) => {
+  const router = useRouter();
   const {
     control,
     handleSubmit,
-    watch,
     setError,
     formState: { errors },
   } = useForm({
@@ -59,8 +69,6 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
     mode: "onChange",
   });
   const { setDisplayName, isSettingDisplayName } = useAuth();
-
-  const usernameValue = watch("username");
 
   const onSubmit = async (data: z.infer<typeof usernameFormSchema>) => {
     try {
@@ -81,62 +89,73 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
 
   return (
     <View>
-      <Text className="text-black text-sm font-[promptRegular] tracking-widest">
-        USERNAME
-      </Text>
       <Controller
         control={control}
         rules={{
           required: true,
         }}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View className="bg-white flex-row items-center border h-[54px] mt-1 border-gray-200 px-4 rounded-sm">
-            <Text
-              className={
-                usernameValue.length
-                  ? "font-[promptLight]"
-                  : "font-[promptLight] text-gray-400"
-              }
-            >
-              @
-            </Text>
-            <TextInput
-              className="flex-1 h-full px-1 font-[promptLight]"
-              placeholder="josh.cross"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View className="h-5 w-5">
-              {usernameValue.length && !errors.username ? (
-                <Image source={images.input_check} className="h-5 w-5" />
-              ) : null}
-            </View>
-          </View>
+        render={({
+          field: { onChange, onBlur, value },
+          fieldState: { error },
+        }) => (
+          <FormTextInput
+            icon={images.form_username}
+            error={error?.message}
+            placeholder="User Name"
+            onBlur={onBlur}
+            onChangeText={onChange}
+            value={value}
+          />
         )}
         name="username"
       />
-      <View className="h-4">
-        {errors.username && (
-          <Text className="font-[promptLight] text-xs text-red-500 tracking-widest">
-            {errors.username.message}
-          </Text>
-        )}
-      </View>
       {errors.root?.message && (
         <Text className="text-xs text-red-500 text-center my-1">
           {errors.root.message}
         </Text>
       )}
-      <View className="mt-4">
+      <Text className="mt-2.5 text-center text-sm font-[rubik400] leading-[1.4] text-cr-gray-500">
+        By continuing, you agree to the{" "}
+        <Text
+          className="font-[rubik500] text-cr-gray-700"
+          onPress={() => {
+            router.push(
+              "/public-web-view?uri=https://www.apple.com/legal/internet-services/itunes/dev/stdeula/&title=Terms of Use"
+            );
+          }}
+        >
+          Terms of Services
+        </Text>{" "}
+        &{" "}
+        <Text
+          className="font-[rubik500] text-cr-gray-700"
+          onPress={() => {
+            router.push(
+              "/public-web-view?uri=https://www.apple.com/legal/internet-services/itunes/dev/stdeula/&title=Privacy Policy"
+            );
+          }}
+        >
+          Privacy Policy.
+        </Text>
+      </Text>
+      <View className="mt-16">
         <Button
           onPress={handleSubmit(onSubmit)}
           isLoading={isSettingDisplayName}
           label={"Let's go"}
           intent="primary"
           size="large"
+        />
+      </View>
+      <View className="mt-6 flex-row items-center justify-between">
+        <Text className="font-[jost400] text-cr-gray-600 text-base">
+          Already have an account
+        </Text>
+        <Button
+          onPress={() => router.push("/sign-in")}
+          label={"Sign In"}
+          intent="secondary"
+          size="small"
         />
       </View>
     </View>

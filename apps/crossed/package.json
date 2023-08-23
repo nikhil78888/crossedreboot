@@ -19,8 +19,11 @@
   "dependencies": {
     "@expo-google-fonts/besley": "^0.2.3",
     "@expo-google-fonts/bitter": "^0.2.3",
+    "@expo-google-fonts/jost": "^0.2.3",
     "@expo-google-fonts/lato": "^0.2.3",
+    "@expo-google-fonts/mukta": "^0.2.3",
     "@expo-google-fonts/prompt": "^0.2.3",
+    "@expo-google-fonts/rubik": "^0.2.3",
     "@expo/vector-icons": "^13.0.0",
     "@hookform/resolvers": "^3.1.0",
     "@logrocket/react-native": "^1.15.0",

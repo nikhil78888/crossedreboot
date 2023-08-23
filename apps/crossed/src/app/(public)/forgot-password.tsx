@@ -7,20 +7,35 @@ import { images } from "../../lib/images";
 import { useAuth } from "../../hooks/use-auth";
 import { FormTextInput } from "../../components/FormTextInput";
 import { Button } from "../../components/Button";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function ForgotPassword() {
+  const router = useRouter();
+  const { top } = useSafeAreaInsets();
   return (
-    <View className="flex-1 px-4">
-      <View className="mt-32 items-center">
-        <Image source={images.logo} className="h-20 aspect-square" />
-        <Text className="mt-1 text-crossed-green-900 text-xl font-[latoBold]">
-          Crossed
+    <View className="flex-1 bg-white" style={{ paddingTop: top }}>
+      <View className="mt-1.5 flex items-center justify-center">
+        <View className="absolute left-5 inset-y-0 items-center justify-center">
+          <TouchableOpacity onPress={router.back} className="py-2 px-1.5">
+            <Image
+              source={images.back_arrow_left}
+              className="h-6 w-4"
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-cr-gray-800 text-[28px] leading-normal font-[jost600]">
+          Forgot Password
         </Text>
       </View>
-      <Text className="my-6 text-4xl text-center text-crossed-blue-700 font-[bitterBold]">
-        Reset Password
-      </Text>
-      <ForgotPasswordForm />
+      <View className="mt-[30px] items-center">
+        <Image className="w-[85px] h-[112px]" source={images.name_logo} />
+      </View>
+      <View className="mt-10 px-5">
+        <ForgotPasswordForm />
+      </View>
     </View>
   );
 }
@@ -68,9 +83,9 @@ const ForgotPasswordForm = () => {
           fieldState: { error },
         }) => (
           <FormTextInput
-            label="Email"
+            icon={images.form_email}
             error={error?.message}
-            placeholder="example@gmail.com"
+            placeholder="Your Email"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -86,12 +101,12 @@ const ForgotPasswordForm = () => {
           {errors.root.message}
         </Text>
       )}
-      <View className="mt-4">
+      <View className="mt-6">
         <Button
           intent="primary"
           size="large"
           isLoading={isSendPasswordResetEmail}
-          label={"Reset Password"}
+          label={"Continue"}
           onPress={handleSubmit(onSubmit)}
         />
       </View>

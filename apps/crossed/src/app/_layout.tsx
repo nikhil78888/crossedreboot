@@ -15,6 +15,19 @@ import {
   Prompt_500Medium,
   Prompt_600SemiBold,
 } from "@expo-google-fonts/prompt";
+import {
+  Jost_400Regular,
+  Jost_500Medium,
+  Jost_600SemiBold,
+  Jost_700Bold,
+} from "@expo-google-fonts/jost";
+import { Mukta_400Regular, Mukta_700Bold } from "@expo-google-fonts/mukta";
+import {
+  Rubik_400Regular,
+  Rubik_500Medium,
+  Rubik_600SemiBold,
+  Rubik_700Bold,
+} from "@expo-google-fonts/rubik";
 import { Besley_500Medium } from "@expo-google-fonts/besley";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
@@ -46,6 +59,16 @@ export default function IndexLayout() {
     promptSemiBold: Prompt_600SemiBold,
     besleyMedium: Besley_500Medium,
     bitterBold: Bitter_700Bold,
+    jost400: Jost_400Regular,
+    jost500: Jost_500Medium,
+    jost600: Jost_600SemiBold,
+    jost700: Jost_700Bold,
+    rubik400: Rubik_400Regular,
+    rubik500: Rubik_500Medium,
+    rubik600: Rubik_600SemiBold,
+    rubik700: Rubik_700Bold,
+    mukta400: Mukta_400Regular,
+    mukta700: Mukta_700Bold,
   });
   const { user, isLoadingUser } = useAuth();
   const segments = useSegments();

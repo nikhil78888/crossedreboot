@@ -15,13 +15,15 @@ export const ShareAppButton = () => {
 
   return (
     <TouchableOpacity onPress={shareApp}>
-      <View className="h-10 w-full rounded-sm bg-crossed-green-50 border border-crossed-green-100 flex-row items-center pl-3">
-        <Text className="font-[latoLight] text-crossed-black-700 text-base">
+      <View className="h-[64px] w-full rounded-[10px] bg-crossed-blue-50 flex-row items-center justify-between">
+        <Text className="font-[jost500] text-black text-lg ml-4 flex-1">
           Invite Your Friends & Play a Friendly Match
         </Text>
-        <View className="absolute right-0 h-full aspect-square bg-crossed-green-100 rounded-l-[20px] rounded-r-sm items-center justify-center">
-          <Image source={images.share_red} className="h-[25] w-[25]" />
-        </View>
+        <Image
+          source={images.share}
+          className="h-7 w-7 mr-9 ml-12"
+          contentFit="contain"
+        />
       </View>
     </TouchableOpacity>
   );
