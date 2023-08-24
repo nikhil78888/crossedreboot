@@ -26,6 +26,8 @@ export const images = {
   play_solo: require("../assets/images/play_solo.png"),
   share: require("../assets/images/share.png"),
   rating: require("../assets/images/rating.png"),
+  avatar_dude: require("../assets/images/avatar_dude.png"),
+  finding: require("../assets/images/finding.png"),
 };
 
 export const avatars = {

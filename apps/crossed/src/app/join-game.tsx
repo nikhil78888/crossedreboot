@@ -46,9 +46,6 @@ export default function JoinGame() {
 
   return (
     <View className="flex-1 items-center justify-center px-4">
-      <Text className="text-2xl" style={{ fontFamily: "bitterBold" }}>
-        Friendly Match
-      </Text>
       <Text className="mb-8 mt-2 font-[latoRegular]">
         Play a friendly match with @{opponentUsername}
       </Text>

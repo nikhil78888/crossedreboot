@@ -36,6 +36,7 @@ import LogRocket from "@logrocket/react-native";
 import { useAuth } from "../hooks/use-auth";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
+import { BackButton } from "../components/BackButton";
 
 axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
@@ -137,14 +138,19 @@ export default function IndexLayout() {
     <KeyboardProvider>
       <Stack
         screenOptions={{
-          headerTitleStyle: { fontSize: 24, fontFamily: "bitterBold" },
+          headerTitleStyle: { fontSize: 28, fontFamily: "jost600" },
+          headerShadowVisible: false,
+          headerLeft: BackButton,
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(public)" options={{ headerShown: false }} />
         <Stack.Screen name="(home-tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="invite-friend" options={{ headerShown: false }} />
-        <Stack.Screen name="join-game" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="invite-friend"
+          options={{ title: "Friendly Match", headerBackVisible: false }}
+        />
+        <Stack.Screen name="join-game" options={{ title: "Join Game" }} />
         <Stack.Screen
           name="game"
           options={{
