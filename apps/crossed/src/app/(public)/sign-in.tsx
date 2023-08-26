@@ -120,8 +120,9 @@ const LoginForm = () => {
       )}
       <View className="items-end">
         <Button
-          intent="text"
-          size="tiny"
+          mode="text"
+          intent={"secondary"}
+          size="sm"
           label="Forgot Password"
           onPress={() => router.push("/forgot-password")}
         />
@@ -129,7 +130,8 @@ const LoginForm = () => {
       <View className="mt-3">
         <Button
           intent="primary"
-          size="large"
+          size="lg"
+          rounded={"full"}
           isLoading={isSigningInWithEmail}
           label={"Sign In"}
           onPress={handleSubmit(onSubmit)}
@@ -143,7 +145,8 @@ const LoginForm = () => {
           onPress={() => router.push("/choose-username")}
           label={"Sign Up"}
           intent="secondary"
-          size="small"
+          size="sm"
+          rounded={"full"}
         />
       </View>
     </View>

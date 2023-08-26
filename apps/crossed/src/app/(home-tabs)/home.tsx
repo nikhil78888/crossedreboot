@@ -129,7 +129,7 @@ export default function Home() {
           <Button
             intent={"secondary"}
             label="Feedback"
-            size={"medium"}
+            size={"base"}
             onPress={() => router.push("/feedback")}
           />
         </View>
@@ -138,7 +138,7 @@ export default function Home() {
             <Button
               intent={"secondary"}
               label="Remove Ads"
-              size={"medium"}
+              size={"base"}
               onPress={() => {
                 trackEvent(events.FEEDBACK_CLICK);
                 router.push("/upgrade-to-pro");

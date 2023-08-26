@@ -20,6 +20,7 @@ import {
   Jost_500Medium,
   Jost_600SemiBold,
   Jost_700Bold,
+  Jost_800ExtraBold,
 } from "@expo-google-fonts/jost";
 import { Mukta_400Regular, Mukta_700Bold } from "@expo-google-fonts/mukta";
 import {
@@ -64,6 +65,7 @@ export default function IndexLayout() {
     jost500: Jost_500Medium,
     jost600: Jost_600SemiBold,
     jost700: Jost_700Bold,
+    jost800: Jost_800ExtraBold,
     rubik400: Rubik_400Regular,
     rubik500: Rubik_500Medium,
     rubik600: Rubik_600SemiBold,
@@ -155,8 +157,9 @@ export default function IndexLayout() {
           name="game"
           options={{
             headerTitle: "Match",
+            headerTitleStyle: { fontSize: 26, fontFamily: "jost600" },
             gestureEnabled: false,
-            headerBackVisible: false,
+            headerLeft: () => <></>,
           }}
         />
         <Stack.Screen

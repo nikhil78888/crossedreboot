@@ -3,12 +3,16 @@ import { ActivityIndicator, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { useEffect } from "react";
+import { Button } from "../components/Button";
+import { events, trackEvent } from "../lib/track-event";
 
 export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
   const { gameId } = useLocalSearchParams();
-  const { game } = useGame({ gameId: gameId as string | undefined });
+  const { game, finishGame } = useGame({
+    gameId: gameId as string | undefined,
+  });
 
   const gamePlayState = game?.playState;
   const gameType = game?.gameType;
@@ -19,7 +23,23 @@ export default function Game() {
         navigation.setOptions({ headerTitle: "FRIENDLY MATCH" });
         break;
       case "SOLO":
-        navigation.setOptions({ headerTitle: "SOLO MATCH" });
+        navigation.setOptions({
+          headerTitle: "PRACTICE MATCH",
+          headerRight: () => {
+            return (
+              <Button
+                intent={"danger"}
+                mode={"text"}
+                size={"sm"}
+                label="Leave"
+                onPress={() => {
+                  trackEvent(events.SUBMIT_SOLO_MATCH_CLICK);
+                  finishGame();
+                }}
+              />
+            );
+          },
+        });
         break;
       case "RANKED":
         navigation.setOptions({ headerTitle: "RANKED MATCH" });
@@ -27,7 +47,7 @@ export default function Game() {
       default:
         break;
     }
-  }, [gameType, navigation]);
+  }, [finishGame, gameType, navigation]);
 
   useEffect(() => {
     if (gamePlayState === "COMPLETED" && navigation.isFocused()) {

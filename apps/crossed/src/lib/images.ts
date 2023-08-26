@@ -28,6 +28,7 @@ export const images = {
   rating: require("../assets/images/rating.png"),
   avatar_dude: require("../assets/images/avatar_dude.png"),
   finding: require("../assets/images/finding.png"),
+  results_win: require("../assets/images/results_win.png"),
 };
 
 export const avatars = {

@@ -34,6 +34,7 @@ module.exports = {
   },
   "crossed-red": {
     400: "#FF7477",
+    500: "#FF0025",
   },
   "cr-gray": {
     300: "#F7F7F7",

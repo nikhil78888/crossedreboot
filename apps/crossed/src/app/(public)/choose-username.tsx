@@ -144,7 +144,8 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
           isLoading={isSettingDisplayName}
           label={"Let's go"}
           intent="primary"
-          size="large"
+          size="lg"
+          rounded={"full"}
         />
       </View>
       <View className="mt-6 flex-row items-center justify-between">
@@ -155,7 +156,8 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
           onPress={() => router.push("/sign-in")}
           label={"Sign In"}
           intent="secondary"
-          size="small"
+          size="sm"
+          rounded={"full"}
         />
       </View>
     </View>

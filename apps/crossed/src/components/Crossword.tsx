@@ -5,7 +5,6 @@ import produce from "immer";
 import { useGame } from "../hooks/use-game";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
-import { SoloCrosswordHeader } from "./SoloCrosswordHeader";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -458,9 +457,6 @@ export const CrosswordGrid = ({
                     game?.gameType === "RANKED") && (
                     <FriendlyCrosswordHeader gameId={gameId as string} />
                   )}
-                  {game?.gameType === "SOLO" && (
-                    <SoloCrosswordHeader gameId={gameId as string} />
-                  )}
                 </>
               )}
             </View>
@@ -618,7 +614,7 @@ const CrosswordCell = ({
               setCurrentCell({ x: rowIndex, y: colIndex });
             }
           }}
-          className="h-full w-full"
+          className="h-full w-full font-semibold"
           maxLength={1}
           autoCorrect={false}
           spellCheck={false}
@@ -740,8 +736,6 @@ const CrosswordClue = ({
 
   const currentClue = getCurrentClue();
 
-  console.log({ currentClue });
-
   const gotoPrevClue = () => {
     if (currentClue) {
       const currentClueIndex = crossword.clues[direction].indexOf(currentClue);
@@ -794,7 +788,7 @@ const CrosswordClue = ({
         </TouchableOpacity>
       </View>
       <TouchableOpacity className="flex-row" onPress={toggleDirection}>
-        <Text className="font-[promptLight] text-base whitespace-normal">
+        <Text className="font-[jost500] text-base whitespace-normal">
           {currentClue?.clue.trim().replace(/(\r\n|\n|\r)/gm, " ")}
         </Text>
       </TouchableOpacity>

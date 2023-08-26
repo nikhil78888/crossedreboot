@@ -2,19 +2,20 @@ import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
 import { Button } from "../../components/Button";
 import { useMyProfile } from "../../hooks/use-my-profile";
-import { avatars } from "../../lib/images";
+import { avatars, images } from "../../lib/images";
 import { Avatar } from "react-native-ui-lib";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { AvoidSoftInput } from "react-native-avoid-softinput";
 import colors from "../../lib/colors";
 import { useCallback } from "react";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { GenericTouchableProps } from "react-native-gesture-handler/lib/typescript/components/touchables/GenericTouchable";
 import { events, trackEvent } from "../../lib/track-event";
+import { Image, ImageSource } from "expo-image";
 
 export default function MyAccount() {
-  const { user, logout, isLoggingOut } = useAuth();
+  const { user, logout } = useAuth();
   const { myProfile } = useMyProfile();
   const router = useRouter();
   const handleSoftInput = useCallback(() => {
@@ -47,7 +48,10 @@ export default function MyAccount() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-white px-4">
+    <ScrollView
+      className="flex-1 bg-white px-4"
+      contentContainerStyle={{ paddingBottom: 20 }}
+    >
       <View className="mt-8 items-center">
         <Avatar
           size={96}
@@ -60,75 +64,26 @@ export default function MyAccount() {
           ribbonLabel="Change"
           ribbonStyle={{ backgroundColor: colors["crossed-gray"]["400"] }}
         />
-        <Text className="mt-2 font-[latoLight] text-gray-700">
+        <Text className="mt-4 font-[jost500] text-cr-gray-800 text-2xl">
           @{myProfile?.username}
         </Text>
       </View>
       {user.isAnonymous ? (
         <AccountPageButton
+          icon={images.form_username}
           label="Create Account"
           onPress={() => router.push("/create-account")}
         />
       ) : (
-        <>
-          <View className="border-b-0.5 mt-8 flex-row items-center justify-between border-crossed-blue-300 pb-2">
-            <Text className="font-[bitterBold] text-lg tracking-widest">
-              My Profile
-            </Text>
-            <Feather
-              name="edit"
-              size={20}
-              onPress={() => router.push("/update-profile")}
-            />
-          </View>
-          <View className="px-2">
-            <View className="flex-row items-center space-x-4 py-4">
-              <Ionicons
-                name="ios-person-circle-outline"
-                size={32}
-                color={colors["crossed-blue"]["300"]}
-              />
-              <View className="border-b-0.5 flex-1 border-crossed-blue-300 pb-2">
-                <Text className="font-[latoLight] text-xs text-gray-600">
-                  Name
-                </Text>
-                <Text className="font-[latoRegular] text-lg text-crossed-green-900">
-                  {myProfile.name}
-                </Text>
-              </View>
-            </View>
-            <View className="flex-row items-center space-x-4 py-4">
-              <Ionicons
-                name="ios-mail-outline"
-                size={32}
-                color={colors["crossed-blue"]["300"]}
-              />
-              <View className="border-b-0.5 flex-1 border-crossed-blue-300 pb-2">
-                <Text className="font-[latoLight] text-xs text-gray-600">
-                  Email
-                </Text>
-                <Text className="font-[latoRegular] text-lg text-crossed-green-900">
-                  {myProfile.email}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <View className="mt-8 items-center">
-            <Button
-              intent="text"
-              label="Logout"
-              size="medium"
-              isLoading={isLoggingOut}
-              onPress={() => {
-                logout();
-              }}
-            />
-          </View>
-          <AccountPageButton label="Delete Account" onPress={confirmDelete} />
-        </>
+        <AccountPageButton
+          label="My Profile"
+          icon={images.form_username}
+          onPress={() => router.push("/update-profile")}
+        />
       )}
       <AccountPageButton
         label="Upgrade to Pro"
+        icon={images.form_username}
         onPress={() => {
           trackEvent(events.MY_ACCOUNT_UPGRADE_TO_PRO_CLICK);
           if (user.isAnonymous) {
@@ -149,6 +104,7 @@ export default function MyAccount() {
       />
       <AccountPageButton
         label="Terms of Use"
+        icon={images.form_username}
         onPress={() =>
           router.push(
             "/web-view?uri=https://www.apple.com/legal/internet-services/itunes/dev/stdeula/&title=Terms of Use"
@@ -157,12 +113,26 @@ export default function MyAccount() {
       />
       <AccountPageButton
         label="Privacy Policy"
-        onPress={() =>
-          router.push(
-            "/web-view?uri=https://app.termly.io/dashboard/website/6c515075-4531-4fc3-bbcc-5605491e88cc/privacy-policy/&title=Privacy Policy"
-          )
-        }
+        icon={images.form_username}
+        onPress={() => router.push(`/privacy-policy`)}
       />
+      {!user.isAnonymous && (
+        <AccountPageButton
+          icon={images.form_username}
+          label="Delete Account"
+          onPress={() => confirmDelete()}
+        />
+      )}
+      {!user.isAnonymous && (
+        <View className="mt-4 items-center">
+          <Button
+            intent={"danger"}
+            mode={"text"}
+            label="Logout"
+            onPress={() => logout()}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -170,15 +140,20 @@ export default function MyAccount() {
 const AccountPageButton = ({
   label,
   onPress,
+  icon,
 }: {
   label: string;
   onPress: GenericTouchableProps["onPress"];
+  icon: ImageSource;
 }) => (
   <TouchableOpacity
-    className="border-b-0.5 mt-8 flex-row items-center justify-between border-crossed-blue-300 pb-2"
+    className="mt-4 rounded-2xl bg-cr-gray-300 h-[76px] w-full py-[18px] pl-[25px] pr-7 flex-row items-center justify-between"
     onPress={onPress}
   >
-    <Text className="font-[bitterBold] text-lg tracking-widest">{label}</Text>
+    <View className="flex-row items-center">
+      <Image source={icon} className="h-[44] w-[44]" contentFit="contain" />
+      <Text className="ml-[18px] font-[jost600] text-base">{label}</Text>
+    </View>
     <Feather name="chevron-right" size={20} />
   </TouchableOpacity>
 );

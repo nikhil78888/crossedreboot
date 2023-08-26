@@ -5,6 +5,7 @@ import { z } from "zod";
 import { FormTextInput } from "../components/FormTextInput";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
+import { images } from "../lib/images";
 
 export default function UpdateAccountForm() {
   const { myProfile, updateProfile, isUpdatingProfile } = useMyProfile();
@@ -15,9 +16,11 @@ export default function UpdateAccountForm() {
   } = useForm({
     defaultValues: {
       name: "",
+      email: "",
     },
     values: {
       name: myProfile?.name || "",
+      email: myProfile?.email || "",
     },
     resolver: zodResolver(updateAccountFormSchema),
   });
@@ -43,8 +46,8 @@ export default function UpdateAccountForm() {
             fieldState: { error },
           }) => (
             <FormTextInput
-              label="Your Name"
               error={error?.message}
+              icon={images.form_username}
               placeholder="Josh Cross"
               onBlur={onBlur}
               onChangeText={onChange}
@@ -53,6 +56,25 @@ export default function UpdateAccountForm() {
             />
           )}
           name="name"
+        />
+        <Controller
+          control={control}
+          render={({
+            field: { onChange, onBlur, value },
+            fieldState: { error },
+          }) => (
+            <FormTextInput
+              error={error?.message}
+              icon={images.form_email}
+              placeholder="Josh Cross"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              autoComplete="email"
+              editable={false}
+            />
+          )}
+          name="email"
         />
         {errors.root?.message && (
           <Text className="text-xs text-red-500 text-center my-1">
@@ -65,7 +87,8 @@ export default function UpdateAccountForm() {
             isLoading={isUpdatingProfile}
             label={"Update Account"}
             intent="primary"
-            size="large"
+            size="lg"
+            rounded={"full"}
           />
         </View>
       </View>
