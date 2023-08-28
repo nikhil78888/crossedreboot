@@ -23,7 +23,8 @@ export default function Welcome() {
       <View className="mt-[92px] w-full px-5">
         <Button
           intent="primary"
-          size="large"
+          size="lg"
+          rounded={"full"}
           onPress={() => {
             router.push("/choose-username");
           }}
@@ -43,8 +44,10 @@ export default function Welcome() {
           ></View>
         </View>
         <Button
-          intent="secondary"
-          size="large"
+          intent="primary"
+          size="lg"
+          rounded={"full"}
+          mode={"outline"}
           onPress={() => router.push("/sign-in")}
           label="SIGN IN"
         />

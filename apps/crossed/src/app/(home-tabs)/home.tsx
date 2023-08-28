@@ -57,93 +57,96 @@ export default function Home() {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={{ paddingBottom: 40 }}
-      className="flex-1 bg-white px-4"
-    >
-      <Text className="mt-2.5 font-[bitterBold] text-xl text-crossed-black-700">
-        Start a New Match!
-      </Text>
-      <View className="mt-2">
-        <NewGameButtons />
-      </View>
-      <View className="mt-5 w-full">
-        <ShareAppButton />
-      </View>
-      {stats && (
-        <View>
-          <Text className="mt-4 text-xl" style={{ fontFamily: "bitterBold" }}>
-            My Stats
-          </Text>
-          <View className="mt-2 w-full flex-row space-x-2">
-            <View className="flex-1 bg-crossed-green-50">
-              <Image
-                source={images.card_ellipsis}
-                className="absolute bottom-0 right-0 h-full w-3/5"
-              />
-              <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
-                Games Played
-              </Text>
-              <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-blue-700">
-                {stats.gamesPlayed}
-              </Text>
-            </View>
-            <View className="flex-1 bg-crossed-green-50">
-              <Image
-                source={images.card_ellipsis}
-                className="absolute bottom-0 right-0 h-full w-3/5"
-              />
-              <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
-                Games Won
-              </Text>
-              <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-green-700">
-                {stats.gamesWon}
-              </Text>
-            </View>
-          </View>
-        </View>
-      )}
-      <View className="mt-2 h-32 bg-crossed-green-50">
-        <Image
-          source={images.card_ellipsis}
-          className="absolute bottom-0 right-0 h-full w-3/5"
-        />
-        <Text className="mt-2.5 text-center font-[latoLight] text-xl text-crossed-black-700">
-          Ratings
-        </Text>
-        <Text className="ml-2.5 mt-2.5 text-center font-[latoLight] text-6xl text-crossed-blue-700">
-          {myProfile?.eloRating}
-        </Text>
-      </View>
-      <View className="mt-5">
-        <Button
-          intent={"secondary"}
-          label="Feedback"
-          size={"medium"}
-          onPress={() => router.push("/feedback")}
-        />
-      </View>
+    <View className="flex-1 bg-white">
       {!currentSubscription && (
-        <View className="mt-6 -mx-4">
+        <View className="mt-6">
           <BannerAd
             unitId={mobileConfig.homeScreenAdId}
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
           />
         </View>
       )}
-      {!currentSubscription && (
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 }}
+        className="flex-1 bg-white px-4"
+      >
+        <View className="mt-3 flex-row">
+          <View>
+            <View className="absolute bottom-0 inset-x-0 h-3.5 bg-crossed-yellow-200" />
+            <Text className="font-[jost600] text-xl text-cr-gray-800">
+              Start a New Match!
+            </Text>
+          </View>
+        </View>
+        <View className="mt-2">
+          <NewGameButtons />
+        </View>
+        <View className="mt-5 w-full">
+          <ShareAppButton />
+        </View>
+        {stats && (
+          <View>
+            <View className="mt-4 flex-row">
+              <View>
+                <View className="absolute bottom-0 inset-x-0 h-3.5 bg-crossed-yellow-200" />
+                <Text className="font-[jost600] text-xl text-cr-gray-800">
+                  Statistics
+                </Text>
+              </View>
+            </View>
+            <View className="mt-2.5 h-[136px] rounded-[15px] border">
+              <View className="flex-row items-center justify-between mt-[18px] ml-5 mr-7">
+                <View>
+                  <Text className="font-[rubik600] text-[42px] leading-none">
+                    {myProfile?.eloRating}
+                  </Text>
+                  <Text className="font-[jost600] text-[25px] ml-2">
+                    Ratings
+                  </Text>
+                </View>
+                <Image source={images.rating} className="h-[71px] w-[66.7px]" />
+              </View>
+            </View>
+            <View className="mt-4 w-full flex-row space-x-2">
+              <View className="flex-1 h-24 rounded-[15px] border">
+                <Text className="ml-4 mt-4 font-[rubik700] text-[32px]">
+                  {stats.gamesPlayed}
+                </Text>
+                <Text className="ml-5 font-[jost600] text-base">
+                  Games Played
+                </Text>
+              </View>
+              <View className="flex-1 h-24 rounded-[15px] border">
+                <Text className="ml-4 mt-4 font-[rubik700] text-[32px]">
+                  {stats.gamesWon}
+                </Text>
+                <Text className="ml-5 font-[jost600] text-base">Games Won</Text>
+              </View>
+            </View>
+          </View>
+        )}
         <View className="mt-5">
           <Button
             intent={"secondary"}
-            label="Remove Ads"
-            size={"medium"}
-            onPress={() => {
-              trackEvent(events.FEEDBACK_CLICK);
-              router.push("/upgrade-to-pro");
-            }}
+            label="Feedback"
+            size={"base"}
+            onPress={() => router.push("/feedback")}
           />
         </View>
-      )}
-    </ScrollView>
+        {!currentSubscription && (
+          <View className="mt-5">
+            <Button
+              intent={"secondary"}
+              label="Remove Ads"
+              size={"base"}
+              onPress={() => {
+                trackEvent(events.FEEDBACK_CLICK);
+                router.push("/upgrade-to-pro");
+              }}
+            />
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }

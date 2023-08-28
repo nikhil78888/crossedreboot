@@ -15,6 +15,20 @@ import {
   Prompt_500Medium,
   Prompt_600SemiBold,
 } from "@expo-google-fonts/prompt";
+import {
+  Jost_400Regular,
+  Jost_500Medium,
+  Jost_600SemiBold,
+  Jost_700Bold,
+  Jost_800ExtraBold,
+} from "@expo-google-fonts/jost";
+import { Mukta_400Regular, Mukta_700Bold } from "@expo-google-fonts/mukta";
+import {
+  Rubik_400Regular,
+  Rubik_500Medium,
+  Rubik_600SemiBold,
+  Rubik_700Bold,
+} from "@expo-google-fonts/rubik";
 import { Besley_500Medium } from "@expo-google-fonts/besley";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
@@ -23,6 +37,7 @@ import LogRocket from "@logrocket/react-native";
 import { useAuth } from "../hooks/use-auth";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
+import { BackButton } from "../components/BackButton";
 
 axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
@@ -46,6 +61,17 @@ export default function IndexLayout() {
     promptSemiBold: Prompt_600SemiBold,
     besleyMedium: Besley_500Medium,
     bitterBold: Bitter_700Bold,
+    jost400: Jost_400Regular,
+    jost500: Jost_500Medium,
+    jost600: Jost_600SemiBold,
+    jost700: Jost_700Bold,
+    jost800: Jost_800ExtraBold,
+    rubik400: Rubik_400Regular,
+    rubik500: Rubik_500Medium,
+    rubik600: Rubik_600SemiBold,
+    rubik700: Rubik_700Bold,
+    mukta400: Mukta_400Regular,
+    mukta700: Mukta_700Bold,
   });
   const { user, isLoadingUser } = useAuth();
   const segments = useSegments();
@@ -114,20 +140,26 @@ export default function IndexLayout() {
     <KeyboardProvider>
       <Stack
         screenOptions={{
-          headerTitleStyle: { fontSize: 24, fontFamily: "bitterBold" },
+          headerTitleStyle: { fontSize: 28, fontFamily: "jost600" },
+          headerShadowVisible: false,
+          headerLeft: BackButton,
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(public)" options={{ headerShown: false }} />
         <Stack.Screen name="(home-tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="invite-friend" options={{ headerShown: false }} />
-        <Stack.Screen name="join-game" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="invite-friend"
+          options={{ title: "Friendly Match", headerBackVisible: false }}
+        />
+        <Stack.Screen name="join-game" options={{ title: "Join Game" }} />
         <Stack.Screen
           name="game"
           options={{
             headerTitle: "Match",
+            headerTitleStyle: { fontSize: 26, fontFamily: "jost600" },
             gestureEnabled: false,
-            headerBackVisible: false,
+            headerLeft: () => <></>,
           }}
         />
         <Stack.Screen

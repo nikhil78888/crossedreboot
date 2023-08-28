@@ -55,10 +55,11 @@ export default function HomeLayout() {
     <Tabs
       screenOptions={{
         headerTitleStyle: {
-          fontFamily: "bitterBold",
-          fontSize: 32,
-          lineHeight: 38.4,
+          fontFamily: "jost600",
+          fontSize: 28,
+          lineHeight: 40,
         },
+        headerShadowVisible: false,
         // headerRight: () => (
         //   <TouchableOpacity
         //     onPress={() => router.push("/notifications")}
@@ -71,15 +72,15 @@ export default function HomeLayout() {
           fontFamily: "bitterBold",
           fontSize: 12,
         },
-        tabBarActiveTintColor: "#316C81",
-        tabBarInactiveTintColor: "#BDCBCB",
+        tabBarActiveTintColor: "#000",
+        tabBarInactiveTintColor: "#B8B8B8",
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           tabBarLabel: "Home",
-          headerTitle: "Crossed.",
+          headerTitle: "Crosswords",
           tabBarIcon: ({ color }) => (
             <Image
               source={images.tab_home}

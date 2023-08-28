@@ -1,28 +1,38 @@
+import { Image, ImageSource } from "expo-image";
 import { Text, TextInputProps, View } from "react-native";
 import {
   NativeViewGestureHandlerProps,
   TextInput,
 } from "react-native-gesture-handler";
+import { classNames } from "../lib/utils";
 
 type FormTextInputProps = TextInputProps &
-  NativeViewGestureHandlerProps & { label: string; error?: string };
+  NativeViewGestureHandlerProps & {
+    error?: string;
+    icon?: ImageSource;
+  };
 
 export const FormTextInput = (props: FormTextInputProps) => {
-  const { label, error, ...textInputProps } = props;
+  const { error, icon, ...textInputProps } = props;
   return (
     <View className="mt-2">
-      <Text className="text-crossed-gray-900 font-[promptRegular] text-sm tracking-widest">
-        {props.label}
-      </Text>
-      <TextInput
-        className="bg-white mt-1 h-[54px] border border-gray-200 px-3 rounded-sm font-[promptLight]"
-        {...textInputProps}
-      />
+      <View>
+        <TextInput
+          className={classNames(
+            "bg-cr-gray-300 h-[60px] px-3 rounded-2xl font-[jost500]",
+            icon ? "pl-[60px]" : ""
+          )}
+          {...textInputProps}
+        />
+        {icon && (
+          <View className="absolute left-0 inset-y-0 items-center justify-center p-3">
+            <Image source={icon} className="h-9 w-9" contentFit="contain" />
+          </View>
+        )}
+      </View>
       <View className="h-4">
         {error && (
-          <Text className="text-xs text-red-500 font-[latoRegular]">
-            {error}
-          </Text>
+          <Text className="text-xs text-red-400 font-[jost400]">{error}</Text>
         )}
       </View>
     </View>

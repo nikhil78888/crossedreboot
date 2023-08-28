@@ -1,11 +1,17 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useEffect } from "react";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
+import { Image } from "expo-image";
+import { images } from "../lib/images";
+import { useSubscriptionInfo } from "../hooks/use-subscription-info";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
+import { mobileConfig } from "../mobile-config";
 
 export default function JoinGame() {
+  const { currentSubscription } = useSubscriptionInfo();
   const { gameId } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
@@ -45,20 +51,46 @@ export default function JoinGame() {
   }
 
   return (
-    <View className="flex-1 items-center justify-center px-4">
-      <Text className="text-2xl" style={{ fontFamily: "bitterBold" }}>
-        Friendly Match
-      </Text>
-      <Text className="mb-8 mt-2 font-[latoRegular]">
+    <View className="flex-1 items-center px-4 bg-white">
+      <Text className="mt-4 text-base font-[jost600]">
         Play a friendly match with @{opponentUsername}
       </Text>
-      <Button
-        intent="primary"
-        size="medium"
-        label="Start Match"
-        isLoading={startingGame}
-        onPress={() => startGame()}
-      />
+      <View className="mt-6">
+        <View
+          className="h-[180px] w-[180px] border-black/20 rounded-full items-center justify-center"
+          style={{ borderWidth: StyleSheet.hairlineWidth }}
+        >
+          <View className="p-5 bg-gray-100 rounded-full">
+            <Image source={images.avatar_dude} className="h-[60px] w-[60px]" />
+          </View>
+        </View>
+      </View>
+      <View className="mt-6">
+        <Button
+          intent="primary"
+          size="base"
+          rounded={"full"}
+          label="Start Match"
+          isLoading={startingGame}
+          onPress={() => startGame()}
+        />
+      </View>
+      {!currentSubscription && (
+        <View className="mt-24">
+          <BannerAd
+            unitId={mobileConfig.inviteFriendScreenAdId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          />
+        </View>
+      )}
+      <View className="absolute bottom-8 inset-x-4">
+        <Button
+          intent="secondary"
+          size="lg"
+          label="Go back home"
+          onPress={router.back}
+        />
+      </View>
     </View>
   );
 }

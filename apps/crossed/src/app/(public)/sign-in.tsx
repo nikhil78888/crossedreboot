@@ -6,34 +6,38 @@ import { useAuth } from "../../hooks/use-auth";
 import { FormTextInput } from "../../components/FormTextInput";
 import { Button } from "../../components/Button";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { images } from "../../lib/images";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function SignIn() {
   const router = useRouter();
+  const { top } = useSafeAreaInsets();
   return (
-    <View className="flex-1 bg-crossed-gray-50">
-      <View className="absolute top-6 left-1">
-        <Ionicons
-          size={32}
-          name="ios-chevron-back-sharp"
-          onPress={router.back}
-        />
-      </View>
-      <View className="mt-20 flex-row items-center">
-        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
-        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
+    <View className="flex-1 bg-white" style={{ paddingTop: top }}>
+      <View className="mt-1.5 flex items-center justify-center">
+        <View className="absolute left-5 inset-y-0 items-center justify-center">
+          <TouchableOpacity onPress={router.back} className="py-2 px-1.5">
+            <Image
+              source={images.back_arrow_left}
+              className="h-6 w-4"
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-cr-gray-800 text-[28px] leading-normal font-[jost600]">
           Sign In
         </Text>
       </View>
-      <View className="mt-10 px-10">
+      <Text className="text-cr-gray-600 mt-3 font-[jost400] text-sm text-center">
+        Welcome back! Please enter your details
+      </Text>
+      <View className="mt-[30px] items-center">
+        <Image className="w-[85px] h-[112px]" source={images.name_logo} />
+      </View>
+      <View className="mt-10 px-5">
         <LoginForm />
-        <View className="mt-5">
-          <Button
-            intent="text"
-            label="Forgot Password?"
-            onPress={() => router.push("/forgot-password")}
-          />
-        </View>
       </View>
     </View>
   );
@@ -49,6 +53,7 @@ const loginFormSchema = z.object({
 });
 
 const LoginForm = () => {
+  const router = useRouter();
   const {
     control,
     handleSubmit,
@@ -75,9 +80,9 @@ const LoginForm = () => {
           fieldState: { error },
         }) => (
           <FormTextInput
-            label="Email"
+            icon={images.form_email}
             error={error?.message}
-            placeholder="example@gmail.com"
+            placeholder="Your Email"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -95,9 +100,9 @@ const LoginForm = () => {
           fieldState: { error },
         }) => (
           <FormTextInput
-            label="Password"
+            icon={images.form_password}
             error={error?.message}
-            placeholder="xxxxxxxxx"
+            placeholder="Password"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
@@ -113,13 +118,35 @@ const LoginForm = () => {
           {errors.root.message}
         </Text>
       )}
-      <View className="mt-4">
+      <View className="items-end">
+        <Button
+          mode="text"
+          intent={"secondary"}
+          size="sm"
+          label="Forgot Password"
+          onPress={() => router.push("/forgot-password")}
+        />
+      </View>
+      <View className="mt-3">
         <Button
           intent="primary"
-          size="large"
+          size="lg"
+          rounded={"full"}
           isLoading={isSigningInWithEmail}
-          label={"Login"}
+          label={"Sign In"}
           onPress={handleSubmit(onSubmit)}
+        />
+      </View>
+      <View className="mt-6 flex-row items-center justify-between">
+        <Text className="font-[jost400] text-cr-gray-600 text-base">
+          Create an account
+        </Text>
+        <Button
+          onPress={() => router.push("/choose-username")}
+          label={"Sign Up"}
+          intent="secondary"
+          size="sm"
+          rounded={"full"}
         />
       </View>
     </View>
