@@ -129,7 +129,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         }
 
         const playedCrosswordIds = played?.games
-          .slice(0, 200)
+          .slice(-200)
           .map((g) => g.crosswordsId);
 
         const { data: crossword, error: findCrosswordError } = await supabase
@@ -181,7 +181,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         }
 
         const playedCrosswordIds = played?.games
-          .slice(0, 200)
+          .slice(-200)
           .map((g) => g.crosswordsId);
 
         const { data: crossword } = await supabase
