@@ -8,6 +8,8 @@ import { ScrollView } from "react-native-gesture-handler";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { NewGameButtons } from "../components/NewGameButtons";
 import { Button } from "../components/Button";
+import { PlayerAnswerButton } from "../components/CrosswordResults";
+import { classNames } from "../lib/utils";
 
 export default function ViewAnswers() {
   const { gameId, playerId }: { gameId?: string; playerId?: string } =
@@ -39,57 +41,67 @@ export default function ViewAnswers() {
   return (
     <ScrollView
       className="flex-1 bg-white"
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 60 }}
     >
       <CrosswordGrid gameId={gameId as string} showResults={{ playerId }} />
       <View className="flex-1 px-5">
-        {(game.gameType === "FRIENDLY" || game.gameType === "RANKED") &&
-          opponent && (
-            <View className="mt-6 flex flex-row items-center justify-between space-x-2">
-              <View>
-                {playerId === myProfile.id ? (
-                  <Button
-                    intent="primary"
-                    size="medium"
-                    onPress={() => router.setParams({ playerId: opponent.id })}
-                    label={`@${opponent.username}`}
-                  />
-                ) : (
-                  <Button
-                    intent="primary"
-                    size="medium"
+        {game.gameType !== "SOLO" && (
+          <View className="flex-1">
+            <View className={classNames("mt-5 flex-row space-x-4")}>
+              {playerId !== myProfile.id && (
+                <View className="flex-1">
+                  <PlayerAnswerButton
+                    player={myProfile}
+                    game={game}
                     onPress={() => router.setParams({ playerId: myProfile.id })}
-                    label={`@${myProfile.username}`}
                   />
-                )}
-              </View>
-              <View className="flex-1">
-                {playerId ? (
-                  <Button
-                    intent="secondary"
-                    size="medium"
-                    onPress={() => router.setParams({ gameId, playerId: "" })}
-                    label={"View Crossword Answers"}
-                  />
-                ) : (
-                  <Button
-                    intent="primary"
-                    size="medium"
-                    onPress={() => router.setParams({ playerId: opponent.id })}
-                    label={`@${opponent.username}`}
-                  />
-                )}
-              </View>
+                </View>
+              )}
+              {playerId !== opponent?.id && (
+                <View className="flex-1">
+                  {opponent && (
+                    <PlayerAnswerButton
+                      player={opponent}
+                      game={game}
+                      onPress={() =>
+                        router.setParams({ playerId: opponent.id })
+                      }
+                    />
+                  )}
+                </View>
+              )}
             </View>
-          )}
-        <Text className="mt-6 text-xl font-bold">Start a New Match</Text>
-        <View className="mt-2.5">
+            {playerId && (
+              <View className="mt-5">
+                <Button
+                  intent={"primary"}
+                  size={"xl"}
+                  label="View Crossword Answers"
+                  rounded={"full"}
+                  onPress={() => router.setParams({ gameId, playerId: "" })}
+                />
+              </View>
+            )}
+          </View>
+        )}
+        <View className="mt-5 flex-row">
+          <View>
+            <View className="absolute bottom-0 inset-x-0 h-3.5 bg-crossed-yellow-200" />
+            <Text className="font-[jost600] text-xl text-cr-gray-800">
+              Start a New Match!
+            </Text>
+          </View>
+        </View>
+        <View className="mt-2">
           <NewGameButtons />
         </View>
         <View className="mt-6">
           <Button
-            intent="secondary"
-            size={"medium"}
+            intent="primary"
+            mode={"outline"}
+            size={"lg"}
+            rounded={"full"}
             label="Go Home"
             onPress={() => router.push("/home")}
           />

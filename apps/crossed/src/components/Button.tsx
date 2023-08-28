@@ -13,8 +13,8 @@ const button = cva("items-center justify-center", {
     size: {
       xs: "p-1 px-2",
       sm: "h-7 px-2",
-      base: "h-10",
-      lg: "h-[54]",
+      base: "h-10 px-4",
+      lg: "h-[54] px-4",
       xl: "h-[60]",
     },
     mode: {

@@ -92,7 +92,7 @@ export default function RankedLobby() {
         <Button
           label="Go back home"
           intent={"secondary"}
-          size={"medium"}
+          size={"lg"}
           onPress={() => {
             trackEvent(events.LEAVE_LOBBY_CLICK);
             router.back();

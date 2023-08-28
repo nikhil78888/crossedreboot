@@ -5,17 +5,13 @@ import { Avatar, ProgressBar } from "react-native-ui-lib";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
-import colors from "../lib/colors";
-import { Button } from "./Button";
 import { useMyProfile } from "../hooks/use-my-profile";
-import { events, trackEvent } from "../lib/track-event";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { myProfile } = useMyProfile();
-  const { opponentProgress, game, opponentUsername, finishGame, forfeitGame } =
-    useGame({
-      gameId,
-    });
+  const { opponentProgress, game, opponentUsername, finishGame } = useGame({
+    gameId,
+  });
   const opponent = game?.players.find((p) => p.id !== myProfile?.id);
   const [timeInGame, setTimeInGame] = useState("");
 
@@ -60,63 +56,42 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     return null;
   }
 
-  // const getFormattedGameDuration = (seconds: number) => {
-  //   const duration = intervalToDuration({
-  //     start: 0,
-  //     end: seconds * 1000,
-  //   });
-  //   return `${duration.minutes?.toString().padStart(2, "0")}:${duration.seconds
-  //     ?.toString()
-  //     .padStart(2, "0")}`;
-  // };
-
   return (
-    <View className="flex-row items-center justify-between">
-      <View className="flex-row items-center">
-        <Image source={images.stop_watch} className="h-5 w-[17.42]" />
-        <Text className="ml-1 font-[latoBold] text-sm text-crossed-green-700">
-          {timeInGame}
-        </Text>
-        {/* <Text
-          className=" text-crossed-gray-300 text-sm"
-          style={{ fontFamily: "Lato_400Regular" }}
-        >
-          {" "}
-          / {getFormattedGameDuration(game.gameDurationInSeconds)}
-        </Text> */}
-      </View>
-      <View className="w-1/2">
-        <View className="flex-row items-center justify-between">
-          <Avatar
-            size={20}
-            name={opponentUsername || ""}
-            imageStyle={{ backgroundColor: "white" }}
-            source={avatars[opponent?.avatar as keyof typeof avatars]}
-          />
-          <Text className="font-[latoLight] tracking-wider text-xs mb-1">
-            @{opponentUsername}
-          </Text>
-          <Text className="font-[latoBold] tracking-wider text-xs mb-1">
-            {opponent?.eloRating}
-          </Text>
-        </View>
-        <View className="mt-1">
+    <View>
+      <View className="w-full flex-row items-center">
+        <Avatar
+          size={40}
+          name={opponentUsername || ""}
+          imageStyle={{ backgroundColor: "white" }}
+          source={avatars[opponent?.avatar as keyof typeof avatars]}
+        />
+        <View className="flex-1 mx-2">
+          <Text className="font-[jost600] text-[15px]">{opponentUsername}</Text>
           <ProgressBar
             progress={opponentProgress}
-            progressColor={colors["crossed-red"]["400"]}
-            style={{ height: 12 }}
+            progressColor={"#00E024"}
+            style={{ height: 6 }}
           />
         </View>
+        <View>
+          <Image
+            source={images.friendly_header_rank}
+            className="h-[15.5px] w-[15px]"
+            contentFit="contain"
+          />
+          <Text className="font-[rubik600] text-[15px]">100</Text>
+        </View>
       </View>
-      <Button
-        intent={"text"}
-        size="small"
-        label="Leave Game"
-        onPress={() => {
-          trackEvent(events.FORFEIT_MATCH_CLICK);
-          forfeitGame();
-        }}
-      />
+      <View className="flex-row items-center justify-center">
+        <Image
+          source={images.clock}
+          className="h-[17.7px] w-[20.1px]"
+          contentFit="contain"
+        />
+        <Text className="font-[jost600] text-[18px] text-crossed-blue-450">
+          {timeInGame || "00:00"}
+        </Text>
+      </View>
     </View>
   );
 };

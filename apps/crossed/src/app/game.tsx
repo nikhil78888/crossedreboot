@@ -10,7 +10,7 @@ export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
   const { gameId } = useLocalSearchParams();
-  const { game, finishGame } = useGame({
+  const { game, finishGame, forfeitGame } = useGame({
     gameId: gameId as string | undefined,
   });
 
@@ -20,7 +20,23 @@ export default function Game() {
   useEffect(() => {
     switch (gameType) {
       case "FRIENDLY":
-        navigation.setOptions({ headerTitle: "FRIENDLY MATCH" });
+        navigation.setOptions({
+          headerTitle: "FRIENDLY MATCH",
+          headerRight: () => {
+            return (
+              <Button
+                intent={"danger"}
+                mode={"text"}
+                size={"sm"}
+                label="Leave"
+                onPress={() => {
+                  trackEvent(events.FORFEIT_MATCH_CLICK);
+                  forfeitGame();
+                }}
+              />
+            );
+          },
+        });
         break;
       case "SOLO":
         navigation.setOptions({
@@ -42,12 +58,28 @@ export default function Game() {
         });
         break;
       case "RANKED":
-        navigation.setOptions({ headerTitle: "RANKED MATCH" });
+        navigation.setOptions({
+          headerTitle: "RANKED MATCH",
+          headerRight: () => {
+            return (
+              <Button
+                intent={"danger"}
+                mode={"text"}
+                size={"sm"}
+                label="Leave"
+                onPress={() => {
+                  trackEvent(events.FORFEIT_MATCH_CLICK);
+                  forfeitGame();
+                }}
+              />
+            );
+          },
+        });
         break;
       default:
         break;
     }
-  }, [finishGame, gameType, navigation]);
+  }, [finishGame, forfeitGame, gameType, navigation]);
 
   useEffect(() => {
     if (gamePlayState === "COMPLETED" && navigation.isFocused()) {

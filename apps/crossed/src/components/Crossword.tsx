@@ -54,7 +54,7 @@ export const CrosswordGrid = ({
     if (progress.value !== 1 || !containerHeight) {
       return { width: maxWidth };
     }
-    const deductible = height.value - 130;
+    const deductible = height.value - 160;
     return {
       width: Math.min(containerHeight - Math.abs(deductible), maxWidth),
     };

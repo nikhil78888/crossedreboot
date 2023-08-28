@@ -29,6 +29,10 @@ export const images = {
   avatar_dude: require("../assets/images/avatar_dude.png"),
   finding: require("../assets/images/finding.png"),
   results_win: require("../assets/images/results_win.png"),
+  friendly_header_rank: require("../assets/images/friendly_header_rank.png"),
+  clock: require("../assets/images/clock.png"),
+  medal: require("../assets/images/medal.png"),
+  medal_winner: require("../assets/images/medal_winner.png"),
 };
 
 export const avatars = {

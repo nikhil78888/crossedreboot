@@ -77,8 +77,9 @@ export default function InviteFriend() {
       <View className="mt-6">
         <Button
           intent="primary"
-          size="medium"
+          size="base"
           label="Invite a friend"
+          rounded={"full"}
           onPress={inviteFriend}
         />
       </View>
@@ -93,7 +94,7 @@ export default function InviteFriend() {
       <View className="absolute bottom-8 inset-x-4">
         <Button
           intent="secondary"
-          size="large"
+          size="lg"
           label="Go back home"
           onPress={exitGame}
         />
