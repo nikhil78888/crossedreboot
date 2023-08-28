@@ -3,7 +3,7 @@
     "name": "Crossed.",
     "slug": "crossed",
     "owner": "harshpillario",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "orientation": "portrait",
     "icon": "./src/assets/images/logo_black.png",
     "userInterfaceStyle": "light",
@@ -51,7 +51,7 @@
         "projectId": "95dd38ca-d0be-41ad-8148-56a2b4f5460e"
       }
     },
-    "runtimeVersion": "1.0.14",
+    "runtimeVersion": "1.0.15",
     "updates": {
       "url": "https://u.expo.dev/95dd38ca-d0be-41ad-8148-56a2b4f5460e"
     },
