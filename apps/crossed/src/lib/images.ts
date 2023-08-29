@@ -33,6 +33,8 @@ export const images = {
   clock: require("../assets/images/clock.png"),
   medal: require("../assets/images/medal.png"),
   medal_winner: require("../assets/images/medal_winner.png"),
+  radio: require("../assets/images/radio.png"),
+  radio_light: require("../assets/images/radio_light.png"),
 };
 
 export const avatars = {

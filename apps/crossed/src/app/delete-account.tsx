@@ -6,17 +6,12 @@ import { useAuth } from "../hooks/use-auth";
 import { FormTextInput } from "../components/FormTextInput";
 import { Button } from "../components/Button";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
+import { images } from "../lib/images";
 
 export default function DeleteAccount() {
   return (
-    <View className="flex-1 bg-crossed-gray-50">
-      <View className="mt-6 flex-row items-center">
-        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
-        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
-          Delete Account
-        </Text>
-      </View>
-      <Text className="ml-4 pt-4 text-crossed-gray-900 text-base font-[besleyMedium] leading-none ">
+    <View className="flex-1 bg-white">
+      <Text className="mt-4 text-base font-[jost600] text-center">
         Please re-enter your password.
       </Text>
       <View className="mt-10 px-10">
@@ -89,7 +84,7 @@ const LoginForm = () => {
           fieldState: { error },
         }) => (
           <FormTextInput
-            label="Email"
+            icon={images.form_email}
             error={error?.message}
             placeholder="example@gmail.com"
             onBlur={onBlur}
@@ -110,7 +105,7 @@ const LoginForm = () => {
           fieldState: { error },
         }) => (
           <FormTextInput
-            label="Password"
+            icon={images.form_password}
             error={error?.message}
             placeholder="xxxxxxxxx"
             onBlur={onBlur}
@@ -130,8 +125,9 @@ const LoginForm = () => {
       )}
       <View className="mt-4">
         <Button
-          intent="primary"
-          size="large"
+          intent="danger"
+          size="lg"
+          rounded={"full"}
           isLoading={isSigningInWithEmail}
           label={"Delete Account"}
           onPress={handleSubmit(onSubmit)}

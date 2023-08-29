@@ -16,12 +16,14 @@ import {
   Prompt_600SemiBold,
 } from "@expo-google-fonts/prompt";
 import {
+  Jost_300Light,
   Jost_400Regular,
   Jost_500Medium,
   Jost_600SemiBold,
   Jost_700Bold,
   Jost_800ExtraBold,
 } from "@expo-google-fonts/jost";
+import { Montserrat_700Bold } from "@expo-google-fonts/montserrat";
 import { Mukta_400Regular, Mukta_700Bold } from "@expo-google-fonts/mukta";
 import {
   Rubik_400Regular,
@@ -61,6 +63,7 @@ export default function IndexLayout() {
     promptSemiBold: Prompt_600SemiBold,
     besleyMedium: Besley_500Medium,
     bitterBold: Bitter_700Bold,
+    jost300: Jost_300Light,
     jost400: Jost_400Regular,
     jost500: Jost_500Medium,
     jost600: Jost_600SemiBold,
@@ -72,6 +75,7 @@ export default function IndexLayout() {
     rubik700: Rubik_700Bold,
     mukta400: Mukta_400Regular,
     mukta700: Mukta_700Bold,
+    montserrat700: Montserrat_700Bold,
   });
   const { user, isLoadingUser } = useAuth();
   const segments = useSegments();
@@ -215,6 +219,12 @@ export default function IndexLayout() {
           name="create-account"
           options={{
             headerTitle: "Create Account",
+          }}
+        />
+        <Stack.Screen
+          name="delete-account"
+          options={{
+            headerTitle: "Delete Account",
           }}
         />
       </Stack>
