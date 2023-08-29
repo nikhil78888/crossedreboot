@@ -45,7 +45,7 @@ export const CrosswordView = ({ id }: { id: string }) => {
     if (data && cref.current) {
       const timeout = setTimeout(() => {
         cref.current.fillAllAnswers();
-      }, 2000);
+      }, 5000);
       return () => clearTimeout(timeout);
     }
   }, [data]);

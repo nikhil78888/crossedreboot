@@ -35,6 +35,8 @@ export const images = {
   medal_winner: require("../assets/images/medal_winner.png"),
   radio: require("../assets/images/radio.png"),
   radio_light: require("../assets/images/radio_light.png"),
+  ribbon_background: require("../assets/images/ribbon_background.png"),
+  ribbon_check: require("../assets/images/ribbon_check.png"),
 };
 
 export const avatars = {
