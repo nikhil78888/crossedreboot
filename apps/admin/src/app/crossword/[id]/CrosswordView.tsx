@@ -6,66 +6,67 @@ import { supabase } from "../../../lib/supabase";
 import { Switch } from "@headlessui/react";
 import { classNames } from "../../../lib/utils";
 import { useEffect, useRef } from "react";
+import { Ipuz } from "types-and-validators";
+import { CluesInputOriginal } from "@jaredreisinger/react-crossword/dist/types";
 
 export const CrosswordView = ({ id }: { id: string }) => {
   const { data: puzzle, mutate: refresh } = useSWR(
     `crossword-${id}`,
     async () => {
-      const { data: puzzle } = (await supabase
+      const { data: puzzle } = await supabase
         .from("crosswords")
         .select()
         .eq("id", id)
-        .single()) as any;
+        .single();
+      if (!puzzle) {
+        return null;
+      }
+      const clues = puzzle.clues as Ipuz["clues"];
       return {
         ipuz: {
           version: "http://ipuz.org/v2",
           kind: ["http://ipuz.org/crossword#1"],
           dimensions: { height: puzzle?.size, width: puzzle?.size },
-          puzzle: puzzle.puzzle,
+          puzzle: puzzle.puzzle as unknown as Ipuz["puzzle"],
           solution: puzzle.solution,
           clues: {
-            Across: puzzle?.clues?.Across?.map((clue: any) => [
-              clue.number,
-              clue.clue,
-            ]),
-            Down: puzzle?.clues?.Down?.map((clue: any) => [
-              clue.number,
-              clue.clue,
-            ]),
+            Across: clues.Across?.map((clue) => [clue.number, clue.clue]),
+            Down: clues.Down?.map((clue) => [clue.number, clue.clue]),
           },
         },
         puzzle,
       };
     }
   );
-  const data = useIpuz(puzzle?.ipuz || null);
+  console.log(puzzle?.ipuz);
+  if (!puzzle) {
+    return null;
+  }
+
+  return <CrosswordWithData puzzle={puzzle} refresh={refresh} />;
+};
+
+const CrosswordWithData = ({
+  puzzle,
+  refresh,
+}: {
+  puzzle: any;
+  refresh: any;
+}) => {
+  const data = useIpuz(puzzle.ipuz);
   const cref = useRef(null);
 
   useEffect(() => {
-    if (data && cref.current) {
-      const timeout = setTimeout(() => {
-        cref.current.fillAllAnswers();
-      }, 5000);
-      return () => clearTimeout(timeout);
+    if (cref.current) {
+      // @ts-expect-error
+      cref.current.fillAllAnswers();
     }
-  }, [data]);
-
-  if (!data) {
-    return null;
-  }
+  }, []);
 
   return (
     <div className="flex space-x-4">
       <div className="flex-1">
-        {puzzle && (
-          <Crossword
-            ref={cref}
-            data={data}
-            onLoadedCorrect={() => {
-              console.log("loaded");
-            }}
-          />
-        )}
+        {puzzle && <Crossword ref={cref} data={data as CluesInputOriginal} />}
       </div>
       <div className="flex-1">
         <Switch

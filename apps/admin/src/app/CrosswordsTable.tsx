@@ -1,25 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { supabase } from "../lib/supabase";
-
-const people = [
-  {
-    name: "Lindsay Walton",
-    title: "Front-end Developer",
-    email: "lindsay.walton@example.com",
-    role: "Member",
-  },
-  // More people...
-];
+import axios from "axios";
 
 export const CrosswordsTable = () => {
-  const { data } = useSWR("crosswords", async () => {
+  const searchParams = useSearchParams();
+  const page = searchParams.get("page") ? Number(searchParams.get("page")) : 0;
+  const count = 10;
+  const start = page * count;
+  const end = start + (count - 1);
+  console.log({ start, end });
+  const { data } = useSWR(["crosswords", page], async () => {
     const { data } = await supabase
       .from("crosswords")
       .select()
-      .order("createdAt", { ascending: false });
+      .order("createdAt", { ascending: false })
+      .range(start, end);
     return data;
   });
 
@@ -32,12 +31,23 @@ export const CrosswordsTable = () => {
           </h1>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          {/* <button
-              type="button"
-              className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            >
-              Add user
-            </button> */}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await axios.post(
+                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/crosswords`,
+                  { size: 5 }
+                );
+                alert("New Crossword Created");
+              } catch (error) {
+                alert("Oops! Something went wrong.");
+              }
+            }}
+            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          >
+            New Crossword
+          </button>
         </div>
       </div>
       <div className="mt-8 flow-root">
@@ -117,6 +127,25 @@ export const CrosswordsTable = () => {
               </table>
             </div>
           </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          {page > 0 ? (
+            <Link
+              href={`/?page=${page - 1}`}
+              className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              Prev
+            </Link>
+          ) : (
+            <span />
+          )}
+
+          <Link
+            href={`/?page=${page + 1}`}
+            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          >
+            Next
+          </Link>
         </div>
       </div>
     </div>

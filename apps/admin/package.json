@@ -14,12 +14,13 @@
     "@heroicons/react": "^2.0.18",
     "@jaredreisinger/react-crossword": "^5.2.0",
     "@supabase/supabase-js": "^2.26.0",
+    "axios": "^1.5.0",
     "logger": "*",
     "next": "^13.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "ui": "*",
-    "types-and-validators": "*"
+    "types-and-validators": "*",
+    "ui": "*"
   },
   "devDependencies": {
     "@types/jest": "^26.0.22",

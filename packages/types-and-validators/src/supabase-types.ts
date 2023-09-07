@@ -197,9 +197,59 @@ export interface Database {
         }
         Relationships: []
       }
+      words: {
+        Row: {
+          clue: string | null
+          id: number
+          lastUsed: string | null
+          score: number | null
+          word: string
+          wordLength: number
+        }
+        Insert: {
+          clue?: string | null
+          id?: number
+          lastUsed?: string | null
+          score?: number | null
+          word: string
+          wordLength?: number
+        }
+        Update: {
+          clue?: string | null
+          id?: number
+          lastUsed?: string | null
+          score?: number | null
+          word?: string
+          wordLength?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      random_words: {
+        Row: {
+          clue: string | null
+          id: number | null
+          score: number | null
+          word: string | null
+          wordLength: number | null
+        }
+        Insert: {
+          clue?: string | null
+          id?: number | null
+          score?: number | null
+          word?: string | null
+          wordLength?: number | null
+        }
+        Update: {
+          clue?: string | null
+          id?: number | null
+          score?: number | null
+          word?: string | null
+          wordLength?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
