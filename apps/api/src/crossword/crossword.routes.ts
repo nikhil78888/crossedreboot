@@ -22,6 +22,7 @@ const createCrosswordRequestSchema = z.object({
   body: z.object({
     // category: z.nativeEnum(CrosswordCategory),
     size: z.number(),
+    pattern: z.array(z.array(z.string())),
   }),
 });
 
@@ -30,17 +31,18 @@ crosswordRouter.post<
   Record<string, never> | string,
   {
     size: number;
+    pattern: string[][];
     // category: CrosswordCategory
   },
   Record<string, never>
 >("/", validate(createCrosswordRequestSchema), async (req, res, next) => {
   try {
-    const { size } = req.body;
+    const { size, pattern } = req.body;
     const difficulty = 2;
     for (let i = 0; i < 1; i += 1) {
-      const wordList = await getWordList(size);
+      const wordList = await getWordListForPattern(size);
       console.log("fetched word list", wordList.length);
-      const wiz = await generateCrossword(wordList, size);
+      const wiz = await generateCrosswordFromPattern(wordList, pattern);
       console.log("generated wiz");
       if (wiz.findIndex((row: string) => row.indexOf(".") >= 0) >= 0) {
         res.status(500).send("could not create crossword");
@@ -283,6 +285,34 @@ const generateCrossword = async (wordList: string[], size: number) => {
   );
   const wiz = response.data;
   return wiz;
+};
+
+const generateCrosswordFromPattern = async (
+  wordList: string[],
+  pattern: string[][]
+) => {
+  const response = await axios.post(
+    "https://crossword-generator-v4.boringoldev.repl.co/generate-crossword-from-pattern",
+    { words: wordList, pattern }
+  );
+  const wiz = response.data;
+  return wiz;
+};
+
+const getWordListForPattern = async (size: number) => {
+  let words: string[] = [];
+  for (let i = 3; i <= size; i += 1) {
+    const limit = i === size ? 8000 : 4000;
+    const response = await supabase
+      .from("words")
+      .select("id, word")
+      .filter("wordLength", "eq", i)
+      .limit(limit);
+    if (response.data) {
+      words = [...words, ...response.data.map((w) => w.word)];
+    }
+  }
+  return words;
 };
 
 const getWordList = async (size: number) => {
