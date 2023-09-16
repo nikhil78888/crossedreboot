@@ -28,7 +28,7 @@ export const crosswordSchema = z.object({
   puzzle: z
     .array(
       z
-        .array(z.string().length(1))
+        .array(z.string())
         .describe(
           "Array representing a row of the crossword.\n" +
             "Each cell represents a cell in the crossword.\n" +

@@ -80,7 +80,7 @@ export default function HomeLayout() {
         name="home"
         options={{
           tabBarLabel: "Home",
-          headerTitle: "Crosswords",
+          headerTitle: "Crossed.",
           tabBarIcon: ({ color }) => (
             <Image
               source={images.tab_home}

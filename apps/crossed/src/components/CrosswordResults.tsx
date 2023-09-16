@@ -75,14 +75,14 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         <Text className="mt-4 text-center text-[28px] font-[jost800] text-crossed-yellow-300">
           Checkout the Answers
         </Text>
-        <View className="mt-5 flex-row space-x-4">
+        {/* <View className="mt-5 flex-row space-x-4">
           <View className="flex-1">
             <PlayerAnswerButton player={myProfile} game={game} />
           </View>
           <View className="flex-1">
             {opponent && <PlayerAnswerButton player={opponent} game={game} />}
           </View>
-        </View>
+        </View> */}
         <View className="mt-5">
           <Button
             intent={"primary"}
@@ -243,9 +243,15 @@ const PlayerResultCard = ({
   player: Profile;
   game: Game;
 }) => {
+  const router = useRouter();
   const isWinner = player.id === game.winnerId;
   return (
-    <View className="w-full flex-row h-[85px] bg-cr-gray-200 rounded-[20px] px-5 py-3">
+    <TouchableOpacity
+      onPress={() => {
+        router.push(`/view-answers?gameId=${game.id}&playerId=${player.id}`);
+      }}
+      className="w-full flex-row h-[85px] bg-cr-gray-200 rounded-[20px] px-5 py-3"
+    >
       <Avatar
         size={60}
         name={player.username || ""}
@@ -272,7 +278,7 @@ const PlayerResultCard = ({
           />
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

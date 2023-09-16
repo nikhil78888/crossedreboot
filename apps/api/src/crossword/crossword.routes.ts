@@ -23,6 +23,7 @@ const createCrosswordRequestSchema = z.object({
     // category: z.nativeEnum(CrosswordCategory),
     size: z.number(),
     pattern: z.array(z.array(z.string())),
+    prompt: z.string(),
   }),
 });
 
@@ -32,18 +33,20 @@ crosswordRouter.post<
   {
     size: number;
     pattern: string[][];
-    // category: CrosswordCategory
+    prompt: string;
+    // category: CrosswordCategory;
   },
   Record<string, never>
 >("/", validate(createCrosswordRequestSchema), async (req, res, next) => {
   try {
-    const { size, pattern } = req.body;
+    const { size, pattern, prompt } = req.body;
+    console.log({ size, pattern });
     const difficulty = 2;
     for (let i = 0; i < 1; i += 1) {
       const wordList = await getWordListForPattern(size);
       console.log("fetched word list", wordList.length);
       const wiz = await generateCrosswordFromPattern(wordList, pattern);
-      console.log("generated wiz");
+      console.log("generated wiz", wiz);
       if (wiz.findIndex((row: string) => row.indexOf(".") >= 0) >= 0) {
         res.status(500).send("could not create crossword");
         return;
@@ -56,7 +59,8 @@ crosswordRouter.post<
         const clueWordsPairs = await generateClues(
           usedWords,
           difficulty,
-          sampleClueWordPairs
+          sampleClueWordPairs,
+          prompt
         );
         console.log("got clues");
         updateClues(ipuz, clueWordsPairs);
@@ -118,7 +122,8 @@ const getSampleClues = async () => {
 const generateClues = async (
   wordsInCrossword: string[],
   difficulty: number,
-  sampleClueWordPairs: { word: string; clue: string }[]
+  sampleClueWordPairs: { word: string; clue: string }[],
+  clueInstructions: string
 ) => {
   const samples = sampleClueWordPairs
     .map((sample) => `word: ${sample.word}, clue: ${sample.clue}`)
@@ -136,24 +141,28 @@ const generateClues = async (
       .describe("list of word clue pairs")
   );
   const formatInstructions = parser.getFormatInstructions();
+  clueInstructions = clueInstructions.length
+    ? clueInstructions
+    : "For the list of words given below," +
+      " generate a list of clues that will be used" +
+      " to populate a crossword." +
+      "\n Ensure that the clues are both fun and challenging." +
+      "\n Ensure that the word itself is not in the clue." +
+      "\n Ensure that the clue isn't offensive." +
+      "\n Ensure that the clue is gramatically correct in relation to the word.";
   const prompt = new PromptTemplate({
     template:
       "You are a crossword creator.\n" +
       "Here are some good examples of clue word pairs \n" +
       "{samples}" +
-      "\n\n For the list of words given below," +
-      " generate a list of clues that will be used" +
-      " to populate a crossword." +
+      "\n\n" +
+      "{clueInstructions}" +
       // "\n The clues should be ${theme} related where possible." +
-      "\n Ensure that the clues are both fun and challenging." +
-      "\n Ensure that the word itself is not in the clue." +
-      "\n Ensure that the clue isn't offensive." +
-      "\n Ensure that the clue is gramatically correct in relation to the word." +
       // "\n- On a difficuly scale of 1 to 10," +
       // " where 1 being the easiest and 10 being the toughest," +
       // " clues should be of level {difficulty} difficulty" +
-      "\nList of words -" +
-      "\n\n{words}" +
+      "\n\nList of words -" +
+      "\n{words}" +
       "\n\n{formatInstructions}",
     inputVariables: [
       "words",
@@ -161,7 +170,7 @@ const generateClues = async (
       // "difficulty",
       // "theme"
     ],
-    partialVariables: { formatInstructions },
+    partialVariables: { formatInstructions, clueInstructions },
   });
 
   const input = await prompt.format({
@@ -274,6 +283,7 @@ const createIpuz = (wiz: string[]) => {
       }
     }
   }
+  console.log(JSON.stringify({ clues, solution, puzzle }));
   const ipuz: Ipuz = ipuzSchema.parse({ clues, solution, puzzle });
   return ipuz;
 };
@@ -305,11 +315,13 @@ const getWordListForPattern = async (size: number) => {
     const limit = i === size ? 8000 : 4000;
     const response = await supabase
       .from("words")
-      .select("id, word")
+      .select("id, word, lastUsed")
       .filter("wordLength", "eq", i)
+      .filter("lastUsed", "is", null)
       .limit(limit);
     if (response.data) {
-      words = [...words, ...response.data.map((w) => w.word)];
+      const allWords = response.data.map((w) => w.word);
+      words = [...words, ...allWords];
     }
   }
   return words;

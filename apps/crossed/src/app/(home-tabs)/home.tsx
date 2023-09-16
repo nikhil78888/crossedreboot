@@ -101,7 +101,7 @@ export default function Home() {
                     {myProfile?.eloRating}
                   </Text>
                   <Text className="font-[jost600] text-[25px] ml-2">
-                    Ratings
+                    Rating
                   </Text>
                 </View>
                 <Image source={images.rating} className="h-[71px] w-[66.7px]" />
