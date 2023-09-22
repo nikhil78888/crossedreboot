@@ -70,20 +70,20 @@ export default function MyAccount() {
       </View>
       {user.isAnonymous ? (
         <AccountPageButton
-          icon={images.form_username}
+          icon={images.account_myprofile}
           label="Create Account"
           onPress={() => router.push("/create-account")}
         />
       ) : (
         <AccountPageButton
           label="My Profile"
-          icon={images.form_username}
+          icon={images.account_myprofile}
           onPress={() => router.push("/update-profile")}
         />
       )}
       <AccountPageButton
         label="Upgrade to Pro"
-        icon={images.form_username}
+        icon={images.account_upgrade}
         onPress={() => {
           trackEvent(events.MY_ACCOUNT_UPGRADE_TO_PRO_CLICK);
           if (user.isAnonymous) {
@@ -104,7 +104,7 @@ export default function MyAccount() {
       />
       <AccountPageButton
         label="Terms of Use"
-        icon={images.form_username}
+        icon={images.account_terms}
         onPress={() =>
           router.push(
             "/web-view?uri=https://www.apple.com/legal/internet-services/itunes/dev/stdeula/&title=Terms of Use"
@@ -113,12 +113,12 @@ export default function MyAccount() {
       />
       <AccountPageButton
         label="Privacy Policy"
-        icon={images.form_username}
+        icon={images.account_privacy}
         onPress={() => router.push(`/privacy-policy`)}
       />
       {!user.isAnonymous && (
         <AccountPageButton
-          icon={images.form_username}
+          icon={images.account_delete}
           label="Delete Account"
           onPress={() => confirmDelete()}
         />

@@ -4,7 +4,7 @@ export const metadata = {
   title: "Crossed.",
 };
 
-export default function Store() {
+export default function Crosswords() {
   return (
     <div>
       <main>

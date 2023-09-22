@@ -30,13 +30,29 @@ export const CrosswordsTable = () => {
             Crosswords
           </h1>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="mt-4 sm:ml-16 sm:mt-0 flex flex-row space-x-2">
           <Link
             href="/new-crossword"
             className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             New Crossword
           </Link>
+          <button
+            onClick={async () => {
+              try {
+                await axios.post(
+                  `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/crosswords/ai-cross`,
+                  {}
+                );
+                alert("New Crossword Created");
+              } catch (error) {
+                alert("Oops! Something went wrong.");
+              }
+            }}
+            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          >
+            New Crossword From AI Cross
+          </button>
         </div>
       </div>
       <div className="mt-8 flow-root">

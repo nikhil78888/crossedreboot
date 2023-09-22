@@ -69,7 +69,7 @@ export default function HomeLayout() {
         //   </TouchableOpacity>
         // ),
         tabBarLabelStyle: {
-          fontFamily: "bitterBold",
+          fontFamily: "jost500",
           fontSize: 12,
         },
         tabBarActiveTintColor: "#000",
@@ -84,6 +84,20 @@ export default function HomeLayout() {
           tabBarIcon: ({ color }) => (
             <Image
               source={images.tab_home}
+              className="h-5 w-5"
+              style={{ tintColor: color }}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="stats"
+        options={{
+          tabBarLabel: "Stats",
+          headerTitle: "My Stats",
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={images.tab_stats}
               className="h-5 w-5"
               style={{ tintColor: color }}
             />

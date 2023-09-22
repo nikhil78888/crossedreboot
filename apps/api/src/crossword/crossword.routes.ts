@@ -89,6 +89,48 @@ crosswordRouter.post<
   }
 });
 
+crosswordRouter.post("/ai-cross", async (req, res, next) => {
+  try {
+    const aiCrossResponse = await axios.post(
+      "https://api.aicrossword.app/generatemini",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/115.0",
+          Accept: "*/*",
+          "Accept-Language": "en-US,en;q=0.5",
+          "Accept-Encoding": "gzip, deflate, br",
+          Referer: "https://aicrossword.app/",
+          Origin: "https://aicrossword.app",
+          DNT: "1",
+          Connection: "keep-alive",
+          "Sec-Fetch-Dest": "empty",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Site": "same-site",
+          Pragma: "no-cache",
+          "Cache-Control": "no-cache",
+          "Content-Length": "0",
+        },
+      }
+    );
+    const aiCross = aiCrossResponse.data;
+    const ipuz = createIpuzFromAiCross(aiCross);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    await supabase.from("crosswords").insert({
+      ...ipuz,
+      size: ipuz.puzzle.length,
+      source: "aicross",
+      difficulty: 2,
+      isPublished: false,
+      category: "general",
+    });
+    res.send(201);
+  } catch (error) {
+    next(error);
+  }
+});
+
 const updateClues = (
   ipuz: Ipuz,
   clueWordPairs: { clue: string; word: string }[]
@@ -361,4 +403,50 @@ const getWordList = async (size: number) => {
   }
 
   return words;
+};
+
+const createIpuzFromAiCross = (aicross: any): Ipuz => {
+  const aiPuzzle = JSON.parse(aicross.puzzle);
+  const aiClues = aicross.clues;
+  const solution: Ipuz["solution"] = aiPuzzle.map((row: any) => {
+    return row.map((cell: any) => {
+      if (cell === "*") {
+        return null;
+      }
+      return cell;
+    });
+  });
+  const puzzle: Ipuz["puzzle"] = aiPuzzle.map((row: any, rowIndex: number) => {
+    return row.map((cell: any, colIndex: number) => {
+      if (cell === "*") {
+        return "#";
+      }
+      const clue = aiClues.find((c: any) => {
+        const { startingSquare } = c.wordLocation;
+        if (
+          startingSquare.row === rowIndex &&
+          startingSquare.col === colIndex
+        ) {
+          return true;
+        }
+      });
+      if (clue) {
+        return String(clue.wordLocation.number);
+      }
+      return "0";
+    });
+  });
+  const clues: Ipuz["clues"] = {
+    Across: aiClues
+      .filter((c: any) => c.wordLocation.direction === "across")
+      .map((c: any) => ({ number: c.wordLocation.number, clue: c.clueText })),
+    Down: aiClues
+      .filter((c: any) => c.wordLocation.direction === "down")
+      .map((c: any) => ({ number: c.wordLocation.number, clue: c.clueText })),
+  };
+  return {
+    puzzle,
+    solution,
+    clues,
+  };
 };

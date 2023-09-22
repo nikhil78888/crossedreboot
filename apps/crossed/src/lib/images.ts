@@ -15,6 +15,7 @@ export const images = {
   arrow_right: require("../assets/images/arrow_right.png"),
   bell: require("../assets/images/bell.png"),
   tab_home: require("../assets/images/tab_home.png"),
+  tab_stats: require("../assets/images/tab_stats.png"),
   tab_my_account: require("../assets/images/tab_my_account.png"),
   share_red: require("../assets/images/share_red.png"),
   form_username: require("../assets/images/form_username.png"),
@@ -37,6 +38,11 @@ export const images = {
   radio_light: require("../assets/images/radio_light.png"),
   ribbon_background: require("../assets/images/ribbon_background.png"),
   ribbon_check: require("../assets/images/ribbon_check.png"),
+  account_myprofile: require("../assets/images/account_myprofile.png"),
+  account_delete: require("../assets/images/account_delete.png"),
+  account_privacy: require("../assets/images/account_privacy.png"),
+  account_terms: require("../assets/images/account_terms.png"),
+  account_upgrade: require("../assets/images/account_upgrade.png"),
 };
 
 export const avatars = {

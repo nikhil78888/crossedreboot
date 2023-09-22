@@ -3,9 +3,9 @@
     "name": "Crossed.",
     "slug": "crossed",
     "owner": "harshpillario",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "orientation": "portrait",
-    "icon": "./src/assets/images/logo_black.png",
+    "icon": "./src/assets/images/logo_icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./src/assets/images/splash.png",
@@ -26,7 +26,7 @@
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "favicon": "./src/assets/images/logo_black.png"
+      "favicon": "./src/assets/images/logo_icon.png"
     },
     "plugins": [
       "expo-router",
@@ -51,7 +51,7 @@
         "projectId": "95dd38ca-d0be-41ad-8148-56a2b4f5460e"
       }
     },
-    "runtimeVersion": "1.0.16",
+    "runtimeVersion": "1.0.17",
     "updates": {
       "url": "https://u.expo.dev/95dd38ca-d0be-41ad-8148-56a2b4f5460e"
     },
