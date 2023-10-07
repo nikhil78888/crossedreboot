@@ -117,37 +117,24 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation("create-solo-game", async () => {
       if (myProfile) {
-        const { data: played, error: fetchPlayedError } = await supabase
-          .from("profiles")
-          .select("games!gamePlayers(crosswordsId)")
-          .eq("id", myProfile.id)
-          .limit(1)
-          .single();
+        let crosswordId: string | null = null;
+        const { data, error } = await supabase.rpc("get_available_crossword", {
+          profileid: myProfile.id,
+        });
 
-        if (fetchPlayedError) {
-          console.info({ fetchPlayedError });
+        if (error) {
+          throw error;
         }
 
-        const playedCrosswordIds = played?.games
-          .slice(-200)
-          .map((g) => g.crosswordsId);
-
-        const { data: crossword, error: findCrosswordError } = await supabase
-          .from("crosswords")
-          .select("*")
-          .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
-          .limit(1)
-          .single();
-
-        if (findCrosswordError) {
-          console.info({ findCrosswordError });
+        if (data && data.length) {
+          crosswordId = data[0].id;
         }
 
-        if (crossword) {
+        if (crosswordId) {
           const { data: game, error: createGameError } = await supabase
             .from("games")
             .insert({
-              crosswordsId: crossword.id,
+              crosswordsId: crosswordId,
               gameType: "SOLO",
               playState: "PLAYING",
               gameDurationInSeconds: 300,
@@ -169,33 +156,24 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createFriendlyGame, isMutating: creatingFriendlyGame } =
     useSWRMutation("create-friendly-game", async () => {
       if (myProfile) {
-        const { data: played, error: fetchPlayedError } = await supabase
-          .from("profiles")
-          .select("games!gamePlayers(crosswordsId)")
-          .eq("id", myProfile.id)
-          .limit(1)
-          .single();
+        let crosswordId: string | null = null;
+        const { data, error } = await supabase.rpc("get_available_crossword", {
+          profileid: myProfile.id,
+        });
 
-        if (fetchPlayedError) {
-          console.info({ fetchPlayedError });
+        if (error) {
+          throw error;
         }
 
-        const playedCrosswordIds = played?.games
-          .slice(-200)
-          .map((g) => g.crosswordsId);
+        if (data && data.length) {
+          crosswordId = data[0].id;
+        }
 
-        const { data: crossword } = await supabase
-          .from("crosswords")
-          .select("*")
-          .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
-          .limit(1)
-          .single();
-
-        if (crossword) {
+        if (crosswordId) {
           const { data: game, error: createGameError } = await supabase
             .from("games")
             .insert({
-              crosswordsId: crossword.id,
+              crosswordsId: crosswordId,
               gameType: "FRIENDLY",
               playState: "WAITING_FOR_OPPONENT",
               gameDurationInSeconds: 180,

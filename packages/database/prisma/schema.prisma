@@ -34,6 +34,7 @@ model crosswords {
   puzzle      String[]
   solution    String[]
   clues       Json
+  usedWords   String[]
   games       games[]
   createdAt   DateTime          @default(now())
 }

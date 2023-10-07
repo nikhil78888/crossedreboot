@@ -74,13 +74,8 @@ crosswordRouter.post<
           difficulty,
           isPublished: false,
           category: "general",
+          usedWords,
         });
-        for (let j = 0; j < usedWords.length; j += 1) {
-          await supabase
-            .from("words")
-            .update({ lastUsed: new Date().toISOString() })
-            .filter("word", "eq", usedWords[j]);
-        }
       }
     }
     res.status(201).send();
