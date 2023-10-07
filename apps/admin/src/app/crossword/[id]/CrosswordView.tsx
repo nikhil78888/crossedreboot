@@ -139,18 +139,18 @@ const WordList = ({
     async () => {
       const { data } = await supabase.from("words").select().in("word", words);
       const uniqueWords = data?.reduce((prev, wordRow) => {
-        if (prev.find((w) => w.word === wordRow.word)) {
+        if (prev.find((w: any) => w.word === wordRow.word)) {
           return [...prev];
         }
         return [...prev, wordRow];
-      }, []);
+      }, [] as any);
       return uniqueWords;
     }
   );
 
   return (
     <div className="space-y-2">
-      {uniqueWords?.map((w) => (
+      {uniqueWords?.map((w: any) => (
         <div className="flex items-center justify-between" key={w.id}>
           <span>{w.word}</span>
           <Switch
