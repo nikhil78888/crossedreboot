@@ -10,11 +10,14 @@ import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { events, trackEvent } from "../lib/track-event";
-import { Image } from "expo-image";
-import { images } from "../lib/images";
+import { avatars } from "../lib/images";
+import { useMyProfile } from "../hooks/use-my-profile";
+import { Avatar } from "react-native-ui-lib";
+import { WaitingSpinner } from "../components/WaitingSpinner";
 
 export default function RankedLobby() {
   const router = useRouter();
+  const { myProfile } = useMyProfile();
   useOnlineStatus();
   const { gameId, startRankedGame } = useRankedGame();
   const { currentSubscription } = useSubscriptionInfo();
@@ -49,13 +52,26 @@ export default function RankedLobby() {
     }
   }, [gameId, gameStartingAt, playState, router]);
 
+  if (!myProfile) {
+    return null;
+  }
+
+  const friendlyAvatar = Object.keys(avatars).find(
+    (a) => myProfile.avatar !== a
+  ) as keyof typeof avatars;
+
   return (
     <View className="flex-1 bg-white items-center">
       <Text className="mt-7 font-[jost600] text-base text-center">
         We are finding the best player for {"\n"} you to compete with.
       </Text>
       <View className="flex-row items-center">
-        <Image source={images.avatar_dude} className="h-[60px] w-[60px]" />
+        <Avatar
+          size={60}
+          name={myProfile.name || myProfile.username.charAt(0)}
+          source={avatars[myProfile.avatar as keyof typeof avatars]}
+          imageStyle={{ backgroundColor: "white" }}
+        />
         <View
           className="mt-1 h-[180px] w-[180px] border-black/20 rounded-full items-center justify-center"
           style={{ borderWidth: StyleSheet.hairlineWidth }}
@@ -64,7 +80,11 @@ export default function RankedLobby() {
             <Text className="font-[jost700] text-[32px]">VS</Text>
           </View>
         </View>
-        <Image source={images.avatar_dude} className="h-[60px] w-[60px]" />
+        <Avatar
+          size={60}
+          source={avatars[friendlyAvatar]}
+          imageStyle={{ backgroundColor: "white" }}
+        />
       </View>
       <View className="mt-8">
         {secondsToStart > 0 ? (
@@ -73,7 +93,7 @@ export default function RankedLobby() {
           </Text>
         ) : (
           <View className="flex-row items-center">
-            <Image source={images.finding} className="h-5 w-5" />
+            <WaitingSpinner />
             <Text className="ml-2 text-sm font-[jost600]">
               finding player...
             </Text>

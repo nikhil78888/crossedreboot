@@ -11,9 +11,10 @@ import { Button } from "./Button";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
-import { Avatar } from "react-native-ui-lib";
+import { Avatar, ProgressBar } from "react-native-ui-lib";
 import { Database, Game } from "types-and-validators";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import colors from "../lib/colors";
 
 export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
@@ -29,12 +30,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
   const opponentPoints =
     game.scores.find((s) => s.profilesId === opponent?.id)?.score || 0;
 
-  const result =
-    myPoints === 100
-      ? "PERFECT_SCORE"
-      : myPoints > opponentPoints
-      ? "WON"
-      : "LOST";
+  const result = myPoints > opponentPoints ? "WON" : "LOST";
 
   return (
     <View className="h-full w-full bg-white">
@@ -51,9 +47,7 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 12 }}
       >
         <Text className="text-center font-[jost700] text-[28px]">
-          {result === "PERFECT_SCORE"
-            ? "You aced it!"
-            : "Better Luck Next Time"}
+          {result === "WON" ? "You aced it!" : "Better Luck Next Time"}
         </Text>
         <View className="mt-3 items-center">
           <Image source={images.results_win} className="w-[259px] h-[166px]" />
@@ -245,6 +239,8 @@ const PlayerResultCard = ({
 }) => {
   const router = useRouter();
   const isWinner = player.id === game.winnerId;
+  console.info("hello");
+  console.info(player.username, player.eloRating);
   return (
     <TouchableOpacity
       onPress={() => {
@@ -260,7 +256,7 @@ const PlayerResultCard = ({
       />
       <View className="flex-1 ml-3">
         <View className="flex-row items-center justify-between">
-          <View>
+          <View className="flex-1">
             <Text className="font-[jost600] text-[18px]">
               {player.username}
             </Text>
@@ -270,6 +266,15 @@ const PlayerResultCard = ({
                 rating
               </Text>
             </Text>
+            <ProgressBar
+              progress={player.eloRating % 100}
+              progressColor={
+                isWinner
+                  ? colors["crossed-green"]["700"]
+                  : colors["crossed-yellow"]["300"]
+              }
+              style={{ height: 8 }}
+            />
           </View>
           <Image
             source={isWinner ? images.medal_winner : images.medal}

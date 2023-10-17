@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
 import { Image } from "expo-image";
-import { images } from "../lib/images";
+import { avatars } from "../lib/images";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
@@ -16,9 +16,11 @@ export default function JoinGame() {
   const router = useRouter();
   const navigation = useNavigation();
   const { myProfile } = useMyProfile();
-  const { game, startGame, startingGame, opponentUsername } = useGame({
-    gameId: gameId as string | undefined,
-  });
+  const { game, startGame, startingGame, opponentUsername, opponent } = useGame(
+    {
+      gameId: gameId as string | undefined,
+    }
+  );
 
   const gamePlayState = game?.playState;
 
@@ -50,6 +52,13 @@ export default function JoinGame() {
     );
   }
 
+  const friendlyAvatar = Object.keys(avatars).find(
+    (a) => myProfile.avatar !== a
+  ) as keyof typeof avatars;
+  const opponentAvatar = opponent?.avatar
+    ? (opponent.avatar as keyof typeof avatars)
+    : friendlyAvatar;
+
   return (
     <View className="flex-1 items-center px-4 bg-white">
       <Text className="mt-4 text-base font-[jost600]">
@@ -61,7 +70,10 @@ export default function JoinGame() {
           style={{ borderWidth: StyleSheet.hairlineWidth }}
         >
           <View className="p-5 bg-gray-100 rounded-full">
-            <Image source={images.avatar_dude} className="h-[60px] w-[60px]" />
+            <Image
+              source={avatars[opponentAvatar]}
+              className="h-[60px] w-[60px]"
+            />
           </View>
         </View>
       </View>

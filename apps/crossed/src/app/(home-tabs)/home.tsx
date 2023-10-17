@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ShareAppButton } from "../../components/ShareAppButton";
@@ -64,14 +64,14 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 40 }}
         className="flex-1 bg-white px-4"
       >
-        <View className="mt-3 flex-row">
+        {/* <View className="mt-3 flex-row">
           <View>
             <View className="absolute bottom-0 inset-x-0 h-3.5 bg-crossed-yellow-200" />
             <Text className="font-[jost600] text-xl text-cr-gray-800">
               Start a New Match!
             </Text>
           </View>
-        </View>
+        </View> */}
         <View className="mt-2">
           <NewGameButtons />
         </View>

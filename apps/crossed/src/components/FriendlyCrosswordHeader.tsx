@@ -6,6 +6,7 @@ import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 import { useMyProfile } from "../hooks/use-my-profile";
+import colors from "../lib/colors";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { myProfile } = useMyProfile();
@@ -69,8 +70,8 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
           <Text className="font-[jost600] text-[15px]">{opponentUsername}</Text>
           <ProgressBar
             progress={opponentProgress}
-            progressColor={"#00E024"}
-            style={{ height: 6 }}
+            progressColor={colors["crossed-red"]["400"]}
+            style={{ height: 10 }}
           />
         </View>
         <View>

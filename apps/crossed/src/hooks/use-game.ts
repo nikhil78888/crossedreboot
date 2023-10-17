@@ -243,13 +243,12 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
 
   let opponentProgress = 0;
   let opponentUsername = "";
+  let opponent;
   if (
     myProfile &&
     (game?.gameType === "FRIENDLY" || game?.gameType === "RANKED")
   ) {
-    const opponent = game.players.find(
-      (profile) => profile.id !== myProfile.id
-    );
+    opponent = game.players.find((profile) => profile.id !== myProfile.id);
     if (opponent) {
       opponentUsername = opponent.username;
       if (game.gameState?.[opponent.id]) {
@@ -271,6 +270,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     finishingGame,
     abortGame,
     abortingGame,
+    opponent,
     opponentProgress,
     opponentUsername,
     startGame,

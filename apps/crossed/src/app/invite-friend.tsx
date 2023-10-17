@@ -7,7 +7,9 @@ import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { Image } from "expo-image";
-import { images } from "../lib/images";
+import { avatars } from "../lib/images";
+import { useMyProfile } from "../hooks/use-my-profile";
+import { WaitingSpinner } from "../components/WaitingSpinner";
 
 export default function InviteFriend() {
   const { gameId } = useLocalSearchParams();
@@ -16,6 +18,7 @@ export default function InviteFriend() {
   const { game, abortGame } = useGame({
     gameId: gameId as string | undefined,
   });
+  const { myProfile } = useMyProfile();
   const navigation = useNavigation();
   const gamePlayState = game?.playState;
 
@@ -59,18 +62,32 @@ export default function InviteFriend() {
     ]);
   };
 
+  if (!myProfile) {
+    return null;
+  }
+
+  const friendlyAvatar = Object.keys(avatars).find(
+    (a) => myProfile.avatar !== a
+  ) as keyof typeof avatars;
+
   return (
     <View className="flex-1 items-center px-4 bg-white">
-      <Text className="mt-4 text-base font-[jost600]">
-        Waiting for opponent
-      </Text>
+      <View className="mt-4 flex-row items-center">
+        <WaitingSpinner />
+        <Text className="text-base font-[jost600] ml-2">
+          Waiting for opponent
+        </Text>
+      </View>
       <View className="mt-6">
         <View
           className="h-[180px] w-[180px] border-black/20 rounded-full items-center justify-center"
           style={{ borderWidth: StyleSheet.hairlineWidth }}
         >
           <View className="p-5 bg-gray-100 rounded-full">
-            <Image source={images.avatar_dude} className="h-[60px] w-[60px]" />
+            <Image
+              source={avatars[friendlyAvatar]}
+              className="h-[60px] w-[60px]"
+            />
           </View>
         </View>
       </View>
