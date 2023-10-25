@@ -218,7 +218,7 @@ export default function IndexLayout() {
         <Stack.Screen
           name="create-account"
           options={{
-            headerTitle: "Create Account",
+            headerShown: false,
           }}
         />
         <Stack.Screen

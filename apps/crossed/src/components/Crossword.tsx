@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Text, useWindowDimensions, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import produce from "immer";
 import { useGame } from "../hooks/use-game";
@@ -45,7 +45,6 @@ export const CrosswordGrid = ({
   const { finishGame, game } = useGame({ gameId });
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
-  const [isPlayingAfterFilled, setPlayingAfterFilled] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>();
   const { height, progress } = useReanimatedKeyboardAnimation();
 
@@ -142,31 +141,14 @@ export const CrosswordGrid = ({
               const isCorrectSolution =
                 JSON.stringify(gameState.solution) ===
                 JSON.stringify(game.crossword.solution);
-              if (!isCorrectSolution) {
-                if (!isPlayingAfterFilled) {
-                  Alert.alert(
-                    "So close ...",
-                    "The puzzle is filled, but at least one square's amiss.",
-                    [{ text: "Keep Trying" }]
-                  );
-                  setPlayingAfterFilled(true);
-                }
-              } else {
+              if (isCorrectSolution) {
                 finishGame();
               }
             }
           });
       }
     }
-  }, [
-    finishGame,
-    game,
-    gameId,
-    gameState,
-    isGameFinished,
-    isPlayingAfterFilled,
-    myProfile,
-  ]);
+  }, [finishGame, game, gameId, gameState, isGameFinished, myProfile]);
 
   if (!game || !gameState || !crossword) {
     return null;

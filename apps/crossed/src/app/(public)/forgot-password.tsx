@@ -10,6 +10,7 @@ import { Button } from "../../components/Button";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { Logo } from "../../components/Logo";
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function ForgotPassword() {
         </Text>
       </View>
       <View className="mt-[30px] items-center">
-        <Image className="w-[85px] h-[112px]" source={images.name_logo} />
+        <Logo />
       </View>
       <View className="mt-10 px-5">
         <ForgotPasswordForm />
@@ -104,7 +105,8 @@ const ForgotPasswordForm = () => {
       <View className="mt-6">
         <Button
           intent="primary"
-          size="large"
+          size="lg"
+          rounded={"full"}
           isLoading={isSendPasswordResetEmail}
           label={"Continue"}
           onPress={handleSubmit(onSubmit)}

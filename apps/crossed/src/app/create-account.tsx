@@ -7,6 +7,11 @@ import { useAuth } from "../hooks/use-auth";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
 import { useRouter } from "expo-router";
+import { Logo } from "../components/Logo";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import { Image } from "expo-image";
+import { images } from "../lib/images";
 
 const createAccountFormSchema = z.object({
   name: z
@@ -38,6 +43,7 @@ export default function CreateAccountForm() {
   const { user, linkAccount, isLinkingAccount } = useAuth();
   const { updateProfile } = useMyProfile();
   const router = useRouter();
+  const { top, bottom } = useSafeAreaInsets();
 
   const onSubmit = async (
     formValues: z.infer<typeof createAccountFormSchema>
@@ -64,17 +70,28 @@ export default function CreateAccountForm() {
   return (
     <ScrollView
       className="flex-1 bg-crossed-gray-50"
-      contentContainerStyle={{ paddingBottom: 20 }}
+      contentContainerStyle={{ paddingBottom: 20 + bottom, paddingTop: top }}
     >
-      <View className="mt-16 flex-row items-center">
-        <View className="h-[52px] aspect-square bg-crossed-yellow-300" />
-        <Text className="ml-4 pt-4 text-crossed-gray-900 text-3xl font-[besleyMedium] leading-none ">
-          Create your {"\n"} account.
+      <View className="mt-1.5 flex items-center justify-center">
+        <View className="absolute left-5 inset-y-0 items-center justify-center">
+          <TouchableOpacity onPress={router.back} className="py-2 px-1.5">
+            <Image
+              source={images.back_arrow_left}
+              className="h-6 w-4"
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-cr-gray-800 text-[28px] leading-normal font-[jost600]">
+          Create your account
         </Text>
       </View>
-      <Text className="ml-4 pt-4 text-crossed-gray-900 text-base font-[besleyMedium] leading-none ">
+      <Text className="text-cr-gray-600 mt-3 font-[jost400] text-sm text-center">
         Sync your stats and progress across devices.
       </Text>
+      <View className="mt-[30px] items-center">
+        <Logo />
+      </View>
 
       <View className="px-10 mt-10">
         <Controller
@@ -84,9 +101,9 @@ export default function CreateAccountForm() {
             fieldState: { error },
           }) => (
             <FormTextInput
-              label="Your Name"
+              icon={images.form_username}
               error={error?.message}
-              placeholder="Josh Cross"
+              placeholder="Your Name"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -102,9 +119,9 @@ export default function CreateAccountForm() {
             fieldState: { error },
           }) => (
             <FormTextInput
-              label="Email"
+              icon={images.form_email}
               error={error?.message}
-              placeholder="example@gmail.com"
+              placeholder="Your Email"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -121,9 +138,9 @@ export default function CreateAccountForm() {
             fieldState: { error },
           }) => (
             <FormTextInput
-              label="Password"
+              icon={images.form_password}
               error={error?.message}
-              placeholder="xxxxxxxx"
+              placeholder="Password"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -145,7 +162,8 @@ export default function CreateAccountForm() {
             isLoading={isLinkingAccount}
             label={"Create Account"}
             intent="primary"
-            size="large"
+            size="xl"
+            rounded={"full"}
           />
         </View>
       </View>

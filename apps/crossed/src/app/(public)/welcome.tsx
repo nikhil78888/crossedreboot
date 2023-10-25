@@ -1,19 +1,15 @@
-import { Image } from "expo-image";
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { images } from "../../lib/images";
 import { useRouter } from "expo-router";
 import { Button } from "../../components/Button";
 import { mobileConfig } from "../../mobile-config";
+import { Logo } from "../../components/Logo";
 
 export default function Welcome() {
   const router = useRouter();
   return (
     <View className="flex-1 items-center bg-crossed-gray-50">
       <View className="mt-24">
-        <Image source={images.logo} className="h-[100] aspect-square" />
-        <Text className="mt-2 text-crossed-green-900 text-3xl font-[latoBlack]">
-          Crossed
-        </Text>
+        <Logo />
       </View>
       <View className="mt-12 bg-crossed-yellow-300 h-[52px] w-[267px] relative">
         <Text className="absolute font-[besleyMedium] text-[52px] -top-[32px] left-[14px]">

@@ -7,8 +7,8 @@ import {
 import { View } from "react-native";
 
 export default function GameResults() {
-  const { gameId }: { gameId?: string } = useLocalSearchParams();
-  const { game } = useGame({ gameId: gameId });
+  const { gameId, myRating, opponentRating } = useLocalSearchParams();
+  const { game } = useGame({ gameId: gameId as string });
 
   if (!gameId || !game) {
     return null;
@@ -17,9 +17,13 @@ export default function GameResults() {
   return (
     <View className="flex-1">
       {game.gameType === "SOLO" ? (
-        <SoloGameResult gameId={gameId} />
+        <SoloGameResult gameId={String(gameId)} />
       ) : (
-        <FriendlyGameResult gameId={gameId} />
+        <FriendlyGameResult
+          gameId={String(gameId)}
+          myRating={String(myRating)}
+          opponentRating={String(opponentRating)}
+        />
       )}
     </View>
   );

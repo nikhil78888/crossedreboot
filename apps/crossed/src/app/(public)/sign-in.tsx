@@ -10,6 +10,7 @@ import { Image } from "expo-image";
 import { images } from "../../lib/images";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { Logo } from "../../components/Logo";
 
 export default function SignIn() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function SignIn() {
         Welcome back! Please enter your details
       </Text>
       <View className="mt-[30px] items-center">
-        <Image className="w-[85px] h-[112px]" source={images.name_logo} />
+        <Logo />
       </View>
       <View className="mt-10 px-5">
         <LoginForm />

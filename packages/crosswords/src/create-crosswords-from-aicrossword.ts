@@ -95,7 +95,7 @@ const run = async () => {
           size: ipuz.puzzle.length,
           source: "aicross",
           difficulty: 7,
-          isPublished: true,
+          isPublished: false,
           category: "general",
         });
       }

@@ -2,20 +2,29 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
 import { events, trackEvent } from "../lib/track-event";
+import { useMyProfile } from "../hooks/use-my-profile";
 
 export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
   const { gameId } = useLocalSearchParams();
-  const { game, finishGame, forfeitGame } = useGame({
+  const { myProfile } = useMyProfile();
+  const { game, finishGame, forfeitGame, opponent } = useGame({
     gameId: gameId as string | undefined,
   });
+  const [opponentRating, setOpponentRating] = useState(0);
 
   const gamePlayState = game?.playState;
   const gameType = game?.gameType;
+
+  useEffect(() => {
+    if (!opponentRating && opponent?.eloRating) {
+      setOpponentRating(opponent.eloRating);
+    }
+  }, [opponent?.eloRating, opponentRating]);
 
   useEffect(() => {
     switch (gameType) {
@@ -83,9 +92,18 @@ export default function Game() {
 
   useEffect(() => {
     if (gamePlayState === "COMPLETED" && navigation.isFocused()) {
-      router.replace(`/game-results?gameId=${gameId}`);
+      router.replace(
+        `/game-results?gameId=${gameId}&myRating=${myProfile?.eloRating}&opponentRating=${opponentRating}`
+      );
     }
-  }, [gamePlayState, gameId, router, navigation]);
+  }, [
+    gamePlayState,
+    gameId,
+    router,
+    navigation,
+    myProfile?.eloRating,
+    opponentRating,
+  ]);
 
   if (!game) {
     return (

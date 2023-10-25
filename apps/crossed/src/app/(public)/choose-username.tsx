@@ -10,6 +10,7 @@ import { Button } from "../../components/Button";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormTextInput } from "../../components/FormTextInput";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { Logo } from "../../components/Logo";
 
 export default function ChooseUsername() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function ChooseUsername() {
         Hi There! Choose a username.
       </Text>
       <View className="mt-[30px] items-center">
-        <Image className="w-[85px] h-[112px]" source={images.name_logo} />
+        <Logo />
       </View>
       <View className="mt-10 px-5">
         <UsernameForm onDone={router.back} />

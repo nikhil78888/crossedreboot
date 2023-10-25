@@ -11,12 +11,19 @@ import { Button } from "./Button";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
-import { Avatar, ProgressBar } from "react-native-ui-lib";
+import { Avatar } from "react-native-ui-lib";
 import { Database, Game } from "types-and-validators";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import colors from "../lib/colors";
 
-export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
+export const FriendlyGameResult = ({
+  gameId,
+  myRating,
+  opponentRating,
+}: {
+  gameId: string;
+  myRating: string;
+  opponentRating: string;
+}) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
   const { currentSubscription } = useSubscriptionInfo();
@@ -50,7 +57,10 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           {result === "WON" ? "You aced it!" : "Better Luck Next Time"}
         </Text>
         <View className="mt-3 items-center">
-          <Image source={images.results_win} className="w-[259px] h-[166px]" />
+          <Image
+            source={result === "WON" ? images.results_win : images.results_lost}
+            className="w-[259px] h-[166px]"
+          />
           <Text
             className={classNames("text-center text-3xl mt-3.5 font-[jost600]")}
             style={{ fontFamily: "bitterBold" }}
@@ -59,10 +69,18 @@ export const FriendlyGameResult = ({ gameId }: { gameId: string }) => {
           </Text>
         </View>
         <View className="mt-4">
-          <PlayerResultCard player={myProfile} game={game} />
+          <PlayerResultCard
+            player={myProfile}
+            game={game}
+            previousRating={myRating}
+          />
           {opponent && (
             <View className="mt-2.5">
-              <PlayerResultCard player={opponent} game={game} />
+              <PlayerResultCard
+                player={opponent}
+                game={game}
+                previousRating={opponentRating}
+              />
             </View>
           )}
         </View>
@@ -163,7 +181,14 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             : "Better Luck Next Time"}
         </Text>
         <View className="mt-3 items-center">
-          <Image source={images.results_win} className="w-[259px] h-[166px]" />
+          <Image
+            source={
+              result === "WON" || result === "PERFECT_SCORE"
+                ? images.results_win
+                : images.results_lost
+            }
+            className="w-[259px] h-[166px]"
+          />
           <Text
             className={classNames("text-center text-3xl mt-3.5 font-[jost600]")}
             style={{ fontFamily: "bitterBold" }}
@@ -233,9 +258,11 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 const PlayerResultCard = ({
   player,
   game,
+  previousRating,
 }: {
   player: Profile;
   game: Game;
+  previousRating: string;
 }) => {
   const router = useRouter();
   const isWinner = player.id === game.winnerId;
@@ -261,20 +288,12 @@ const PlayerResultCard = ({
               {player.username}
             </Text>
             <Text className="font-[jost600] text-sm">
-              {player.eloRating}{" "}
+              {previousRating} →
               <Text className="font-[jost600] text-sm text-cr-gray-500">
-                rating
+                {" "}
+                {player.eloRating} rating
               </Text>
             </Text>
-            <ProgressBar
-              progress={player.eloRating % 100}
-              progressColor={
-                isWinner
-                  ? colors["crossed-green"]["700"]
-                  : colors["crossed-yellow"]["300"]
-              }
-              style={{ height: 8 }}
-            />
           </View>
           <Image
             source={isWinner ? images.medal_winner : images.medal}
