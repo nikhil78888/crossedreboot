@@ -106,6 +106,7 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
+            autoCapitalize="none"
           />
         )}
         name="username"

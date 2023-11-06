@@ -26,17 +26,17 @@ const authenticateJWT = async (
       })
       .catch(function (error) {
         console.log(error);
-        return res.sendStatus(403);
+        return res.status(403).send();
       });
   } else {
-    res.sendStatus(401);
+    res.status(401).send();
   }
 };
 
 apiRouter.use("/crosswords", crosswordRouter);
+apiRouter.use("/profiles", profileRouter);
 
 apiRouter.use(authenticateJWT);
 
 apiRouter.use("/auth", authRouter);
-apiRouter.use("/profiles", profileRouter);
 apiRouter.use("/games", gameRouter);

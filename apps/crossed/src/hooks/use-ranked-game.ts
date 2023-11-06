@@ -33,8 +33,9 @@ export const useRankedGame = () => {
             if (
               data.new.profilesId === myProfile?.id &&
               data.new.playState !== "COMPLETED"
-            )
+            ) {
               next(null, data.new.gamesId);
+            }
           }
         )
         .subscribe();

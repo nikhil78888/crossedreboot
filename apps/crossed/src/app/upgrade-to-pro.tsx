@@ -64,7 +64,7 @@ export default function UpgradeToPro() {
         );
       },
     });
-  }, []);
+  }, [navigation]);
   return (
     <View className="flex-1 bg-white px-8" style={{ paddingBottom: bottom }}>
       <Text className="mt-4 text-[44px] leading-none font-[jost700] text-center">

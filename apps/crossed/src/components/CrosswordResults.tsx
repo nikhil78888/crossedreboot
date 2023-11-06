@@ -266,8 +266,6 @@ const PlayerResultCard = ({
 }) => {
   const router = useRouter();
   const isWinner = player.id === game.winnerId;
-  console.info("hello");
-  console.info(player.username, player.eloRating);
   return (
     <TouchableOpacity
       onPress={() => {

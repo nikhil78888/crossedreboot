@@ -9,7 +9,7 @@ export const ShareAppButton = () => {
     trackEvent(events.SHARE_CROSSED_CLICK);
     Share.share({
       title: "Checkout Crossed.",
-      message: `https://testflight.apple.com/join/J4vOwUyk`,
+      message: `https://apps.apple.com/us/app/crossed/id6448530256`,
     });
   };
 
