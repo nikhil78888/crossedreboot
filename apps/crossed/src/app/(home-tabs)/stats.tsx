@@ -15,11 +15,11 @@ export default function Stats() {
   const { stats } = useStats();
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { currentSubscription } = useSubscriptionInfo();
+  const { showAds } = useSubscriptionInfo();
 
   return (
     <View className="flex-1 bg-white">
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-6">
           <BannerAd
             unitId={mobileConfig.homeScreenAdId}
@@ -72,7 +72,7 @@ export default function Stats() {
             </View>
           </View>
         )}
-        {!currentSubscription && (
+        {showAds && (
           <View className="mt-5">
             <Button
               intent={"secondary"}

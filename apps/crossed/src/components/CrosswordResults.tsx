@@ -26,7 +26,7 @@ export const FriendlyGameResult = ({
 }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { currentSubscription } = useSubscriptionInfo();
+  const { showAds } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
@@ -41,7 +41,7 @@ export const FriendlyGameResult = ({
 
   return (
     <View className="h-full w-full bg-white">
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-6">
           <BannerAd
             unitId={mobileConfig.resultsScreenAdId}
@@ -152,7 +152,7 @@ export const FriendlyGameResult = ({
 export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { currentSubscription } = useSubscriptionInfo();
+  const { showAds } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
@@ -163,7 +163,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const result = points === 100 ? "PERFECT_SCORE" : points > 0 ? "WON" : "LOST";
   return (
     <View className="h-full w-full bg-white">
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-6">
           <BannerAd
             unitId={mobileConfig.resultsScreenAdId}

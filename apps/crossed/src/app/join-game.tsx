@@ -11,7 +11,7 @@ import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
 
 export default function JoinGame() {
-  const { currentSubscription } = useSubscriptionInfo();
+  const { showAds } = useSubscriptionInfo();
   const { gameId } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
@@ -87,7 +87,7 @@ export default function JoinGame() {
           onPress={() => startGame()}
         />
       </View>
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-24">
           <BannerAd
             unitId={mobileConfig.inviteFriendScreenAdId}

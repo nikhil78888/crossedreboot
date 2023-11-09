@@ -19,7 +19,7 @@ export default function Home() {
   });
   const router = useRouter();
   const navigation = useNavigation();
-  const { currentSubscription } = useSubscriptionInfo();
+  const { showAds } = useSubscriptionInfo();
 
   const gamePlayState = game?.playState;
 
@@ -52,7 +52,7 @@ export default function Home() {
 
   return (
     <View className="flex-1 bg-white">
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-6">
           <BannerAd
             unitId={mobileConfig.homeScreenAdId}
@@ -86,7 +86,7 @@ export default function Home() {
             onPress={() => router.push("/feedback")}
           />
         </View>
-        {!currentSubscription && (
+        {showAds && (
           <View className="mt-5">
             <Button
               intent={"secondary"}

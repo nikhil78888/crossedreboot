@@ -13,7 +13,7 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 
 export default function InviteFriend() {
   const { gameId } = useLocalSearchParams();
-  const { currentSubscription } = useSubscriptionInfo();
+  const { showAds } = useSubscriptionInfo();
   const router = useRouter();
   const { game, abortGame } = useGame({
     gameId: gameId as string | undefined,
@@ -100,7 +100,7 @@ export default function InviteFriend() {
           onPress={inviteFriend}
         />
       </View>
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-24">
           <BannerAd
             unitId={mobileConfig.inviteFriendScreenAdId}
