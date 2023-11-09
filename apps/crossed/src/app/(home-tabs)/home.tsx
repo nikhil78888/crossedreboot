@@ -50,6 +50,14 @@ export default function Home() {
     );
   }
 
+  if (currentGameId && !game) {
+    return (
+      <View className="flex-1 items-center justify-center px-4 bg-white">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-white">
       {showAds && (

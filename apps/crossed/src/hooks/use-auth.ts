@@ -51,6 +51,7 @@ export const useAuth = () => {
     },
     {
       refreshInterval: 59 * 60 * 1000,
+      revalidateIfStale: false,
     }
   );
 
