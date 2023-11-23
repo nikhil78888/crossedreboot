@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
@@ -10,11 +10,13 @@ import { useInterstitialAd } from "react-native-google-mobile-ads";
 import { useCallback, useEffect, useState } from "react";
 import { mobileConfig } from "../mobile-config";
 import { events, trackEvent } from "../lib/track-event";
+import { useOnlineStatus } from "../hooks/use-online-status";
 
 export const NewGameButtons = () => {
   const { currentSubscription } = useSubscriptionInfo();
   const { stats } = useStats();
   const router = useRouter();
+  const { joinLobby } = useOnlineStatus();
   const { isLoaded, isClosed, load, show } = useInterstitialAd(
     mobileConfig.interstitialAdId,
     {
@@ -42,10 +44,15 @@ export const NewGameButtons = () => {
     router.push(`/invite-friend?gameId=${gameId}`);
   }, [createFriendlyGame, router]);
 
-  const playRanked = useCallback(() => {
+  const playRanked = useCallback(async () => {
     setOnAdClose("");
-    router.push("/ranked-lobby");
-  }, [router]);
+    try {
+      await joinLobby();
+      router.push("/ranked-lobby");
+    } catch (error) {
+      Alert.alert("Could not join Lobby");
+    }
+  }, [joinLobby, router]);
 
   useEffect(() => {
     if (isClosed) {
@@ -69,6 +76,10 @@ export const NewGameButtons = () => {
     <View>
       <TouchableOpacity
         onPress={() => {
+          if (__DEV__) {
+            playRanked();
+            return;
+          }
           trackEvent(events.START_RANKED_GAME_CLICK);
           if (
             !currentSubscription &&

@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { channel } from "../lib/lobby-channel";
 import { useMyProfile } from "./use-my-profile";
 
 /*
@@ -16,21 +15,29 @@ users and create ranked matches.
 export const useOnlineStatus = () => {
   const { myProfile } = useMyProfile();
 
-  useEffect(() => {
-    if (myProfile) {
-      const statusChannel = supabase.channel("online-status");
-      statusChannel.subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await statusChannel.track({
-            userId: myProfile.id,
-            onlineAt: new Date().toISOString(),
-          });
-        }
-      });
-
-      return () => {
-        supabase.removeChannel(statusChannel);
-      };
+  const leaveLobby = async () => {
+    try {
+      channel.untrack();
+    } catch (error) {
+      console.info(`Error leaving lobby ${error}`);
     }
-  }, [myProfile]);
+  };
+
+  const joinLobby = () => {
+    return new Promise<void>((resolve) => {
+      if (myProfile) {
+        channel.track({
+          userId: myProfile.id,
+          rating: myProfile.eloRating,
+          onlineAt: new Date().toISOString(),
+        });
+        resolve();
+      }
+    });
+  };
+
+  return {
+    leaveLobby,
+    joinLobby,
+  };
 };

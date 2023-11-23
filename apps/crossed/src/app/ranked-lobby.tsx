@@ -1,7 +1,7 @@
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { useRankedGame } from "../hooks/use-ranked-game";
 import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
@@ -18,16 +18,27 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 export default function RankedLobby() {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  useOnlineStatus();
-  const { gameId, startRankedGame } = useRankedGame();
-  const { currentSubscription } = useSubscriptionInfo();
+  const { leaveLobby } = useOnlineStatus();
+  const { gameId } = useRankedGame();
+  const { showAds } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   const [secondsToStart, setSecondsToStart] = useState(0);
 
   useEffect(() => {
-    startRankedGame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (game && game.playState === "PLAYING") {
+      leaveLobby();
+    }
+  }, [game, leaveLobby]);
+
+  const navigation = useNavigation();
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      e.preventDefault();
+      leaveLobby();
+      navigation.dispatch(e.data.action);
+    });
+    return unsubscribe;
+  }, [leaveLobby, navigation]);
 
   const gameStartingAt = game?.startedAt;
   const playState = game?.playState;
@@ -100,7 +111,7 @@ export default function RankedLobby() {
           </View>
         )}
       </View>
-      {!currentSubscription && (
+      {showAds && (
         <View className="mt-24 w-full">
           <BannerAd
             unitId={mobileConfig.inviteFriendScreenAdId}

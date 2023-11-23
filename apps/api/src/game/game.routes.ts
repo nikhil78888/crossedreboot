@@ -6,82 +6,86 @@ import { Game } from "types-and-validators";
 
 export const gameRouter: Router = express.Router();
 
-let matchingPlayers: string[] = [];
+// let matchingPlayers: string[] = [];
 
-gameRouter.post("/ranked", async (req, res) => {
-  const { userId } = req.body;
-  const onlinePlayers = await getUsersInLobby();
-  const { data: onlinePlayerProfiles } = await supabase
-    .from("profiles")
-    .select("*")
-    .in("id", [...onlinePlayers, userId]);
-  console.log({ matchingPlayersStep1: matchingPlayers });
-  const availablePlayers = onlinePlayerProfiles?.filter(
-    (profile) => !matchingPlayers.includes(profile.id)
-  );
-  const rankedOnlinePlayerProfiles = availablePlayers?.sort(
-    (a, b) => a.eloRating - b.eloRating
-  );
-  const userIndex =
-    rankedOnlinePlayerProfiles?.findIndex((p) => p.id === userId) || 0;
-  const opponentId =
-    rankedOnlinePlayerProfiles?.[userIndex + 1]?.id ||
-    rankedOnlinePlayerProfiles?.[userIndex - 1]?.id;
-  if (opponentId) {
-    try {
-      console.log(`match ${userId} with ${opponentId}`);
-      matchingPlayers = [...matchingPlayers, userId, opponentId];
-      console.log({ matchingPlayersStep2: matchingPlayers });
-      const { data: played } = await supabase
-        .from("profiles")
-        .select("games!gamePlayers(crosswordsId)")
-        .in("id", [userId, opponentId])
-        .limit(1)
-        .single();
-      const playedCrosswordIds = played?.games
-        .slice(-200)
-        .map((g) => g.crosswordsId);
+// gameRouter.post("/ranked", async (req, res) => {
+//   const { userId } = req.body;
+//   const onlinePlayers = await getUsersInLobby();
+//   const { data: onlinePlayerProfiles } = await supabase
+//     .from("profiles")
+//     .select("*")
+//     .in("id", [...onlinePlayers, userId]);
+//   console.log({ matchingPlayersStep1: matchingPlayers });
+//   const availablePlayers = onlinePlayerProfiles?.filter(
+//     (profile) => !matchingPlayers.includes(profile.id)
+//   );
+//   const rankedOnlinePlayerProfiles = availablePlayers?.sort(
+//     (a, b) => a.eloRating - b.eloRating
+//   );
+//   const userIndex =
+//     rankedOnlinePlayerProfiles?.findIndex((p) => p.id === userId) || 0;
+//   const opponentId =
+//     rankedOnlinePlayerProfiles?.[userIndex + 1]?.id ||
+//     rankedOnlinePlayerProfiles?.[userIndex - 1]?.id;
+//   if (opponentId) {
+//     try {
+//       console.log(`match ${userId} with ${opponentId}`);
+//       matchingPlayers = [...matchingPlayers, userId, opponentId];
+//       console.log({ matchingPlayersStep2: matchingPlayers });
+//       const { data: played } = await supabase
+//         .from("profiles")
+//         .select("games!gamePlayers(crosswordsId)")
+//         .in("id", [userId, opponentId])
+//         .limit(1)
+//         .single();
+//       const playedCrosswordIds = played?.games
+//         .slice(-200)
+//         .map((g) => g.crosswordsId);
 
-      const { data: crossword } = await supabase
-        .from("crosswords")
-        .select("*")
-        .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
-        .limit(1)
-        .single();
+//       const { data: crossword } = await supabase
+//         .from("crosswords")
+//         .select("*")
+//         .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
+//         .limit(1)
+//         .single();
 
-      if (crossword) {
-        const { data: game, error: createGameError } = await supabase
-          .from("games")
-          .insert({
-            crosswordsId: crossword.id,
-            gameType: "RANKED",
-            playState: "PLAYING",
-            gameDurationInSeconds: 180,
-            startedAt: addSeconds(new Date(), 10).toISOString(),
-          })
-          .select("*")
-          .single();
-        if (createGameError) {
-          throw createGameError;
-        }
-        await supabase.from("gamePlayers").insert([
-          { gamesId: game.id, profilesId: userId },
-          { gamesId: game.id, profilesId: opponentId },
-        ]);
-      } else {
-        throw new Error(
-          `No crossword found between ${userId} and ${opponentId}`
-        );
-      }
-    } finally {
-      matchingPlayers = matchingPlayers.filter(
-        (id) => id !== userId && id !== opponentId
-      );
-      console.log({ matchingPlayersStep3: matchingPlayers });
-    }
-  }
-  res.send();
-});
+//       if (crossword) {
+//         const { data: game, error: createGameError } = await supabase
+//           .from("games")
+//           .insert({
+//             crosswordsId: crossword.id,
+//             gameType: "RANKED",
+//             playState: "PLAYING",
+//             gameDurationInSeconds: 180,
+//             startedAt: addSeconds(new Date(), 10).toISOString(),
+//           })
+//           .select("*")
+//           .single();
+//         if (createGameError) {
+//           throw createGameError;
+//         }
+//         await supabase.from("gamePlayers").insert([
+//           { gamesId: game.id, profilesId: userId },
+//           { gamesId: game.id, profilesId: opponentId },
+//         ]);
+//         res.send();
+//       } else {
+//         throw new Error(
+//           `No crossword found between ${userId} and ${opponentId}`
+//         );
+//       }
+//     } catch (error) {
+//       res.status(500).send();
+//     } finally {
+//       matchingPlayers = matchingPlayers.filter(
+//         (id) => id !== userId && id !== opponentId
+//       );
+//       console.log({ matchingPlayersStep3: matchingPlayers });
+//     }
+//   } else {
+//     res.status(404).send();
+//   }
+// });
 
 gameRouter.post("/finish-game", async (req, res) => {
   const { gameId } = req.body;

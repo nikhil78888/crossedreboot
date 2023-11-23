@@ -1,7 +1,6 @@
 import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
-import axios from "axios";
 
 /*
 useRankedGame uses an swr subscription combined with
@@ -46,16 +45,7 @@ export const useRankedGame = () => {
     }
   );
 
-  const startRankedGame = async () => {
-    if (myProfile) {
-      await axios.post(`/api/games/ranked`, {
-        userId: myProfile.id,
-      });
-    }
-  };
-
   return {
-    startRankedGame,
     gameId,
   };
 };
