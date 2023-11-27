@@ -104,12 +104,14 @@ export interface Database {
           {
             foreignKeyName: "gamePlayers_gamesId_fkey"
             columns: ["gamesId"]
+            isOneToOne: false
             referencedRelation: "games"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "gamePlayers_profilesId_fkey"
             columns: ["profilesId"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
@@ -153,18 +155,21 @@ export interface Database {
           {
             foreignKeyName: "games_crosswordsId_fkey"
             columns: ["crosswordsId"]
+            isOneToOne: false
             referencedRelation: "crosswords"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "games_crosswordsId_fkey"
             columns: ["crosswordsId"]
+            isOneToOne: false
             referencedRelation: "random_crossword"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "games_winnerId_fkey"
             columns: ["winnerId"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
@@ -319,6 +324,25 @@ export interface Database {
           clues: Json
           createdAt: string
           usedWords: string[]
+        }[]
+      }
+      get_available_ranked_crossword: {
+        Args: {
+          player_one_id: string
+          player_two_id: string
+        }
+        Returns: {
+          category: Database["public"]["Enums"]["CrosswordCategory"]
+          clues: Json
+          createdAt: string
+          difficulty: number
+          id: string
+          isPublished: boolean
+          puzzle: string[] | null
+          size: number
+          solution: string[] | null
+          source: Database["public"]["Enums"]["CrosswordSource"]
+          usedWords: string[] | null
         }[]
       }
     }

@@ -770,7 +770,10 @@ const CrosswordClue = ({
         </TouchableOpacity>
       </View>
       <TouchableOpacity className="flex-row" onPress={toggleDirection}>
-        <Text className="font-[jost500] text-base whitespace-normal">
+        <Text
+          allowFontScaling={false}
+          className="font-[jost500] text-base whitespace-normal"
+        >
           {currentClue?.clue.trim().replace(/(\r\n|\n|\r)/gm, " ")}
         </Text>
       </TouchableOpacity>

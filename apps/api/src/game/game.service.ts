@@ -5,34 +5,21 @@ export const createRankedMatch = async (
   playerOneId: string,
   playerTwoId: string
 ) => {
-  const { data: played } = await supabase
-    .from("profiles")
-    .select("games!gamePlayers(crosswordsId)")
-    .in("id", [playerOneId, playerTwoId])
-    .limit(1)
-    .single();
+  const { data, error } = await supabase.rpc("get_available_ranked_crossword", {
+    player_one_id: playerOneId,
+    player_two_id: playerTwoId,
+  });
 
-  const playedCrosswordIds = played?.games
-    .slice(-200)
-    .map((g) => g.crosswordsId);
-
-  const { data: crossword } = await supabase
-    .from("crosswords")
-    .select("*")
-    .not("id", "in", `(${playedCrosswordIds?.join(",")})`)
-    .limit(1)
-    .single();
-
-  if (!crossword) {
+  if (error) {
     throw new Error(
-      `No crossword found between ${playerOneId} and ${playerTwoId}`
+      `Error fetching crossword b/w ${playerOneId} and ${playerTwoId}`
     );
   }
 
   const { data: game, error: createGameError } = await supabase
     .from("games")
     .insert({
-      crosswordsId: crossword.id,
+      crosswordsId: data[0].id,
       gameType: "RANKED",
       playState: "PLAYING",
       gameDurationInSeconds: 180,
@@ -40,9 +27,11 @@ export const createRankedMatch = async (
     })
     .select("*")
     .single();
+
   if (createGameError) {
     throw createGameError;
   }
+
   await supabase.from("gamePlayers").insert([
     { gamesId: game.id, profilesId: playerOneId },
     { gamesId: game.id, profilesId: playerTwoId },
