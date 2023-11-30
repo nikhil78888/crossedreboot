@@ -10,7 +10,7 @@ export const useSubscriptionInfo = () => {
 
   const avaialbleSubscriptions = data?.offerings.current?.availablePackages;
   const currentSubscription = data?.customerInfo.activeSubscriptions[0];
-  const showAds = !isLoading && !currentSubscription;
+  const showAds = data && !currentSubscription;
 
   return {
     offerings: data?.offerings,

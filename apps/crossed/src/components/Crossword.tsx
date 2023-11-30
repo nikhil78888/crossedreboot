@@ -11,6 +11,9 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { Crossword, GameState } from "types-and-validators";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { useSubscriptionInfo } from "../hooks/use-subscription-info";
+import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
+import { mobileConfig } from "../mobile-config";
 
 type CrosswordContextType = {
   crossword: Crossword;
@@ -149,6 +152,8 @@ export const CrosswordGrid = ({
       }
     }
   }, [finishGame, game, gameId, gameState, isGameFinished, myProfile]);
+
+  const { showAds } = useSubscriptionInfo();
 
   if (!game || !gameState || !crossword) {
     return null;
@@ -431,14 +436,20 @@ export const CrosswordGrid = ({
         }}
       >
         <View className="items-center">
+          {game.gameType === "SOLO" && showAds && (
+            <BannerAd
+              unitId={mobileConfig.inviteFriendScreenAdId}
+              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            />
+          )}
           <Animated.View style={crosswordContainerStyle}>
             <View className="py-3">
               {showResults ? null : (
                 <>
-                  {(game?.gameType === "FRIENDLY" ||
-                    game?.gameType === "RANKED") && (
-                    <FriendlyCrosswordHeader gameId={gameId as string} />
-                  )}
+                  {game?.gameType === "FRIENDLY" ||
+                    (game?.gameType === "RANKED" && (
+                      <FriendlyCrosswordHeader gameId={gameId as string} />
+                    ))}
                 </>
               )}
             </View>

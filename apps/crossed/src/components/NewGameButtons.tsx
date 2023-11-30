@@ -154,7 +154,7 @@ export const NewGameButtons = () => {
               className="h-[100px] w-[100px] mt-[25px]"
               contentFit="contain"
             />
-            <Text className="mt-2 font-[jost600] text-base">SOLO GAME</Text>
+            <Text className="mt-2 font-[jost600] text-base">Solo Game</Text>
           </TouchableOpacity>
         </View>
       </View>

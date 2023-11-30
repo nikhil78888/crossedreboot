@@ -17,7 +17,7 @@ export const ShareAppButton = () => {
     <TouchableOpacity onPress={shareApp}>
       <View className="h-[64px] w-full rounded-[10px] bg-crossed-blue-50 flex-row items-center justify-between">
         <Text className="font-[jost500] text-black text-lg ml-4 flex-1">
-          Invite Your Friends to download Crossed.
+          Invite Your Friends to Download Crossed.
         </Text>
         <Image
           source={images.share}

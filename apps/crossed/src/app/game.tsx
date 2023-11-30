@@ -49,7 +49,7 @@ export default function Game() {
         break;
       case "SOLO":
         navigation.setOptions({
-          headerTitle: "PRACTICE MATCH",
+          headerTitle: "SOLO GAME",
           headerRight: () => {
             return (
               <Button
