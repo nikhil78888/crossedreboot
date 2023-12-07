@@ -437,19 +437,21 @@ export const CrosswordGrid = ({
       >
         <View className="items-center">
           {game.gameType === "SOLO" && showAds && (
-            <BannerAd
-              unitId={mobileConfig.inviteFriendScreenAdId}
-              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-            />
+            <View className="h-16">
+              <BannerAd
+                unitId={mobileConfig.inviteFriendScreenAdId}
+                size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+              />
+            </View>
           )}
           <Animated.View style={crosswordContainerStyle}>
-            <View className="py-3">
+            <View className="py-2">
               {showResults ? null : (
                 <>
-                  {game?.gameType === "FRIENDLY" ||
-                    (game?.gameType === "RANKED" && (
-                      <FriendlyCrosswordHeader gameId={gameId as string} />
-                    ))}
+                  {(game?.gameType === "FRIENDLY" ||
+                    game?.gameType === "RANKED") && (
+                    <FriendlyCrosswordHeader gameId={gameId as string} />
+                  )}
                 </>
               )}
             </View>

@@ -11,6 +11,7 @@
     "web": "expo start --web",
     "prebuild": "expo prebuild --clean",
     "build-simulator": "eas build --profile simulator --platform ios",
+    "release-development": "eas build --profile development --platform ios",
     "release-preview": "eas build --profile preview --platform ios",
     "release-to-store": "eas build --profile production --platform ios --auto-submit",
     "ota-to-store": "eas update --branch production --message auto",
