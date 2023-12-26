@@ -21,14 +21,29 @@ export default function RankedLobby() {
   const { leaveLobby } = useOnlineStatus();
   const { gameId } = useRankedGame();
   const { showAds } = useSubscriptionInfo();
-  const { game } = useGame({ gameId });
+  const { game, createRankedBotMatch } = useGame({ gameId });
   const [secondsToStart, setSecondsToStart] = useState(0);
 
+  const gameStartingAt = game?.startedAt;
+  const playState = game?.playState;
+
   useEffect(() => {
-    if (game && game.playState === "PLAYING") {
+    const timer = setTimeout(() => {
+      if (playState !== "PLAYING") {
+        leaveLobby().then(() => {
+          createRankedBotMatch();
+        });
+      }
+    }, 15000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playState, leaveLobby, createRankedBotMatch]);
+
+  useEffect(() => {
+    if (playState === "PLAYING") {
       leaveLobby();
     }
-  }, [game, leaveLobby]);
+  }, [playState, leaveLobby]);
 
   const navigation = useNavigation();
   useEffect(() => {
@@ -39,9 +54,6 @@ export default function RankedLobby() {
     });
     return unsubscribe;
   }, [leaveLobby, navigation]);
-
-  const gameStartingAt = game?.startedAt;
-  const playState = game?.playState;
 
   useEffect(() => {
     if (playState !== "COMPLETED" && gameStartingAt) {

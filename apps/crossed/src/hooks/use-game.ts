@@ -6,6 +6,7 @@ import { Game } from "types-and-validators";
 import axios from "axios";
 import { useStats } from "./use-stats";
 import { useEffect } from "react";
+import { addSeconds } from "date-fns";
 
 export const calculateScore = ({
   correctSolution,
@@ -241,6 +242,56 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     }
   );
 
+  const { trigger: createRankedBotMatch, isMutating: creatingRankedBotMatch } =
+    useSWRMutation("create-ranked-bot-game", async () => {
+      console.info("here");
+      if (myProfile) {
+        let crosswordId: string | null = null;
+        const { data, error } = await supabase.rpc("get_available_crossword", {
+          profileid: myProfile.id,
+        });
+
+        if (error) {
+          console.info({ error });
+          throw error;
+        }
+
+        if (data && data.length) {
+          crosswordId = data[0].id;
+        }
+
+        if (crosswordId) {
+          const { data: bot } = await supabase
+            .from("random_bot_profiles")
+            .select()
+            .limit(1)
+            .single();
+          if (bot?.id) {
+            const { data: game, error: createGameError } = await supabase
+              .from("games")
+              .insert({
+                crosswordsId: crosswordId,
+                gameType: "RANKED",
+                playState: "PLAYING",
+                startedAt: addSeconds(new Date(), 10).toISOString(),
+                gameDurationInSeconds: 180,
+              })
+              .select("*")
+              .single();
+            if (createGameError) {
+              console.info({ createGameError });
+              throw createGameError;
+            }
+            await supabase.from("gamePlayers").insert([
+              { gamesId: game.id, profilesId: myProfile.id },
+              { gamesId: game.id, profilesId: bot.id },
+            ]);
+            return game.id;
+          }
+        }
+      }
+    });
+
   let opponentProgress = 0;
   let opponentUsername = "";
   let opponent;
@@ -277,5 +328,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     startingGame,
     forfeitGame,
     forfeitingGame,
+    createRankedBotMatch,
+    creatingRankedBotMatch,
   };
 };

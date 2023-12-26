@@ -14,6 +14,7 @@ import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller
 import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
 import { mobileConfig } from "../mobile-config";
+import { addSeconds, differenceInSeconds } from "date-fns";
 
 type CrosswordContextType = {
   crossword: Crossword;
@@ -45,7 +46,7 @@ export const CrosswordGrid = ({
   };
 }) => {
   const { myProfile } = useMyProfile();
-  const { finishGame, game } = useGame({ gameId });
+  const { finishGame, game, opponent } = useGame({ gameId });
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
@@ -71,6 +72,98 @@ export const CrosswordGrid = ({
   const isGameFinished = game?.playState === "COMPLETED";
   const [gameState, setGameState] = useState<GameState | null>(null);
 
+  // auto update bot game state if applicable
+  useEffect(() => {
+    if (game && crossword && opponent) {
+      if (opponent?.type === "BOT") {
+        const botGameState = game?.gameState?.[opponent.id];
+        if (!botGameState) {
+          // initialize game state
+          const initialSolutionState: GameState["solution"] =
+            crossword.puzzle.map((row) => {
+              const emptyRow = row.map((cell) => {
+                if (cell !== "#") {
+                  return "";
+                } else {
+                  return null;
+                }
+              });
+              return emptyRow;
+            });
+          supabase
+            .from("games")
+            .update({
+              gameState: game.gameState
+                ? {
+                    ...game.gameState,
+                    [opponent.id]: { solution: initialSolutionState },
+                  }
+                : { [opponent.id]: { solution: initialSolutionState } },
+            })
+            .eq("id", gameId)
+            .then();
+        }
+        if (!isGameFinished) {
+          // update bot game state with correct solution
+          const totalFillableCells = crossword.solution.reduce((count, row) => {
+            return (count = count + row.filter((cell) => !!cell).length);
+          }, 0);
+          const totalBotFillableCells = Math.floor(totalFillableCells * 0.75);
+          const botFilledCells =
+            botGameState?.solution.reduce((count, row) => {
+              return (
+                count +
+                row.filter((cell) => cell !== "" && cell !== null).length
+              );
+            }, 0) || 0;
+          const cellsToFill = totalBotFillableCells - botFilledCells;
+          const secondsLeft = differenceInSeconds(
+            addSeconds(
+              new Date(`${game.startedAt}Z`),
+              game.gameDurationInSeconds
+            ),
+            new Date(new Date().toUTCString())
+          );
+          const fillInterval = Math.floor(secondsLeft / cellsToFill);
+          if (fillInterval > 0) {
+            const interval = setInterval(() => {
+              const solution = botGameState.solution;
+              const rowToFillIndex = solution.findIndex((row) =>
+                row.includes("")
+              );
+              const rowToFill = solution[rowToFillIndex];
+              const colToFillIndex = rowToFill.findIndex((cell) => cell === "");
+              const valueToFill =
+                crossword.solution[rowToFillIndex][colToFillIndex];
+              const newSolution = [
+                ...solution.slice(0, rowToFillIndex),
+                [
+                  ...rowToFill.slice(0, colToFillIndex),
+                  valueToFill,
+                  ...rowToFill.slice(colToFillIndex + 1),
+                ],
+                ...solution.slice(rowToFillIndex + 1),
+              ];
+              supabase
+                .from("games")
+                .update({
+                  gameState: game.gameState
+                    ? {
+                        ...game.gameState,
+                        [opponent.id]: { solution: newSolution },
+                      }
+                    : { [opponent.id]: { solution: newSolution } },
+                })
+                .eq("id", gameId)
+                .then();
+            }, fillInterval * 1000);
+            return () => clearInterval(interval);
+          }
+        }
+      }
+    }
+  }, [crossword, game, gameId, isGameFinished, opponent]);
+
   useEffect(() => {
     // initialize gameState
     if (game && crossword && myProfile && !gameState) {
@@ -79,7 +172,7 @@ export const CrosswordGrid = ({
         setGameState(playerGameState);
         return;
       }
-      const initalSolutionState = crossword.puzzle.map((row) => {
+      const initialSolutionState = crossword.puzzle.map((row) => {
         const emptyRow = row.map((cell) => {
           if (cell !== "#") {
             return "";
@@ -97,7 +190,7 @@ export const CrosswordGrid = ({
           ),
         },
         direction: "Across",
-        solution: initalSolutionState,
+        solution: initialSolutionState,
       });
     }
   }, [crossword, game, gameState, myProfile]);

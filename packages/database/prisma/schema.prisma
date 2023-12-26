@@ -20,8 +20,14 @@ model profiles {
   createdAt   DateTime      @default(now())
   gamePlayers gamePlayers[]
   games       games[]
+  type        ProfileType   @default(USER)
 
   @@index([userId])
+}
+
+enum ProfileType {
+  USER
+  BOT
 }
 
 model crosswords {
@@ -92,6 +98,7 @@ enum GameType {
   SOLO
   FRIENDLY
   RANKED
+  RANKED_BOT
 }
 
 model words {

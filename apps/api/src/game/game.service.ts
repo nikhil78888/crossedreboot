@@ -36,4 +36,6 @@ export const createRankedMatch = async (
     { gamesId: game.id, profilesId: playerOneId },
     { gamesId: game.id, profilesId: playerTwoId },
   ]);
+
+  return game;
 };

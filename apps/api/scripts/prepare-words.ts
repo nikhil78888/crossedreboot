@@ -57,7 +57,7 @@ const main = async () => {
   const xwiWords = await processFile("data/XwiWordList.csv", ";");
   list = addWords(xwiWords, list, "xwiwords");
 
-  let wordList = list
+  const wordList = list
     .map((wordString) => JSON.parse(wordString))
     .filter((wordInfo) => !!wordInfo.word);
 

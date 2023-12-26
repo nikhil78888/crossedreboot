@@ -1,10 +1,9 @@
 import { FlatList } from "react-native-gesture-handler";
-import { avatars, images } from "../lib/images";
+import { avatars } from "../lib/images";
 import { Avatar } from "react-native-ui-lib";
 import { View } from "react-native";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { useRouter } from "expo-router";
-import { ImageBackground, Image } from "expo-image";
 
 export default function ChooseAvatar() {
   const { myProfile, updateProfile } = useMyProfile();

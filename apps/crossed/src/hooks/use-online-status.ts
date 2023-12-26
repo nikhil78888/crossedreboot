@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { channel } from "../lib/lobby-channel";
 import { useMyProfile } from "./use-my-profile";
 
@@ -15,13 +16,13 @@ users and create ranked matches.
 export const useOnlineStatus = () => {
   const { myProfile } = useMyProfile();
 
-  const leaveLobby = async () => {
+  const leaveLobby = useCallback(async () => {
     try {
       channel.untrack();
     } catch (error) {
       console.info(`Error leaving lobby ${error}`);
     }
-  };
+  }, []);
 
   const joinLobby = () => {
     return new Promise<void>((resolve) => {

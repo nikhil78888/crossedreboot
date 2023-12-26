@@ -9,8 +9,9 @@
     "lint": "tsc --noEmit && eslint \"src/**/*.ts*\"",
     "start": "node dist/index.js",
     "test": "jest --detectOpenHandles",
-    "load-words": "tsup scripts/load-words.ts --format cjs --onSuccess \"node dist/load-words.js\"",
-    "create-crossword": "tsup scripts/create-crossword.ts --format cjs --onSuccess \"node dist/create-crossword.js\"",
+    "add-bots-to-prod": "dotenv -e .env.production -- tsup scripts/add-bots.ts --format cjs --onSuccess \"node dist/add-bots.js\"",
+    "add-bots": "dotenv -e .env -- tsup scripts/add-bots.ts --format cjs --onSuccess \"node dist/add-bots.js\"",
+    "test-ranked-match": "dotenv -e .env.production -- tsup scripts/test-ranked-match.ts --format cjs --onSuccess \"node dist/test-ranked-match.js\"",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org crossed --project node-express ./dist && sentry-cli sourcemaps upload --org crossed --project node-express ./dist"
   },
   "jest": {
@@ -32,9 +33,11 @@
     "langchain": "^0.0.145",
     "morgan": "^1.10.0",
     "types-and-validators": "*",
+    "uuid": "^9.0.1",
     "zod": "3.21.4"
   },
   "devDependencies": {
+    "@faker-js/faker": "^8.3.1",
     "@types/body-parser": "^1.19.0",
     "@types/cors": "^2.8.10",
     "@types/express": "^4.17.12",
