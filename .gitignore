@@ -5,6 +5,9 @@ node_modules
 .next
 dist
 dist-ssr
+# Keep the compiled output for the mobile-facing types package so EAS builds
+# can resolve it without needing a build step on the server.
+!packages/types-and-validators/dist
 *.local
 .env
 .cache
