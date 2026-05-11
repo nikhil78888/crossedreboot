@@ -35,7 +35,6 @@ import { Besley_500Medium } from "@expo-google-fonts/besley";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { Alert } from "react-native";
-import LogRocket from "@logrocket/react-native";
 import { useAuth } from "../hooks/use-auth";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
@@ -77,13 +76,6 @@ export default function IndexLayout() {
 
   const isReady = fontsLoaded && !isLoadingUser;
 
-  // setup logrocket
-  useEffect(() => {
-    if (!__DEV__ && user?.uid && user.displayName) {
-      LogRocket.init("mvzgsv/crossed");
-      LogRocket.identify(user.uid, { username: user.displayName });
-    }
-  }, [user?.displayName, user?.uid]);
 
   useEffect(() => {
     if (isReady) {
