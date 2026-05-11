@@ -7,8 +7,11 @@ const monorepoRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// Include all monorepo packages in Metro's watch list
-config.watchFolders = [monorepoRoot];
+// Watch only the specific workspace packages the app uses (not the full monorepo root,
+// which would cause Metro to scan all nested node_modules and time out on EAS).
+config.watchFolders = [
+  path.resolve(projectRoot, "../../packages/types-and-validators"),
+];
 
 // Resolve packages from the app first, then monorepo root
 config.resolver.nodeModulesPaths = [
