@@ -1,11 +1,10 @@
-import { Alert, Linking, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../hooks/use-auth";
 import { FormTextInput } from "../components/FormTextInput";
 import { Button } from "../components/Button";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { images } from "../lib/images";
 
 export default function DeleteAccount() {
@@ -44,30 +43,9 @@ const LoginForm = () => {
     },
     resolver: zodResolver(loginFormSchema),
   });
-  const { customerInfo, currentSubscription } = useSubscriptionInfo();
-
   const deleteAcc = async () => {
-    const showSubscriptionAlert = !currentSubscription;
     await deleteAccount();
-    if (showSubscriptionAlert) {
-      Alert.alert(
-        "Account Deleted.",
-        "Please manage your Crossed Pro subscription in app store",
-        [
-          {
-            text: "OK",
-            onPress: () =>
-              Linking.openURL(customerInfo?.managementURL as string),
-          },
-        ]
-      );
-    } else {
-      Alert.alert("Account Deleted.", "Your account was deleted.", [
-        {
-          text: "OK",
-        },
-      ]);
-    }
+    Alert.alert("Account Deleted.", "Your account was deleted.");
   };
 
   const onSubmit = async (formValues: z.infer<typeof loginFormSchema>) => {

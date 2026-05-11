@@ -1,23 +1,10 @@
 import { Tabs } from "expo-router";
 import { useAuth } from "../../hooks/use-auth";
 import { Image } from "expo-image";
-import Purchases from "react-native-purchases";
 import { images } from "../../lib/images";
-import { useEffect } from "react";
-import { mobileConfig } from "../../mobile-config";
 
 export default function HomeLayout() {
   const { user } = useAuth();
-
-  useEffect(() => {
-    Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
-    if (user?.uid) {
-      Purchases.configure({
-        apiKey: mobileConfig.revenueCatAPIKey,
-        appUserID: user.uid,
-      });
-    }
-  }, [user?.uid]);
 
   if (!user) {
     return null;

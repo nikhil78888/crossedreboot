@@ -1,5 +1,3 @@
-import { Mixpanel } from "mixpanel-react-native";
-
 export const events = {
   START_SOLO_GAME_CLICK: "START_SOLO_GAME_CLICK",
   START_FRIENDLY_GAME_CLICK: "START_FRIENDLY_GAME_CLICK",
@@ -16,9 +14,5 @@ export const events = {
   RESTORE_PURCHASES_CLICK: "RESTORE_PURCHASES_CLICK",
 };
 
-const mixpanel = new Mixpanel(process.env.EXPO_PUBLIC_MIXPANEL_TOKEN ?? "", true);
-mixpanel.init();
-
-export const trackEvent = (eventName: string) => {
-  mixpanel.track(eventName);
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const trackEvent = (_eventName: string) => {};

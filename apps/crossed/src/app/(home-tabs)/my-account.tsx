@@ -11,7 +11,6 @@ import colors from "../../lib/colors";
 import { useCallback } from "react";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import type { ComponentPropsWithoutRef } from "react";
-import { events, trackEvent } from "../../lib/track-event";
 import { Image, ImageSource } from "expo-image";
 
 export default function MyAccount() {
@@ -81,27 +80,6 @@ export default function MyAccount() {
           onPress={() => router.push("/update-profile")}
         />
       )}
-      <AccountPageButton
-        label="Upgrade to Pro"
-        icon={images.account_upgrade}
-        onPress={() => {
-          trackEvent(events.MY_ACCOUNT_UPGRADE_TO_PRO_CLICK);
-          if (user.isAnonymous) {
-            Alert.alert(
-              "Create Account",
-              "You must create an account to upgrade",
-              [
-                {
-                  text: "Create Account",
-                  onPress: () => router.push("/create-account"),
-                },
-              ]
-            );
-          } else {
-            router.push("/upgrade-to-pro");
-          }
-        }}
-      />
       <AccountPageButton
         label="Terms of Use"
         icon={images.account_terms}
