@@ -1,5 +1,22 @@
 import * as z from "zod";
-import { CrosswordCategory, CrosswordSource } from "database";
+
+// Duplicated from Prisma schema to avoid mobile build depending on @prisma/client
+enum CrosswordSource {
+  wizium = "wizium",
+  aicross = "aicross",
+}
+
+enum CrosswordCategory {
+  general = "general",
+  sports = "sports",
+  history = "history",
+  geography = "geography",
+  science = "science",
+  politics = "politics",
+  movies = "movies",
+  television = "television",
+  pop_culture = "pop_culture",
+}
 
 const clueSchema = z.array(
   z.object({
