@@ -50,14 +50,6 @@
         }
       ],
       "@logrocket/react-native",
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-2740483950780206~ANDROID_APP_ID",
-          "iosAppId": "ca-app-pub-2740483950780206~7824645663",
-          "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
-        }
-      ],
       ["./plugins/withPrivacyManifest"]
     ],
     "scheme": "crossed",

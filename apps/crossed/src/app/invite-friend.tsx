@@ -3,9 +3,6 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
 import { useEffect } from "react";
 import { Button } from "../components/Button";
-import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
-import { mobileConfig } from "../mobile-config";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { Image } from "expo-image";
 import { avatars } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -13,7 +10,6 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 
 export default function InviteFriend() {
   const { gameId } = useLocalSearchParams();
-  const { showAds } = useSubscriptionInfo();
   const router = useRouter();
   const { game, abortGame } = useGame({
     gameId: gameId as string | undefined,
@@ -100,14 +96,6 @@ export default function InviteFriend() {
           onPress={inviteFriend}
         />
       </View>
-      {showAds && (
-        <View className="mt-24">
-          <BannerAd
-            unitId={mobileConfig.inviteFriendScreenAdId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          />
-        </View>
-      )}
       <View className="absolute bottom-8 inset-x-4">
         <Button
           intent="secondary"

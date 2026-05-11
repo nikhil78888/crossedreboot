@@ -6,9 +6,6 @@ import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
 import { differenceInSeconds, isAfter } from "date-fns";
-import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
-import { mobileConfig } from "../mobile-config";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { events, trackEvent } from "../lib/track-event";
 import { avatars } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -20,7 +17,6 @@ export default function RankedLobby() {
   const { myProfile } = useMyProfile();
   const { leaveLobby } = useOnlineStatus();
   const { gameId } = useRankedGame();
-  const { showAds } = useSubscriptionInfo();
   const { game, createRankedBotMatch } = useGame({ gameId });
   const [secondsToStart, setSecondsToStart] = useState(0);
 
@@ -123,14 +119,6 @@ export default function RankedLobby() {
           </View>
         )}
       </View>
-      {showAds && (
-        <View className="mt-24 w-full">
-          <BannerAd
-            unitId={mobileConfig.inviteFriendScreenAdId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          />
-        </View>
-      )}
       <View className="absolute bottom-8 inset-x-4">
         <Button
           label="Go back home"

@@ -4,48 +4,26 @@ import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
-import { useStats } from "../hooks/use-stats";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
-import { useInterstitialAd } from "react-native-google-mobile-ads";
-import { useCallback, useEffect, useState } from "react";
-import { mobileConfig } from "../mobile-config";
+import { useCallback } from "react";
 import { events, trackEvent } from "../lib/track-event";
 import { useOnlineStatus } from "../hooks/use-online-status";
 
 export const NewGameButtons = () => {
-  const { currentSubscription } = useSubscriptionInfo();
-  const { stats } = useStats();
   const router = useRouter();
   const { joinLobby } = useOnlineStatus();
-  const { isLoaded, isClosed, load, show } = useInterstitialAd(
-    mobileConfig.interstitialAdId,
-    {
-      requestNonPersonalizedAdsOnly: true,
-    }
-  );
-  const [onAdClose, setOnAdClose] = useState<
-    "SOLO" | "FRIENDLY" | "RANKED" | ""
-  >("");
   const { createFriendlyGame, createSoloGame } = useGame({ gameId: undefined });
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
   const playSolo = useCallback(async () => {
-    setOnAdClose("");
     const gameId = await createSoloGame();
     router.push(`/game?gameId=${gameId}`);
   }, [createSoloGame, router]);
 
   const playFriendly = useCallback(async () => {
-    setOnAdClose("");
     const gameId = await createFriendlyGame();
     router.push(`/invite-friend?gameId=${gameId}`);
   }, [createFriendlyGame, router]);
 
   const playRanked = useCallback(async () => {
-    setOnAdClose("");
     try {
       await joinLobby();
       router.push("/ranked-lobby");
@@ -54,44 +32,12 @@ export const NewGameButtons = () => {
     }
   }, [joinLobby, router]);
 
-  useEffect(() => {
-    if (isClosed) {
-      switch (onAdClose) {
-        case "SOLO":
-          playSolo();
-          break;
-        case "FRIENDLY":
-          playFriendly();
-          break;
-        case "RANKED":
-          playRanked();
-          break;
-        default:
-          break;
-      }
-    }
-  }, [isClosed, onAdClose, playFriendly, playRanked, playSolo]);
-
   return (
     <View>
       <TouchableOpacity
         onPress={() => {
-          if (__DEV__) {
-            playRanked();
-            return;
-          }
           trackEvent(events.START_RANKED_GAME_CLICK);
-          if (
-            !currentSubscription &&
-            stats?.gamesPlayedToday &&
-            stats?.gamesPlayedToday > 4 &&
-            isLoaded
-          ) {
-            setOnAdClose("RANKED");
-            show();
-          } else {
-            playRanked();
-          }
+          playRanked();
         }}
         className="bg-crossed-blue-50 h-[175px] rounded-2xl shadow-md"
       >
@@ -108,17 +54,7 @@ export const NewGameButtons = () => {
           <TouchableOpacity
             onPress={() => {
               trackEvent(events.START_FRIENDLY_GAME_CLICK);
-              if (
-                !currentSubscription &&
-                stats?.gamesPlayedToday &&
-                stats?.gamesPlayedToday > 4 &&
-                isLoaded
-              ) {
-                setOnAdClose("FRIENDLY");
-                show();
-              } else {
-                playFriendly();
-              }
+              playFriendly();
             }}
             className="bg-crossed-blue-50 h-[175px] w-full rounded-2xl shadow-md items-center"
           >
@@ -135,17 +71,7 @@ export const NewGameButtons = () => {
           <TouchableOpacity
             onPress={() => {
               trackEvent(events.START_SOLO_GAME_CLICK);
-              if (
-                !currentSubscription &&
-                stats?.gamesPlayedToday &&
-                stats?.gamesPlayedToday > 4 &&
-                isLoaded
-              ) {
-                setOnAdClose("SOLO");
-                show();
-              } else {
-                playSolo();
-              }
+              playSolo();
             }}
             className="bg-crossed-blue-50 h-[175px] w-full rounded-2xl shadow-md items-center"
           >

@@ -11,9 +11,6 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { Crossword, GameState } from "types-and-validators";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
-import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
-import { mobileConfig } from "../mobile-config";
 import { addSeconds, differenceInSeconds } from "date-fns";
 
 type CrosswordContextType = {
@@ -245,8 +242,6 @@ export const CrosswordGrid = ({
       }
     }
   }, [finishGame, game, gameId, gameState, isGameFinished, myProfile]);
-
-  const { showAds } = useSubscriptionInfo();
 
   if (!game || !gameState || !crossword) {
     return null;
@@ -529,14 +524,6 @@ export const CrosswordGrid = ({
         }}
       >
         <View className="items-center">
-          {game.gameType === "SOLO" && showAds && (
-            <View className="h-16">
-              <BannerAd
-                unitId={mobileConfig.inviteFriendScreenAdId}
-                size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-              />
-            </View>
-          )}
           <Animated.View style={crosswordContainerStyle}>
             <View className="py-2">
               {showResults ? null : (

@@ -6,12 +6,8 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
 import { Image } from "expo-image";
 import { avatars } from "../lib/images";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
-import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
-import { mobileConfig } from "../mobile-config";
 
 export default function JoinGame() {
-  const { showAds } = useSubscriptionInfo();
   const { gameId } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
@@ -87,14 +83,6 @@ export default function JoinGame() {
           onPress={() => startGame()}
         />
       </View>
-      {showAds && (
-        <View className="mt-24">
-          <BannerAd
-            unitId={mobileConfig.inviteFriendScreenAdId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          />
-        </View>
-      )}
       <View className="absolute bottom-8 inset-x-4">
         <Button
           intent="secondary"

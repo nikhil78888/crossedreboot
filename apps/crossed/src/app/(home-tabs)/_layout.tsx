@@ -3,13 +3,11 @@ import { useAuth } from "../../hooks/use-auth";
 import { Image } from "expo-image";
 import Purchases from "react-native-purchases";
 import { images } from "../../lib/images";
-import { useEffect, useState } from "react";
-import mobileAds, { MaxAdContentRating } from "react-native-google-mobile-ads";
+import { useEffect } from "react";
 import { mobileConfig } from "../../mobile-config";
 
 export default function HomeLayout() {
   const { user } = useAuth();
-  const [adReady, setAdReady] = useState(false);
 
   useEffect(() => {
     Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
@@ -21,33 +19,7 @@ export default function HomeLayout() {
     }
   }, [user?.uid]);
 
-  useEffect(() => {
-    mobileAds()
-      .setRequestConfiguration({
-        // Update all future requests suitable for parental guidance
-        maxAdContentRating: MaxAdContentRating.PG,
-
-        // Indicates that you want your content treated as child-directed for purposes of COPPA.
-        tagForChildDirectedTreatment: true,
-
-        // Indicates that you want the ad request to be handled in a
-        // manner suitable for users under the age of consent.
-        tagForUnderAgeOfConsent: true,
-
-        // An array of test device IDs to allow.
-        testDeviceIdentifiers: ["EMULATOR"],
-      })
-      .then(() => {
-        // Request config successfully set!
-        mobileAds()
-          .initialize()
-          .then(() => {
-            setAdReady(true);
-          });
-      });
-  }, []);
-
-  if (!user || !adReady) {
+  if (!user) {
     return null;
   }
 
@@ -60,14 +32,6 @@ export default function HomeLayout() {
           lineHeight: 40,
         },
         headerShadowVisible: false,
-        // headerRight: () => (
-        //   <TouchableOpacity
-        //     onPress={() => router.push("/notifications")}
-        //     className="mr-4"
-        //   >
-        //     <Image source={images.bell} className="h-[25] w-[22.47]" />
-        //   </TouchableOpacity>
-        // ),
         tabBarLabelStyle: {
           fontFamily: "jost500",
           fontSize: 12,

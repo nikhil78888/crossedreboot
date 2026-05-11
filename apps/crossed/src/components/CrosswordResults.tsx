@@ -8,9 +8,6 @@ import { ShareAppButton } from "./ShareAppButton";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { NewGameButtons } from "./NewGameButtons";
 import { Button } from "./Button";
-import { BannerAd, BannerAdSize } from "react-native-google-mobile-ads";
-import { mobileConfig } from "../mobile-config";
-import { useSubscriptionInfo } from "../hooks/use-subscription-info";
 import { Avatar } from "react-native-ui-lib";
 import { Database, Game } from "types-and-validators";
 import { TouchableOpacity } from "react-native-gesture-handler";
@@ -26,7 +23,6 @@ export const FriendlyGameResult = ({
 }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { showAds } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
@@ -41,14 +37,6 @@ export const FriendlyGameResult = ({
 
   return (
     <View className="h-full w-full bg-white">
-      {showAds && (
-        <View className="mt-6">
-          <BannerAd
-            unitId={mobileConfig.resultsScreenAdId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          />
-        </View>
-      )}
       <ScrollView
         className="flex-1 px-5"
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 12 }}
@@ -152,7 +140,6 @@ export const FriendlyGameResult = ({
 export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { showAds } = useSubscriptionInfo();
   const { game } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
@@ -163,14 +150,6 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   const result = points === 100 ? "PERFECT_SCORE" : points > 0 ? "WON" : "LOST";
   return (
     <View className="h-full w-full bg-white">
-      {showAds && (
-        <View className="mt-6">
-          <BannerAd
-            unitId={mobileConfig.resultsScreenAdId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          />
-        </View>
-      )}
       <ScrollView
         className="flex-1 px-5"
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 12 }}

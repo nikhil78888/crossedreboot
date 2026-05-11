@@ -59,7 +59,6 @@
     "react-native": "0.83.6",
     "react-native-avoid-softinput": "^8.0.2",
     "react-native-gesture-handler": "~2.30.0",
-    "react-native-google-mobile-ads": "^16.3.3",
     "react-native-keyboard-controller": "1.20.7",
     "react-native-purchases": "^10.1.0",
     "react-native-reanimated": "4.2.1",
