@@ -2,7 +2,7 @@
   "expo": {
     "name": "Crossed.",
     "slug": "crossed",
-    "owner": "harshpillario",
+    "owner": "nikhilrmehta7",
     "version": "1.0.20",
     "orientation": "portrait",
     "icon": "./src/assets/images/logo_icon.png",
@@ -12,7 +12,9 @@
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "googleServicesFile": "./GoogleService-Info.plist",
@@ -43,19 +45,19 @@
         }
       ],
       "@logrocket/react-native",
-      ["./plugins/withPrivacyManifest"]
+      [
+        "./plugins/withPrivacyManifest"
+      ]
     ],
     "scheme": "crossed",
-    "extra": {
-      "eas": {
-        "projectId": "95dd38ca-d0be-41ad-8148-56a2b4f5460e"
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/95dd38ca-d0be-41ad-8148-56a2b4f5460e"
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4cd438d9-e80f-4ef8-843d-47a89b21979f"
+      }
     }
   }
 }
