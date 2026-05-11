@@ -1,6 +1,8 @@
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+const { withCssInterop } = require("react-native-css-interop/metro");
+const { cssToReactNativeRuntimeOptions } = require("react-native-css-interop/metro");
 const path = require("path");
+const fs = require("fs");
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, "../..");
@@ -12,22 +14,16 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-// Wrap getCSSForPlatform to detect if NativeWind's Tailwind child hangs in EAS
-const wrapped = withNativeWind(config, { input: path.join(__dirname, "global.css") });
-const originalGetTransformOptions = wrapped.transformer?.getTransformOptions;
-if (originalGetTransformOptions) {
-  wrapped.transformer.getTransformOptions = async function (entryPoints, transformOptions, getDepsOf) {
-    console.log("[metro.config] getTransformOptions called for platform:", transformOptions.platform);
-    const start = Date.now();
-    const result = await Promise.race([
-      originalGetTransformOptions(entryPoints, transformOptions, getDepsOf),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("getTransformOptions timed out after 60s")), 60000)
-      ),
-    ]);
-    console.log("[metro.config] getTransformOptions done in", Date.now() - start, "ms");
-    return result;
-  };
-}
+// Pre-generated CSS avoids NativeWind's fork()-based Tailwind CLI which hangs
+// in EAS (child process IPC unreliable in the build sandbox). Regenerate by
+// running: node -e "require('nativewind/dist/metro/tailwind').tailwindCli(()=>{}).getCSSForPlatform({platform:'ios',input:require('path').join(process.cwd(),'global.css'),browserslist:'last 1 version',browserslistEnv:'native'}).then(css=>require('fs').writeFileSync('.nativewind-output.css',css))"
+const preGeneratedCss = fs.readFileSync(
+  path.join(projectRoot, ".nativewind-output.css"),
+  "utf-8"
+);
 
-module.exports = wrapped;
+module.exports = withCssInterop(config, {
+  ...cssToReactNativeRuntimeOptions,
+  input: path.join(projectRoot, "global.css"),
+  getCSSForPlatform: () => Promise.resolve(preGeneratedCss),
+});
