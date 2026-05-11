@@ -2,7 +2,6 @@ import "../../global.css";
 import { useEffect } from "react";
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
-import * as Sentry from "@sentry/react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
   Lato_300Light,
@@ -43,12 +42,6 @@ import axios from "axios";
 import { BackButton } from "../components/BackButton";
 
 axios.defaults.baseURL = mobileConfig.apiBaseUrl;
-
-Sentry.init({
-  dsn: mobileConfig.sentryDSN,
-  debug: __DEV__,
-  enabled: !__DEV__,
-});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -123,9 +116,6 @@ export default function IndexLayout() {
       } catch (error) {
         // You can also add an alert() to see the error message in case of an error when fetching updates.
         console.info(`Error fetching latest Expo update: ${error}`);
-        Sentry.captureException(
-          new Error(`Error fetching latest Expo update: ${error}`)
-        );
       }
     };
     checkForUpdates();

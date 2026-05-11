@@ -42,13 +42,6 @@
           }
         }
       ],
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "crossed",
-          "project": "crossed-mobile"
-        }
-      ],
       "@logrocket/react-native",
       ["./plugins/withPrivacyManifest"]
     ],
