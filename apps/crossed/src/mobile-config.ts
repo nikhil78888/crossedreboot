@@ -20,5 +20,5 @@ export const mobileConfig = {
   interstitialAdId: __DEV__
     ? TestIds.INTERSTITIAL
     : "ca-app-pub-2740483950780206/4059997763",
-  revenueCatAPIKey: "appl_wtDAWNsfUysrDEiBbTZdIhgesdW",
+  revenueCatAPIKey: process.env.EXPO_PUBLIC_REVENUE_CAT_API_KEY as string,
 };

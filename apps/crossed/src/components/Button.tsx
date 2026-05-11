@@ -1,6 +1,6 @@
-import { ActivityIndicator, Text, TouchableOpacityProps } from "react-native";
+import { ActivityIndicator, Text } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { GenericTouchableProps } from "react-native-gesture-handler/lib/typescript/components/touchables/GenericTouchable";
+import type { ComponentPropsWithoutRef } from "react";
 import { VariantProps, cva } from "class-variance-authority";
 
 const button = cva("items-center justify-center", {
@@ -111,10 +111,9 @@ const buttonLabel = cva("", {
   },
 });
 
-type ButtonProps = TouchableOpacityProps &
-  GenericTouchableProps & { label: string; isLoading?: boolean } & VariantProps<
-    typeof button
-  >;
+type ButtonProps = ComponentPropsWithoutRef<typeof TouchableOpacity> & { label: string; isLoading?: boolean } & VariantProps<
+  typeof button
+>;
 
 export const Button = (props: ButtonProps) => {
   const { intent, size, mode, label, rounded, isLoading, ...btnProps } = props;

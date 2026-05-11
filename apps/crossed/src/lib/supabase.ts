@@ -37,8 +37,9 @@ export const setSupabaseToken = (token: string) => {
   if (!supabase) {
     throw new Error("Supabase not initialized");
   }
-  supabase.headers.Authorization = `Bearer ${token}`;
-  supabase.auth.headers.Authorization = `Bearer ${token}`;
-  supabase.rest.headers.Authorization = `Bearer ${token}`;
+  // Update Authorization for PostgREST queries and Realtime subscriptions.
+  // supabase.rest.headers is a plain object accessible at runtime even though
+  // it is not part of the public TypeScript interface.
+  (supabase as any).rest.headers["Authorization"] = `Bearer ${token}`;
   supabase.realtime.setAuth(token);
 };

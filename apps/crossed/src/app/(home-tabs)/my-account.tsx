@@ -10,7 +10,7 @@ import { AvoidSoftInput } from "react-native-avoid-softinput";
 import colors from "../../lib/colors";
 import { useCallback } from "react";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
-import { GenericTouchableProps } from "react-native-gesture-handler/lib/typescript/components/touchables/GenericTouchable";
+import type { ComponentPropsWithoutRef } from "react";
 import { events, trackEvent } from "../../lib/track-event";
 import { Image, ImageSource } from "expo-image";
 
@@ -143,7 +143,7 @@ const AccountPageButton = ({
   icon,
 }: {
   label: string;
-  onPress: GenericTouchableProps["onPress"];
+  onPress: ComponentPropsWithoutRef<typeof TouchableOpacity>["onPress"];
   icon: ImageSource;
 }) => (
   <TouchableOpacity

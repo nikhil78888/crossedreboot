@@ -16,7 +16,7 @@ export const events = {
   RESTORE_PURCHASES_CLICK: "RESTORE_PURCHASES_CLICK",
 };
 
-const mixpanel = new Mixpanel("e146dee916ae6ea6a891a8bd3861e0ca", true);
+const mixpanel = new Mixpanel(process.env.EXPO_PUBLIC_MIXPANEL_TOKEN ?? "", true);
 mixpanel.init();
 
 export const trackEvent = (eventName: string) => {

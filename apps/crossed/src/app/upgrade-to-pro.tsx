@@ -135,7 +135,7 @@ export default function UpgradeToPro() {
             try {
               trackEvent(events.UPGRADE_CLICK);
               setIsPurchasing(true);
-              await Purchases.purchaseStoreProduct(purchase.product);
+              await Purchases.purchasePackage(purchase);
             } catch (error) {
               console.info(error);
             } finally {
