@@ -52,6 +52,7 @@
     "expo-updates": "~55.0.0",
     "immer": "^9.0.21",
     "nativewind": "^4.2.3",
+    "postcss": "^8.4.47",
     "react": "19.2.0",
     "react-hook-form": "^7.43.9",
     "react-native": "0.83.6",
