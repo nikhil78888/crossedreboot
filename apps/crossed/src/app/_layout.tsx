@@ -39,6 +39,7 @@ import { useAuth } from "../hooks/use-auth";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
 import { BackButton } from "../components/BackButton";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
@@ -124,6 +125,7 @@ export default function IndexLayout() {
   }
 
   return (
+    <ErrorBoundary>
     <KeyboardProvider>
       <Stack
         screenOptions={{
@@ -212,5 +214,6 @@ export default function IndexLayout() {
         />
       </Stack>
     </KeyboardProvider>
+    </ErrorBoundary>
   );
 }
