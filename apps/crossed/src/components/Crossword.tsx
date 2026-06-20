@@ -122,14 +122,24 @@ export const CrosswordGrid = ({
             new Date(new Date().toUTCString())
           );
           const fillInterval = Math.floor(secondsLeft / cellsToFill);
-          if (fillInterval > 0) {
+          if (botGameState && fillInterval > 0) {
             const interval = setInterval(() => {
-              const solution = botGameState.solution;
+              const solution = botGameState?.solution;
+              if (!solution) return;
               const rowToFillIndex = solution.findIndex((row) =>
                 row.includes("")
               );
+              // bot has filled all of its cells — stop (this was the mid-game
+              // crash: solution[-1] -> reading .findIndex of undefined).
+              if (rowToFillIndex < 0) {
+                clearInterval(interval);
+                return;
+              }
               const rowToFill = solution[rowToFillIndex];
               const colToFillIndex = rowToFill.findIndex((cell) => cell === "");
+              if (colToFillIndex < 0) {
+                return;
+              }
               const valueToFill =
                 crossword.solution[rowToFillIndex][colToFillIndex];
               const newSolution = [
