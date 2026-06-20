@@ -27,7 +27,24 @@ export const useMyProfile = () => {
         if (error) {
           throw error;
         }
-        return data[0];
+        if (data && data.length > 0) {
+          return data[0];
+        }
+        // Self-heal: the user is authenticated but has no profile row. This
+        // happens when sign-up completed Firebase auth but the profile insert
+        // failed (e.g. the backend was briefly unavailable). Without a profile
+        // the user is stuck — solo/ranked silently do nothing. Create it now.
+        const fallbackUsername =
+          user.displayName?.trim() || `player_${user.uid.slice(0, 8)}`;
+        const { data: created, error: createError } = await supabase
+          .from("profiles")
+          .upsert({ userId: user.uid, username: fallbackUsername })
+          .select()
+          .single();
+        if (createError) {
+          throw createError;
+        }
+        return created;
       } catch (error) {
         console.error(error);
         throw error;
