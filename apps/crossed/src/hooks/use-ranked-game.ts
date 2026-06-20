@@ -1,49 +1,47 @@
-import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
+import { useEffect, useState } from "react";
 import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 
 /*
-useRankedGame uses an swr subscription combined with
-supabse realtime updates to listen for new ranked games
-when a player is waiting in lobby.
-
-It subscribes to the `gamePlayers` table for new entries.
-When a new entry is made, the new gameId is updated.
-
-The ranked-lobby screen listens of the new gameId and
-starts a ranked match.
+useRankedGame polls for a freshly-created ranked game the player is in while
+they wait in the lobby. Polling (rather than a realtime subscription) is used
+deliberately: the matchmaking notification path needs to be reliable even when
+realtime delivery is flaky, which is what left players stuck in the lobby.
 */
 
 export const useRankedGame = () => {
   const { myProfile } = useMyProfile();
-  const { data: gameId } = useSWRSubscription(
-    myProfile ? ["ranked-game"] : null,
-    (key, { next }: SWRSubscriptionOptions<string, Error>) => {
-      const subscription = supabase
-        .channel(`new-ranked-game`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "gamePlayers",
-          },
-          async (data) => {
-            if (
-              data.new.profilesId === myProfile?.id &&
-              data.new.playState !== "COMPLETED"
-            ) {
-              next(null, data.new.gamesId);
-            }
-          }
-        )
-        .subscribe();
+  const [gameId, setGameId] = useState<string>();
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  );
+  useEffect(() => {
+    if (!myProfile) return;
+    let active = true;
+
+    const check = async () => {
+      // Only look at recent, still-playing ranked games so we never pick up an
+      // old finished match.
+      const since = new Date(Date.now() - 120_000).toISOString();
+      const { data } = await supabase
+        .from("games")
+        .select("id, createdAt, profiles!gamePlayers!inner(id)")
+        .eq("gameType", "RANKED")
+        .eq("playState", "PLAYING")
+        .gte("createdAt", since)
+        .filter("profiles.id", "eq", myProfile.id)
+        .order("createdAt", { ascending: false })
+        .limit(1);
+      if (active && data && data.length) {
+        setGameId(data[0].id);
+      }
+    };
+
+    check();
+    const interval = setInterval(check, 2500);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [myProfile]);
 
   return {
     gameId,

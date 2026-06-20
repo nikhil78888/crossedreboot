@@ -1,41 +1,42 @@
 import { useCallback } from "react";
-import { channel } from "../lib/lobby-channel";
+import { supabase } from "../lib/supabase";
 import { useMyProfile } from "./use-my-profile";
 
 /*
-useOnlineStatus hook is used to track the status
-of a user waiting in the lobby.
+useOnlineStatus manages a player's entry in the ranked matchmaking queue.
 
-It subscribes to a supabase channel "online-status"
-and tracks the userId of current user in the channel.
-
-In the backend, this channel is used to find all online
-users and create ranked matches.
+Entering the ranked lobby writes a row to `rankedQueue`; leaving (match found,
+bot fallback, or going back) removes it. The backend polls this table to pair
+players. This replaced realtime presence, which the server never reliably
+received — so two real players were never matched.
 */
 
 export const useOnlineStatus = () => {
   const { myProfile } = useMyProfile();
 
   const leaveLobby = useCallback(async () => {
+    if (!myProfile) return;
     try {
-      channel.untrack();
+      await supabase
+        .from("rankedQueue")
+        .delete()
+        .eq("profilesId", myProfile.id);
     } catch (error) {
       console.info(`Error leaving lobby ${error}`);
     }
-  }, []);
+  }, [myProfile]);
 
-  const joinLobby = () => {
-    return new Promise<void>((resolve) => {
-      if (myProfile) {
-        channel.track({
-          userId: myProfile.id,
-          rating: myProfile.eloRating,
-          onlineAt: new Date().toISOString(),
-        });
-        resolve();
-      }
-    });
-  };
+  const joinLobby = useCallback(async () => {
+    if (!myProfile) return;
+    await supabase.from("rankedQueue").upsert(
+      {
+        profilesId: myProfile.id,
+        rating: myProfile.eloRating ?? 1000,
+        joinedAt: new Date().toISOString(),
+      },
+      { onConflict: "profilesId" }
+    );
+  }, [myProfile]);
 
   return {
     leaveLobby,

@@ -187,6 +187,24 @@ export interface Database {
                     }
                 ];
             };
+            rankedQueue: {
+                Row: {
+                    profilesId: string;
+                    rating: number;
+                    joinedAt: string;
+                };
+                Insert: {
+                    profilesId: string;
+                    rating?: number;
+                    joinedAt?: string;
+                };
+                Update: {
+                    profilesId?: string;
+                    rating?: number;
+                    joinedAt?: string;
+                };
+                Relationships: [];
+            };
             tournaments: {
                 Row: {
                     id: string;

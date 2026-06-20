@@ -1,126 +1,98 @@
 import { createRankedMatch } from "./game/game.service";
 import { supabase } from "./lib/supabase";
 
-const lobby = supabase.channel("online-status");
-
-let blockedPlayers: string[] = [];
-
-// When each waiting player first appeared in the lobby, so we can widen the
-// acceptable rating gap the longer they've been waiting.
-const joinedAt = new Map<string, number>();
-
-// Acceptable rating gap as a function of how long a player has waited.
-// Starts tight (prefer a near-skill opponent) and widens over time so nobody
-// waits forever; after ~25s anyone is fair game (the client falls back to a
-// near-skill bot at its own timeout if still unmatched).
+// Acceptable rating gap as a function of how long a player has waited. Starts
+// tight (prefer a near-skill opponent) and widens over time so nobody waits
+// forever; the client falls back to a near-skill bot at its own timeout (~15s).
 const RATING_WINDOW_START = 150;
 const RATING_WINDOW_GROWTH_PER_SEC = 80;
 const ratingWindow = (waitMs: number) =>
   RATING_WINDOW_START + (waitMs / 1000) * RATING_WINDOW_GROWTH_PER_SEC;
 
-// Matchmaking convention (multiplayer standard): prefer the closest-rated
-// opponent, only pair when the rating gap is inside a window that widens with
-// wait time, prioritise whoever has waited longest, and block players the
-// moment they're paired so concurrent runs can't double-match.
+// Drop queue rows this old (a client that crashed without leaving the lobby).
+const STALE_MS = 90_000;
+
+let running = false;
+
+// Poll the ranked queue and pair players. DB-backed (not realtime presence),
+// because the server never reliably received presence — which left two real
+// players in the lobby unmatched, both falling back to bots.
 //
-// Runs on every presence change (join AND sync) and on a short interval, so
-// the window keeps widening even when no new presence events arrive.
+// Convention (multiplayer standard): prefer the closest-rated opponent, only
+// pair inside a rating window that widens with wait time, and serve the
+// longest-waiting players first. Paired rows are deleted immediately so the
+// next poll can't double-match them.
 const tryMatch = async () => {
-  const state = lobby.presenceState();
-  const now = Date.now();
-  const players = Object.values(state)
-    .map((s: any) => ({
-      userId: s[0]?.userId as string,
-      rating: (s[0]?.rating as number) ?? 1100,
-    }))
-    .filter((p) => p.userId && !blockedPlayers.includes(p.userId));
+  if (running) return;
+  running = true;
+  try {
+    const { data: rows } = await supabase.from("rankedQueue").select("*");
+    const now = Date.now();
 
-  // Track join times: stamp new arrivals, forget anyone who left.
-  const present = new Set(players.map((p) => p.userId));
-  for (const id of Array.from(joinedAt.keys())) {
-    if (!present.has(id)) joinedAt.delete(id);
-  }
-  for (const p of players) {
-    if (!joinedAt.has(p.userId)) joinedAt.set(p.userId, now);
-  }
+    // Sweep stale entries.
+    const stale = (rows ?? []).filter(
+      (r) => now - new Date(r.joinedAt).getTime() > STALE_MS
+    );
+    for (const s of stale) {
+      await supabase.from("rankedQueue").delete().eq("profilesId", s.profilesId);
+    }
 
-  // Longest-waiting players get matched first.
-  players.sort(
-    (a, b) => (joinedAt.get(a.userId) ?? now) - (joinedAt.get(b.userId) ?? now)
-  );
+    const players = (rows ?? [])
+      .filter((r) => now - new Date(r.joinedAt).getTime() <= STALE_MS)
+      .map((r) => ({
+        profilesId: r.profilesId,
+        rating: r.rating ?? 1100,
+        joinedAt: new Date(r.joinedAt).getTime(),
+      }))
+      // longest-waiting first
+      .sort((a, b) => a.joinedAt - b.joinedAt);
 
-  const used = new Set<string>();
-  for (const playerOne of players) {
-    if (used.has(playerOne.userId) || blockedPlayers.includes(playerOne.userId))
-      continue;
+    const used = new Set<string>();
+    for (const p1 of players) {
+      if (used.has(p1.profilesId)) continue;
 
-    // Find the closest-rated opponent still available.
-    let best: (typeof players)[number] | null = null;
-    let bestGap = Infinity;
-    for (const playerTwo of players) {
-      if (
-        playerTwo.userId === playerOne.userId ||
-        used.has(playerTwo.userId) ||
-        blockedPlayers.includes(playerTwo.userId)
-      )
-        continue;
-      const gap = Math.abs(playerOne.rating - playerTwo.rating);
-      if (gap < bestGap) {
-        bestGap = gap;
-        best = playerTwo;
+      // closest-rated opponent still available
+      let best: (typeof players)[number] | null = null;
+      let bestGap = Infinity;
+      for (const p2 of players) {
+        if (p2.profilesId === p1.profilesId || used.has(p2.profilesId)) continue;
+        const gap = Math.abs(p1.rating - p2.rating);
+        if (gap < bestGap) {
+          bestGap = gap;
+          best = p2;
+        }
+      }
+      if (!best) continue;
+
+      const waitMs = now - Math.min(p1.joinedAt, best.joinedAt);
+      if (bestGap > ratingWindow(waitMs)) continue;
+
+      used.add(p1.profilesId);
+      used.add(best.profilesId);
+      // Remove from the queue before creating the match so a slow create can't
+      // be double-matched on the next tick.
+      await supabase
+        .from("rankedQueue")
+        .delete()
+        .in("profilesId", [p1.profilesId, best.profilesId]);
+      console.log(
+        `matching ${p1.profilesId} with ${best.profilesId} (gap ${bestGap}, waited ${Math.round(
+          waitMs / 1000
+        )}s)`
+      );
+      try {
+        await createRankedMatch(p1.profilesId, best.profilesId);
+      } catch (error) {
+        console.log({ matchError: error });
       }
     }
-    if (!best) continue;
-
-    // Only match if the gap fits the (time-widening) window of whichever of the
-    // pair has waited longest.
-    const waitMs =
-      now -
-      Math.min(
-        joinedAt.get(playerOne.userId) ?? now,
-        joinedAt.get(best.userId) ?? now
-      );
-    if (bestGap > ratingWindow(waitMs)) continue;
-
-    used.add(playerOne.userId);
-    used.add(best.userId);
-    const playerTwo = best;
-    blockedPlayers = [...blockedPlayers, playerOne.userId, playerTwo.userId];
-    joinedAt.delete(playerOne.userId);
-    joinedAt.delete(playerTwo.userId);
-    console.log(
-      `matching ${playerOne.userId} with ${playerTwo.userId} (gap ${bestGap}, waited ${Math.round(
-        waitMs / 1000
-      )}s)`
-    );
-    createRankedMatch(playerOne.userId, playerTwo.userId).catch((error) => {
-      blockedPlayers = blockedPlayers.filter(
-        (p) => p !== playerOne.userId && p !== playerTwo.userId
-      );
-      console.log({ matchError: error });
-    });
+  } catch (error) {
+    console.log({ tryMatchError: error });
+  } finally {
+    running = false;
   }
 };
 
 export const watchLobby = async () => {
-  lobby
-    .on("presence", { event: "sync" }, () => {
-      tryMatch();
-    })
-    .on("presence", { event: "join" }, () => {
-      tryMatch();
-    })
-    .on("presence", { event: "leave" }, ({ leftPresences }) => {
-      const leftPlayerId = leftPresences[0]?.userId;
-      blockedPlayers = blockedPlayers.filter((p) => p !== leftPlayerId);
-      joinedAt.delete(leftPlayerId);
-      console.log({ leftPlayerId, blockedPlayers });
-    })
-    .subscribe();
-
-  // Re-evaluate periodically so the rating window keeps widening for players
-  // who are waiting even when no presence events fire.
-  setInterval(() => {
-    tryMatch();
-  }, 3000);
+  setInterval(tryMatch, 2500);
 };
