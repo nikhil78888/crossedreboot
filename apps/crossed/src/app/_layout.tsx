@@ -1,4 +1,5 @@
 import "../../global.css";
+import "../lib/nativewind-interop";
 import { useEffect } from "react";
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
