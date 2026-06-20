@@ -105,7 +105,18 @@ export const CrosswordGrid = ({
           const totalFillableCells = crossword.solution.reduce((count, row) => {
             return (count = count + row.filter((cell) => !!cell).length);
           }, 0);
-          const totalBotFillableCells = Math.floor(totalFillableCells * 0.75);
+          // Bot behaviour scales with its rating: higher-rated bots complete
+          // more of the grid (targetFraction) and work faster (paceFactor).
+          const botRating =
+            (opponent as { eloRating?: number }).eloRating || 1000;
+          const targetFraction = Math.min(
+            0.98,
+            Math.max(0.5, 0.5 + (botRating - 800) / 1400)
+          );
+          const totalBotFillableCells = Math.max(
+            1,
+            Math.floor(totalFillableCells * targetFraction)
+          );
           const botFilledCells =
             botGameState?.solution.reduce((count, row) => {
               return (
@@ -121,8 +132,22 @@ export const CrosswordGrid = ({
             ),
             new Date(new Date().toUTCString())
           );
-          const fillInterval = Math.floor(secondsLeft / cellsToFill);
-          if (botGameState && fillInterval > 0) {
+          // higher-rated bots use less of the remaining time (finish sooner)
+          const paceFactor = Math.min(
+            1,
+            Math.max(0.45, 1 - (botRating - 1000) / 1600)
+          );
+          const avgDelay =
+            cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
+          // bursty, human-like cadence: each gap varies 0.3x–1.8x the average,
+          // so the opponent bar fills in spurts (fast on a word, then a pause)
+          // rather than at a constant tick. The effect re-runs after each fill,
+          // so every gap is freshly randomized.
+          const nextDelayMs = Math.max(
+            400,
+            avgDelay * (0.3 + Math.random() * 1.5) * 1000
+          );
+          if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {
               const solution = botGameState?.solution;
               if (!solution) return;
@@ -163,7 +188,7 @@ export const CrosswordGrid = ({
                 })
                 .eq("id", gameId)
                 .then();
-            }, fillInterval * 1000);
+            }, nextDelayMs);
             return () => clearInterval(interval);
           }
         }

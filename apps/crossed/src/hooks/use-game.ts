@@ -280,11 +280,19 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         }
 
         if (crosswordId) {
-          const { data: bot } = await supabase
+          // Pick a bot whose rating is closest to the player's, so the fallback
+          // match feels fair (not a random-strength opponent).
+          const { data: bots } = await supabase
             .from("random_bot_profiles")
-            .select()
-            .limit(1)
-            .single();
+            .select();
+          const myRating = myProfile.eloRating ?? 1100;
+          const bot = (bots || [])
+            .slice()
+            .sort(
+              (a, b) =>
+                Math.abs((a.eloRating ?? 1100) - myRating) -
+                Math.abs((b.eloRating ?? 1100) - myRating)
+            )[0];
           if (bot?.id) {
             const { data: game, error: createGameError } = await supabase
               .from("games")
