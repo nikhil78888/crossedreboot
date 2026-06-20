@@ -84,7 +84,12 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             if (fetchGameError) {
               console.info({ fetchGameError });
             }
-            next(null, game ? fixType(game) : undefined);
+            // Only push a valid game. On a failed/empty refetch (e.g. bad
+            // reception) keep the last good state instead of clobbering it with
+            // undefined — otherwise the board unmounts and crashes mid-match.
+            if (game) {
+              next(null, fixType(game));
+            }
           }
         )
         .subscribe(async () => {
@@ -98,7 +103,10 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           if (fetchGameError) {
             console.info({ fetchGameError });
           }
-          next(null, game ? fixType(game) : undefined);
+          // Keep last good state on a failed initial/refetch (see above).
+          if (game) {
+            next(null, fixType(game));
+          }
         });
 
       return () => {

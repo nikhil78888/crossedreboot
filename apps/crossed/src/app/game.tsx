@@ -105,7 +105,10 @@ export default function Game() {
     opponentRating,
   ]);
 
-  if (!game) {
+  // Don't render the board until the full crossword payload is present.
+  // (game.tsx and CrosswordGrid share the same cached game, so this guards the
+  // grid from rendering on incomplete data mid-match and crashing.)
+  if (!game || !game.crossword?.puzzle || !game.crossword?.solution) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
