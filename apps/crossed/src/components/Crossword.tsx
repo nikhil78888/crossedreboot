@@ -222,34 +222,30 @@ export const CrosswordGrid = ({
   }, [crossword, game, showResults]);
 
   useEffect(() => {
-    // write gameState to database
-    if (game && gameState && myProfile) {
-      if (!isGameFinished) {
-        supabase
-          .from("games")
-          .update({
-            gameState: game.gameState
-              ? {
-                  ...game.gameState,
-                  [myProfile.id]: gameState,
-                }
-              : { [myProfile.id]: gameState },
-          })
-          .eq("id", gameId)
-          .then(() => {
-            const hasEmptyCell = gameState.solution.find((row) =>
-              row.includes("")
-            );
-            if (!hasEmptyCell) {
-              const isCorrectSolution =
-                JSON.stringify(gameState.solution) ===
-                JSON.stringify(game.crossword.solution);
-              if (isCorrectSolution) {
-                finishGame();
-              }
-            }
-          });
+    if (game && gameState && myProfile && !isGameFinished) {
+      // Check for a win immediately (synchronously) so finishing isn't gated on
+      // the progress-write round-trip — that caused the delay on winning.
+      const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
+      const isCorrectSolution =
+        !hasEmptyCell &&
+        JSON.stringify(gameState.solution) ===
+          JSON.stringify(game.crossword.solution);
+      if (isCorrectSolution) {
+        finishGame();
       }
+      // Persist progress (so the opponent sees the bar). Fire-and-forget.
+      supabase
+        .from("games")
+        .update({
+          gameState: game.gameState
+            ? {
+                ...game.gameState,
+                [myProfile.id]: gameState,
+              }
+            : { [myProfile.id]: gameState },
+        })
+        .eq("id", gameId)
+        .then();
     }
   }, [finishGame, game, gameId, gameState, isGameFinished, myProfile]);
 

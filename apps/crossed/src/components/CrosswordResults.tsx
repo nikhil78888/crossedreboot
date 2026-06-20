@@ -23,7 +23,7 @@ export const FriendlyGameResult = ({
 }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { game } = useGame({ gameId });
+  const { game, createFriendlyGame, creatingFriendlyGame } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
   }
@@ -87,8 +87,24 @@ export const FriendlyGameResult = ({
           <Button
             intent={"primary"}
             size={"xl"}
+            label="Play Again"
+            rounded={"full"}
+            isLoading={creatingFriendlyGame}
+            onPress={async () => {
+              const newGameId = await createFriendlyGame();
+              if (newGameId) {
+                router.replace(`/invite-friend?gameId=${newGameId}`);
+              }
+            }}
+          />
+        </View>
+        <View className="mt-5">
+          <Button
+            intent={"primary"}
+            size={"xl"}
             label="View Crossword Answers"
             rounded={"full"}
+            mode={"outline"}
             onPress={() => {
               router.push(`/view-answers?gameId=${gameId}`);
             }}
