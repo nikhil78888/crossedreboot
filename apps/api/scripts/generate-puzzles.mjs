@@ -40,6 +40,12 @@ const SIZE = parseInt(getArg("size", "5"), 10);
 // boards cap at 5-letter words (more black squares, reliably fillable).
 const MAX_SLOT = SIZE <= 5 ? SIZE : SIZE >= 9 ? 4 : 5;
 const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
+// Only allow answers at least this common (rank in a frequency list). Lower =
+// easier/more common. ~40k keeps answers recognizable ("oh, that makes sense")
+// without being trivially easy. Tunable via --maxrank.
+const MAX_FREQ_RANK = parseInt(getArg("maxrank", "40000"), 10);
+const FREQ_URL =
+  "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";
 
 const rand = (n) => Math.floor(Math.random() * n);
 const shuffle = (a) => {
@@ -149,28 +155,56 @@ const generatePattern = () => {
   return null;
 };
 
-async function loadDict() {
-  const dict = {}; // length -> [{word, clue}]
+// Frequency list -> Map(UPPERCASE word -> rank). Lower rank = more common.
+async function loadFreq() {
+  const txt = await (await fetch(FREQ_URL)).text();
+  const rank = new Map();
+  txt.split("\n").forEach((line, i) => {
+    const w = (line.split(" ")[0] || "").trim().toUpperCase();
+    if (w && /^[A-Z]+$/.test(w) && !rank.has(w)) rank.set(w, i);
+  });
+  return rank;
+}
+
+// Strip a trailing cryptic enumeration like " (5)" or " (4-3)" so the clue
+// reads as a plain definition.
+const stripClue = (clue) =>
+  (clue || "").replace(/\s*\(\d[\d,\-\s]*\)\s*$/g, "").trim();
+
+// Build the dictionary from COMMON words only (frequency-ranked), pulling each
+// word's clue from the DB. This is the fix for "puzzles too hard": answers are
+// now recognizable everyday words instead of obscure cryptic-crossword fill.
+async function loadDict(freqRank) {
+  const dict = {}; // length -> [{word, clue}] ordered most-common-first
   for (let len = 3; len <= MAX_DICT_LEN; len++) {
-    const url =
-      `${SUPABASE_URL}/rest/v1/words?select=word,clue,score` +
-      `&wordLength=eq.${len}&clue=not.is.null&order=score.desc.nullslast&limit=12000`;
-    const rows = await (await fetch(url, { headers })).json();
-    const seen = new Set();
-    dict[len] = [];
-    for (const r of rows) {
-      const w = (r.word || "").toUpperCase();
-      if (w.length !== len || !/^[A-Z]+$/.test(w) || seen.has(w)) continue;
-      const clue = (r.clue || "").trim();
-      // quality filter: drop malformed/cryptic/self-revealing clues
-      if (clue.length < 4) continue;
-      if (/\(\d[\d,\-\s]*\)/.test(clue)) continue; // cryptic enumerations e.g. "(3)", "(4-3)"
-      if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue; // starts with stray punctuation
-      if (clue.toUpperCase().includes(w)) continue; // clue gives away the answer
-      seen.add(w);
-      dict[len].push({ word: w, clue });
+    const common = [...freqRank.entries()]
+      .filter(([w, r]) => w.length === len && r <= MAX_FREQ_RANK)
+      .sort((a, b) => a[1] - b[1])
+      .map(([w]) => w);
+    const clueOf = {};
+    for (let i = 0; i < common.length; i += 150) {
+      const batch = common.slice(i, i + 150);
+      const inList = batch.map((w) => `"${w}"`).join(",");
+      const url =
+        `${SUPABASE_URL}/rest/v1/words?select=word,clue&clue=not.is.null` +
+        `&word=in.(${encodeURIComponent(inList)})`;
+      const rows = await (await fetch(url, { headers })).json();
+      if (!Array.isArray(rows)) continue;
+      for (const r of rows) {
+        const w = (r.word || "").toUpperCase();
+        if (w.length !== len || !/^[A-Z]+$/.test(w)) continue;
+        const clue = stripClue(r.clue);
+        if (clue.length < 4) continue;
+        if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue; // stray punctuation start
+        if (clue.toUpperCase().includes(w)) continue; // gives away the answer
+        // keep the shortest clean clue for each word
+        if (!clueOf[w] || clue.length < clueOf[w].length) clueOf[w] = clue;
+      }
     }
-    console.log(`  dict[${len}] = ${dict[len].length} words`);
+    dict[len] = common
+      .filter((w) => clueOf[w])
+      .map((w) => ({ word: w, clue: clueOf[w] }));
+    console.log(`  dict[${len}] = ${dict[len].length} common words`);
   }
   return dict;
 }
@@ -365,8 +399,10 @@ async function insertPuzzle(p) {
 
 // ---- main ----
 (async () => {
-  console.log("Loading dictionary…");
-  const dict = await loadDict();
+  console.log("Loading frequency list…");
+  const freqRank = await loadFreq();
+  console.log("Loading dictionary (common words only)…");
+  const dict = await loadDict(freqRank);
   const index = buildIndex(dict);
   let made = 0, attempts = 0;
   const attemptCap = COUNT * (SIZE >= 8 ? 200 : SIZE >= 7 ? 100 : 30);

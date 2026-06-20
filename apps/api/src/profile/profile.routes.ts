@@ -23,17 +23,18 @@ profileRouter.get("/leaderboard", async (req, res, next) => {
       parseInt((req.query.limit as string) || "100", 10) || 100,
       200
     );
+    // Exclude bots at the query level so the world ranking is humans only and
+    // returns a full list (filtering after a limit could short the results).
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, username, eloRating, country, avatar, type")
+      .select("id, username, eloRating, country, avatar")
+      .neq("type", "BOT")
       .order("eloRating", { ascending: false })
       .limit(limit);
     if (error) {
       throw error;
     }
-    // hide bot accounts from the human leaderboard
-    const players = (data || []).filter((p) => p.type !== "BOT");
-    res.send(players);
+    res.send(data || []);
   } catch (error) {
     next(error);
   }
