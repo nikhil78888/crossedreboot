@@ -2,6 +2,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
+import { ConnectionBanner } from "../components/ConnectionBanner";
 import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
 import { events, trackEvent } from "../lib/track-event";
@@ -118,6 +119,7 @@ export default function Game() {
 
   return (
     <View className={`flex-1 bg-white`}>
+      <ConnectionBanner />
       <CrosswordGrid gameId={gameId as string} />
     </View>
   );

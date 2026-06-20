@@ -7,6 +7,7 @@ import axios from "axios";
 import { useStats } from "./use-stats";
 import { useEffect } from "react";
 import { addSeconds } from "date-fns";
+import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status";
 
 export const calculateScore = ({
   correctSolution,
@@ -92,7 +93,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             }
           }
         )
-        .subscribe(async () => {
+        .subscribe(async (channelStatus) => {
+          // Reflect the realtime connection state for the UI banner.
+          setConnectionStatus(mapChannelStatus(channelStatus));
           const { data: game, error: fetchGameError } = await supabase
             .from("games")
             .select(
@@ -111,6 +114,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
 
       return () => {
         subscription.unsubscribe();
+        setConnectionStatus("connected"); // reset when leaving the game
       };
     }
   );
