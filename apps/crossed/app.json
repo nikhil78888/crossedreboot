@@ -49,6 +49,9 @@
       ]
     ],
     "scheme": "crossed",
+    "updates": {
+      "url": "https://u.expo.dev/4cd438d9-e80f-4ef8-843d-47a89b21979f"
+    },
     "runtimeVersion": {
       "policy": "appVersion"
     },
