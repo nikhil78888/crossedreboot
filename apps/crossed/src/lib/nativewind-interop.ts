@@ -5,6 +5,7 @@ import {
   TextInput,
   FlatList,
 } from "react-native-gesture-handler";
+import { Image } from "expo-image";
 
 // NativeWind v4 only auto-applies `className` to built-in React Native
 // components. This app imports TouchableOpacity / ScrollView / TextInput /
@@ -23,3 +24,6 @@ cssInterop(FlatList, {
   className: "style",
   contentContainerClassName: "contentContainerStyle",
 });
+// expo-image isn't a built-in RN component either; without this, className
+// (e.g. h-5 w-5 on icons) is ignored and icons collapse to zero size.
+cssInterop(Image, { className: "style" });
