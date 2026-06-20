@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { Text, View } from "react-native";
 import { avatars, images } from "../lib/images";
-import { Avatar, ProgressBar } from "react-native-ui-lib";
+import { Avatar } from "react-native-ui-lib";
 import { useGame } from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
@@ -68,11 +68,18 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
         />
         <View className="flex-1 mx-2">
           <Text className="font-[jost600] text-[15px]">{opponentUsername}</Text>
-          <ProgressBar
-            progress={opponentProgress}
-            progressColor={colors["crossed-red"]["400"]}
+          <View
             style={{ height: 10 }}
-          />
+            className="rounded-full bg-crossed-gray-100 overflow-hidden"
+          >
+            <View
+              style={{
+                width: `${Math.max(0, Math.min(100, opponentProgress || 0))}%`,
+                height: "100%",
+                backgroundColor: colors["crossed-red"]["400"],
+              }}
+            />
+          </View>
         </View>
         <View>
           <Image
