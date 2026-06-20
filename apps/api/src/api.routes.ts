@@ -4,6 +4,7 @@ import { profileRouter } from "./profile/profile.routes";
 import { gameRouter } from "./game/game.routes";
 import { firebaseAdminApp } from "./lib/firebase";
 import { crosswordRouter } from "./crossword/crossword.routes";
+import { tournamentRouter } from "./tournament/tournament.routes";
 
 export const apiRouter: Router = express.Router();
 
@@ -40,3 +41,4 @@ apiRouter.use(authenticateJWT);
 
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/games", gameRouter);
+apiRouter.use("/tournaments", tournamentRouter);

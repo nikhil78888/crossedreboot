@@ -560,7 +560,8 @@ export const CrosswordGrid = ({
               {showResults ? null : (
                 <>
                   {(game?.gameType === "FRIENDLY" ||
-                    game?.gameType === "RANKED") && (
+                    game?.gameType === "RANKED" ||
+                    game?.gameType === "TOURNAMENT") && (
                     <FriendlyCrosswordHeader gameId={gameId as string} />
                   )}
                 </>

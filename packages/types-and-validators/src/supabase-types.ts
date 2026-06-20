@@ -135,6 +135,7 @@ export interface Database {
           playState: Database["public"]["Enums"]["PlayState"]
           startedAt: string | null
           winnerId: string | null
+          rematchGamesId: string | null
         }
         Insert: {
           createdAt?: string
@@ -146,6 +147,7 @@ export interface Database {
           playState: Database["public"]["Enums"]["PlayState"]
           startedAt?: string | null
           winnerId?: string | null
+          rematchGamesId?: string | null
         }
         Update: {
           createdAt?: string
@@ -157,6 +159,7 @@ export interface Database {
           playState?: Database["public"]["Enums"]["PlayState"]
           startedAt?: string | null
           winnerId?: string | null
+          rematchGamesId?: string | null
         }
         Relationships: [
           {
@@ -188,6 +191,105 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+      tournaments: {
+        Row: {
+          id: string
+          status: string
+          size: number
+          winnerId: string | null
+          createdAt: string
+          startedAt: string | null
+          completedAt: string | null
+        }
+        Insert: {
+          id?: string
+          status?: string
+          size?: number
+          winnerId?: string | null
+          createdAt?: string
+          startedAt?: string | null
+          completedAt?: string | null
+        }
+        Update: {
+          id?: string
+          status?: string
+          size?: number
+          winnerId?: string | null
+          createdAt?: string
+          startedAt?: string | null
+          completedAt?: string | null
+        }
+        Relationships: []
+      }
+      tournamentPlayers: {
+        Row: {
+          id: string
+          tournamentsId: string
+          profilesId: string
+          seat: number | null
+          isBot: boolean
+          eliminated: boolean
+          joinedAt: string
+        }
+        Insert: {
+          id?: string
+          tournamentsId: string
+          profilesId: string
+          seat?: number | null
+          isBot?: boolean
+          eliminated?: boolean
+          joinedAt?: string
+        }
+        Update: {
+          id?: string
+          tournamentsId?: string
+          profilesId?: string
+          seat?: number | null
+          isBot?: boolean
+          eliminated?: boolean
+          joinedAt?: string
+        }
+        Relationships: []
+      }
+      tournamentMatches: {
+        Row: {
+          id: string
+          tournamentsId: string
+          round: number
+          matchIndex: number
+          playerOneId: string | null
+          playerTwoId: string | null
+          gamesId: string | null
+          winnerId: string | null
+          status: string
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          tournamentsId: string
+          round: number
+          matchIndex: number
+          playerOneId?: string | null
+          playerTwoId?: string | null
+          gamesId?: string | null
+          winnerId?: string | null
+          status?: string
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          tournamentsId?: string
+          round?: number
+          matchIndex?: number
+          playerOneId?: string | null
+          playerTwoId?: string | null
+          gamesId?: string | null
+          winnerId?: string | null
+          status?: string
+          createdAt?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -414,7 +516,7 @@ export interface Database {
         | "television"
         | "pop_culture"
       CrosswordSource: "wizium" | "aicross"
-      GameType: "SOLO" | "FRIENDLY" | "RANKED" | "RANKED_BOT"
+      GameType: "SOLO" | "FRIENDLY" | "RANKED" | "RANKED_BOT" | "TOURNAMENT"
       PlayState: "WAITING_FOR_OPPONENT" | "PLAYING" | "COMPLETED" | "ABORTED"
       ProfileType: "USER" | "BOT"
     }

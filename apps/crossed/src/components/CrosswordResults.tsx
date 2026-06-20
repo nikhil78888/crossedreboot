@@ -23,7 +23,7 @@ export const FriendlyGameResult = ({
 }) => {
   const router = useRouter();
   const { myProfile } = useMyProfile();
-  const { game, createFriendlyGame, creatingFriendlyGame } = useGame({ gameId });
+  const { game, playAgainFriendly, playingAgain } = useGame({ gameId });
   if (!myProfile || !game) {
     return null;
   }
@@ -89,11 +89,11 @@ export const FriendlyGameResult = ({
             size={"xl"}
             label="Play Again"
             rounded={"full"}
-            isLoading={creatingFriendlyGame}
+            isLoading={playingAgain}
             onPress={async () => {
-              const newGameId = await createFriendlyGame();
-              if (newGameId) {
-                router.replace(`/invite-friend?gameId=${newGameId}`);
+              const targetId = await playAgainFriendly();
+              if (targetId) {
+                router.replace(`/game?gameId=${targetId}`);
               }
             }}
           />

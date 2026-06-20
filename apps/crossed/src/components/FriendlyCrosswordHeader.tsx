@@ -19,7 +19,9 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   useEffect(() => {
     // if game duration is over, end the game, else update time in game
     if (
-      (game?.gameType === "FRIENDLY" || game?.gameType === "RANKED") &&
+      (game?.gameType === "FRIENDLY" ||
+        game?.gameType === "RANKED" ||
+        game?.gameType === "TOURNAMENT") &&
       game.playState === "PLAYING" &&
       game.startedAt
     ) {

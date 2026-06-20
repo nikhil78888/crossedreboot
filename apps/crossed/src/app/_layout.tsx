@@ -198,6 +198,14 @@ export default function IndexLayout() {
           }}
         />
         <Stack.Screen
+          name="tournament"
+          options={{
+            headerTitle: "Tournament",
+            gestureEnabled: false,
+            headerBackVisible: false,
+          }}
+        />
+        <Stack.Screen
           name="upgrade-to-pro"
           options={{
             headerTitle: "Upgrade",

@@ -221,11 +221,82 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           .insert({ gamesId: gameId, profilesId: myProfile.id });
         await supabase
           .from("games")
-          .update({ playState: "PLAYING", startedAt: new Date().toISOString() })
+          // Start 5s out so both players get a "starting in…" countdown.
+          .update({
+            playState: "PLAYING",
+            startedAt: addSeconds(new Date(), 5).toISOString(),
+          })
           .eq("id", gameId);
       }
     }
   );
+
+  // Friendly "Play Again": if both players tap it, they auto-reconnect into one
+  // rematch game (no re-sharing the code). The first tapper creates the rematch
+  // and atomically claims the slot on the finished game; the second reads that
+  // slot and joins it. Returns the gameId to navigate to.
+  const { trigger: playAgainFriendly, isMutating: playingAgain } =
+    useSWRMutation("play-again-friendly", async () => {
+      if (!gameId || !myProfile) return;
+      const { data: cw } = await supabase.rpc("get_available_crossword", {
+        profileid: myProfile.id,
+      });
+      const crosswordId = cw?.[0]?.id;
+      if (!crosswordId) return;
+
+      // 1. create my candidate rematch game (waiting for opponent)
+      const { data: rematch } = await supabase
+        .from("games")
+        .insert({
+          crosswordsId: crosswordId,
+          gameType: "FRIENDLY",
+          playState: "WAITING_FOR_OPPONENT",
+          gameDurationInSeconds: durationForSize(cw?.[0]?.size, 180),
+        })
+        .select("*")
+        .single();
+      if (!rematch) return;
+      await supabase
+        .from("gamePlayers")
+        .insert({ gamesId: rematch.id, profilesId: myProfile.id });
+
+      // 2. atomically claim the rematch slot on the finished game
+      const { data: claimed } = await supabase
+        .from("games")
+        .update({ rematchGamesId: rematch.id })
+        .eq("id", gameId)
+        .is("rematchGamesId", null)
+        .select("id");
+
+      if (claimed && claimed.length) {
+        // I'm the host — wait in my rematch game for the opponent to join.
+        return rematch.id;
+      }
+
+      // 3. the other player already created the rematch — discard mine, join it.
+      await supabase
+        .from("games")
+        .update({ playState: "ABORTED" })
+        .eq("id", rematch.id);
+      const { data: original } = await supabase
+        .from("games")
+        .select("rematchGamesId")
+        .eq("id", gameId)
+        .single();
+      const targetId = original?.rematchGamesId;
+      if (!targetId) return rematch.id;
+      await supabase
+        .from("gamePlayers")
+        .insert({ gamesId: targetId, profilesId: myProfile.id });
+      await supabase
+        .from("games")
+        .update({
+          playState: "PLAYING",
+          startedAt: addSeconds(new Date(), 5).toISOString(),
+        })
+        .eq("id", targetId);
+      return targetId;
+    });
 
   const { trigger: finishGame, isMutating: finishingGame } = useSWRMutation(
     "finish-game",
@@ -324,7 +395,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   let opponent;
   if (
     myProfile &&
-    (game?.gameType === "FRIENDLY" || game?.gameType === "RANKED")
+    (game?.gameType === "FRIENDLY" ||
+      game?.gameType === "RANKED" ||
+      game?.gameType === "TOURNAMENT")
   ) {
     opponent = game.players.find((profile) => profile.id !== myProfile.id);
     if (opponent) {
@@ -357,5 +430,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     forfeitingGame,
     createRankedBotMatch,
     creatingRankedBotMatch,
+    playAgainFriendly,
+    playingAgain,
   };
 };

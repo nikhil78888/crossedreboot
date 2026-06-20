@@ -7,11 +7,15 @@ import { useGame } from "../hooks/use-game";
 import { useCallback } from "react";
 import { events, trackEvent } from "../lib/track-event";
 import { useOnlineStatus } from "../hooks/use-online-status";
+import { useTournament } from "../hooks/use-tournament";
 
 export const NewGameButtons = () => {
   const router = useRouter();
   const { joinLobby } = useOnlineStatus();
   const { createFriendlyGame, createSoloGame } = useGame({ gameId: undefined });
+  const { joinTournament, joiningTournament } = useTournament({
+    tournamentId: undefined,
+  });
 
   const playSolo = useCallback(async () => {
     const gameId = await createSoloGame();
@@ -31,6 +35,17 @@ export const NewGameButtons = () => {
       Alert.alert("Could not join Lobby");
     }
   }, [joinLobby, router]);
+
+  const playTournament = useCallback(async () => {
+    try {
+      const id = await joinTournament();
+      if (id) {
+        router.push(`/tournament?tournamentId=${id}`);
+      }
+    } catch (error) {
+      Alert.alert("Could not join tournament");
+    }
+  }, [joinTournament, router]);
 
   return (
     <View>
@@ -84,6 +99,24 @@ export const NewGameButtons = () => {
           </TouchableOpacity>
         </View>
       </View>
+      <TouchableOpacity
+        onPress={() => {
+          trackEvent(events.START_RANKED_GAME_CLICK);
+          playTournament();
+        }}
+        disabled={joiningTournament}
+        className="mt-3 bg-crossed-yellow-300 h-[90px] rounded-2xl shadow-md flex-row items-center px-6"
+      >
+        <Text style={{ fontSize: 38 }}>🏆</Text>
+        <View className="ml-4 flex-1">
+          <Text className="font-[jost600] text-[22px]">Tournament</Text>
+          <Text className="font-[jost400] text-[13px] text-crossed-gray-900/70">
+            {joiningTournament
+              ? "Finding a bracket…"
+              : "8-player bracket · winner takes the crown"}
+          </Text>
+        </View>
+      </TouchableOpacity>
     </View>
   );
 };

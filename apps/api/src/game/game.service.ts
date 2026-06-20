@@ -1,8 +1,10 @@
 import { addSeconds } from "date-fns";
 import { supabase } from "../lib/supabase";
+import { Game } from "types-and-validators";
+import { onTournamentGameFinished } from "../tournament/tournament.service";
 
 // Time limit scales with puzzle size (7x7/8x8 -> 5 min, 9x9 -> 7 min).
-const durationForSize = (size: number | null | undefined, base: number) =>
+export const durationForSize = (size: number | null | undefined, base: number) =>
   size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
 
 export const createRankedMatch = async (
@@ -42,4 +44,264 @@ export const createRankedMatch = async (
   ]);
 
   return game;
+};
+
+// --- Scoring -------------------------------------------------------------
+export const calculateScore = ({
+  correctSolution,
+  solution,
+}: {
+  correctSolution: Game["crossword"]["solution"];
+  solution: Game["crossword"]["solution"] | undefined;
+}) => {
+  if (!solution) {
+    return 0;
+  }
+  let totalChars = 0;
+  let correctChars = 0;
+  for (let i = 0; i < correctSolution.length; i += 1) {
+    const rowSolution = correctSolution[i];
+    for (let j = 0; j < rowSolution.length; j += 1) {
+      const cellCorrectSolution = rowSolution[j];
+      if (cellCorrectSolution) {
+        totalChars += 1;
+        if (solution[i][j] === cellCorrectSolution) {
+          correctChars += 1;
+        }
+      }
+    }
+  }
+  if (totalChars === 0) return 0;
+  return Math.round((correctChars / totalChars) * 100);
+};
+
+// --- Glicko-2 rating system (the system chess.com uses) --------------------
+// Each player has a rating, a rating deviation (RD = how uncertain the rating
+// is) and a volatility. New/uncertain players (high RD) move fast; established
+// players move slowly. Uses `ratingDeviation` + `volatility` columns on
+// profiles when present (defaults 350 / 0.06 otherwise).
+const GLICKO_SCALE = 173.7178;
+const GLICKO_TAU = 0.5;
+
+const glickoG = (phi: number) =>
+  1 / Math.sqrt(1 + (3 * phi * phi) / (Math.PI * Math.PI));
+
+const glickoE = (mu: number, muj: number, phij: number) =>
+  1 / (1 + Math.exp(-glickoG(phij) * (mu - muj)));
+
+const glicko2Update = (
+  player: { rating: number; rd: number; vol: number },
+  opponent: { rating: number; rd: number; vol: number },
+  score: number // 1 = win, 0 = loss
+) => {
+  const mu = (player.rating - 1500) / GLICKO_SCALE;
+  const phi = player.rd / GLICKO_SCALE;
+  const muj = (opponent.rating - 1500) / GLICKO_SCALE;
+  const phij = opponent.rd / GLICKO_SCALE;
+
+  const gj = glickoG(phij);
+  const e = glickoE(mu, muj, phij);
+  const v = 1 / (gj * gj * e * (1 - e));
+  const delta = v * gj * (score - e);
+
+  // iterate to the new volatility (Illinois algorithm)
+  const a = Math.log(player.vol * player.vol);
+  const f = (x: number) => {
+    const ex = Math.exp(x);
+    const d2 = delta * delta;
+    const p2 = phi * phi;
+    return (
+      (ex * (d2 - p2 - v - ex)) / (2 * Math.pow(p2 + v + ex, 2)) -
+      (x - a) / (GLICKO_TAU * GLICKO_TAU)
+    );
+  };
+  let A = a;
+  let B: number;
+  if (delta * delta > phi * phi + v) {
+    B = Math.log(delta * delta - phi * phi - v);
+  } else {
+    let k = 1;
+    while (f(a - k * GLICKO_TAU) < 0) k += 1;
+    B = a - k * GLICKO_TAU;
+  }
+  let fA = f(A);
+  let fB = f(B);
+  let iter = 0;
+  while (Math.abs(B - A) > 0.000001 && iter < 100) {
+    const C = A + ((A - B) * fA) / (fB - fA);
+    const fC = f(C);
+    if (fC * fB <= 0) {
+      A = B;
+      fA = fB;
+    } else {
+      fA = fA / 2;
+    }
+    B = C;
+    fB = fC;
+    iter += 1;
+  }
+  const newVol = Math.exp(A / 2);
+
+  const phiStar = Math.sqrt(phi * phi + newVol * newVol);
+  const newPhi = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+  const newMu = mu + newPhi * newPhi * gj * (score - e);
+
+  return {
+    rating: GLICKO_SCALE * newMu + 1500,
+    rd: GLICKO_SCALE * newPhi,
+    vol: newVol,
+  };
+};
+
+type RankedPlayer = {
+  id: string;
+  eloRating: number;
+  ratingDeviation?: number;
+  volatility?: number;
+};
+
+const updateGlicko2Ratings = (
+  playerOne: RankedPlayer,
+  playerTwo: RankedPlayer,
+  winnerId: string
+) => {
+  const p1 = {
+    rating: playerOne.eloRating,
+    rd: playerOne.ratingDeviation ?? 350,
+    vol: playerOne.volatility ?? 0.06,
+  };
+  const p2 = {
+    rating: playerTwo.eloRating,
+    rd: playerTwo.ratingDeviation ?? 350,
+    vol: playerTwo.volatility ?? 0.06,
+  };
+  const s1 = winnerId === playerOne.id ? 1 : 0;
+  const r1 = glicko2Update(p1, p2, s1);
+  const r2 = glicko2Update(p2, p1, 1 - s1);
+  return [
+    { playerId: playerOne.id, ...r1 },
+    { playerId: playerTwo.id, ...r2 },
+  ];
+};
+
+// Compute + persist ratings for a finished rated game (RANKED or TOURNAMENT).
+// Writes the Glicko-2 fields if the columns exist, else falls back to updating
+// the rating only — so it never freezes ratings even before the migration.
+export const applyRankedRatings = async (
+  game: Game,
+  winnerId: string | null
+) => {
+  if (
+    (game.gameType !== "RANKED" && game.gameType !== "TOURNAMENT") ||
+    winnerId == null
+  )
+    return;
+  const players = game.players as unknown as RankedPlayer[];
+  if (!players || players.length < 2) return;
+  // Don't rate bot-vs-bot (no human in the match).
+  const updated = updateGlicko2Ratings(players[0], players[1], winnerId);
+  for (const r of updated) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        eloRating: Math.round(r.rating),
+        ratingDeviation: Math.round(r.rd * 100) / 100,
+        volatility: Math.round(r.vol * 1e6) / 1e6,
+      } as never)
+      .eq("id", r.playerId);
+    if (error) {
+      console.log({ ratingUpdateError: error });
+      await supabase
+        .from("profiles")
+        .update({ eloRating: Math.round(r.rating) })
+        .eq("id", r.playerId);
+    }
+  }
+};
+
+// Pick the winner of a finished game from its scores. Solo needs a perfect
+// score; head-to-head modes take the higher score, and tournament matches must
+// always advance someone (higher rating breaks ties, incl. 0-0 no-shows).
+const pickWinner = (
+  game: Game,
+  scores: { playerId: string; score: number }[]
+): string | null => {
+  if (game.gameType === "SOLO") {
+    const top = scores.slice().sort((a, b) => b.score - a.score)[0];
+    return top && top.score === 100 ? top.playerId : null;
+  }
+  const sorted = scores.slice().sort((a, b) => b.score - a.score);
+  const [a, b] = sorted;
+  if (!a) return null;
+  if (!b) return a.score > 0 ? a.playerId : null;
+  if (a.score !== b.score) {
+    return a.score > 0 || game.gameType === "TOURNAMENT" ? a.playerId : null;
+  }
+  // tie
+  if (game.gameType === "TOURNAMENT") {
+    const players = game.players as unknown as RankedPlayer[];
+    const ra = players.find((p) => p.id === a.playerId)?.eloRating ?? 0;
+    const rb = players.find((p) => p.id === b.playerId)?.eloRating ?? 0;
+    return ra >= rb ? a.playerId : b.playerId;
+  }
+  return a.score > 0 ? a.playerId : null;
+};
+
+// Finalize a PLAYING game: score it, set the winner, apply ratings, mark it
+// COMPLETED, and (if it's a tournament match) advance the bracket. Idempotent —
+// calling it on an already-finished game is a no-op. Shared by the client
+// finish/forfeit endpoints and the server-side timeout sweeper.
+export const finalizeGame = async (
+  gameId: string,
+  opts?: { forfeitProfileId?: string }
+): Promise<string | null> => {
+  const { data: games } = await supabase
+    .from("games")
+    .select("*, players:profiles!gamePlayers(*), crossword:crosswords(*)")
+    .eq("id", gameId)
+    .returns<Game[]>();
+
+  if (!games?.length) return null;
+  const [game] = games;
+  if (game.playState !== "PLAYING") return game.winnerId;
+
+  let scores: { playerId: string; score: number }[];
+  if (opts?.forfeitProfileId) {
+    scores = game.players.map((player) => ({
+      playerId: player.id,
+      score: player.id === opts.forfeitProfileId ? 0 : 100,
+    }));
+  } else {
+    scores = game.players.map((player) => ({
+      playerId: player.id,
+      score: calculateScore({
+        correctSolution: game.crossword?.solution as unknown as string[][],
+        solution: game.gameState?.[player.id]?.solution as unknown as
+          | string[][]
+          | undefined,
+      }),
+    }));
+  }
+
+  const winnerId = pickWinner(game, scores);
+
+  for (const s of scores) {
+    await supabase
+      .from("gamePlayers")
+      .update({ score: s.score })
+      .eq("gamesId", gameId)
+      .eq("profilesId", s.playerId);
+  }
+  await applyRankedRatings(game, winnerId);
+  await supabase
+    .from("games")
+    .update({ playState: "COMPLETED", winnerId })
+    .eq("id", gameId);
+
+  // Advance the bracket if this game backs a tournament match.
+  if (game.gameType === "TOURNAMENT") {
+    await onTournamentGameFinished(gameId, winnerId);
+  }
+
+  return winnerId;
 };
