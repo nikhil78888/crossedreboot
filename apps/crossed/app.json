@@ -46,6 +46,9 @@
       ],
       [
         "./plugins/withPrivacyManifest"
+      ],
+      [
+        "./plugins/withModularHeadersFix"
       ]
     ],
     "scheme": "crossed",
