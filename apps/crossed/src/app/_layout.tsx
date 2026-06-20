@@ -1,5 +1,6 @@
 import "../../global.css";
 import "../lib/nativewind-interop";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
@@ -126,6 +127,7 @@ export default function IndexLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ErrorBoundary>
     <KeyboardProvider>
       <Stack
@@ -216,5 +218,6 @@ export default function IndexLayout() {
       </Stack>
     </KeyboardProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
