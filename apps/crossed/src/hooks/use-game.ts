@@ -56,6 +56,13 @@ It subscribes to a game in the `games` table with `gameId`
 for changes, and updates the game variable.
 */
 
+// Time limit scales with puzzle size: minis keep their base; bigger boards get
+// more time (7x7/8x8 -> 5 min, 9x9 -> 7 min).
+export const durationForSize = (
+  size: number | null | undefined,
+  base: number
+) => (size && size >= 9 ? 420 : size && size >= 7 ? 300 : base);
+
 export const useGame = ({ gameId }: { gameId?: string }) => {
   const { myProfile, refreshMyProfile } = useMyProfile();
   const { refreshStats } = useStats();
@@ -150,7 +157,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               crosswordsId: crosswordId,
               gameType: "SOLO",
               playState: "PLAYING",
-              gameDurationInSeconds: 300,
+              gameDurationInSeconds: durationForSize(data?.[0]?.size, 300),
             })
             .select("*")
             .single();
@@ -189,7 +196,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               crosswordsId: crosswordId,
               gameType: "FRIENDLY",
               playState: "WAITING_FOR_OPPONENT",
-              gameDurationInSeconds: 180,
+              gameDurationInSeconds: durationForSize(data?.[0]?.size, 180),
             })
             .select("*")
             .single();
@@ -286,7 +293,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
                 gameType: "RANKED",
                 playState: "PLAYING",
                 startedAt: addSeconds(new Date(), 10).toISOString(),
-                gameDurationInSeconds: 180,
+                gameDurationInSeconds: durationForSize(data?.[0]?.size, 180),
               })
               .select("*")
               .single();

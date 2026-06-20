@@ -1,6 +1,10 @@
 import { addSeconds } from "date-fns";
 import { supabase } from "../lib/supabase";
 
+// Time limit scales with puzzle size (7x7/8x8 -> 5 min, 9x9 -> 7 min).
+const durationForSize = (size: number | null | undefined, base: number) =>
+  size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
+
 export const createRankedMatch = async (
   playerOneId: string,
   playerTwoId: string
@@ -22,7 +26,7 @@ export const createRankedMatch = async (
       crosswordsId: data[0].id,
       gameType: "RANKED",
       playState: "PLAYING",
-      gameDurationInSeconds: 180,
+      gameDurationInSeconds: durationForSize(data[0]?.size, 180),
       startedAt: addSeconds(new Date(), 10).toISOString(),
     })
     .select("*")

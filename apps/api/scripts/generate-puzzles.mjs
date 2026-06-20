@@ -35,12 +35,23 @@ const getArg = (name, def) => {
 };
 const COUNT = parseInt(getArg("count", "5"), 10);
 const DRY_RUN = args.includes("--dry-run");
-const SIZE = 5;
+const SIZE = parseInt(getArg("size", "5"), 10);
+// Cap word length so larger grids stay fillable. 5x5 minis use up to 5; bigger
+// boards cap at 5-letter words (more black squares, reliably fillable).
+const MAX_SLOT = SIZE <= 5 ? SIZE : SIZE >= 9 ? 4 : 5;
+const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
 
-// ---- 5x5 patterns (1 = fillable, 0 = black). Rotationally symmetric. ----
-// A mix keeps the batch varied; black squares create shorter slots that fill
-// reliably and read like real NYT minis.
-const PATTERNS = [
+const rand = (n) => Math.floor(Math.random() * n);
+const shuffle = (a) => {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rand(i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+// ---- proven 5x5 patterns (1 = fillable, 0 = black). ----
+const PATTERNS_5 = [
   [
     [0, 1, 1, 1, 1],
     [1, 1, 1, 1, 1],
@@ -64,19 +75,83 @@ const PATTERNS = [
   ],
 ];
 
-// ---- dictionary ----
-const rand = (n) => Math.floor(Math.random() * n);
-const shuffle = (a) => {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = rand(i + 1);
-    [a[i], a[j]] = [a[j], a[i]];
+// ---- pattern generator for larger sizes ----
+// Random 180°-symmetric black squares, validated so every white cell is in both
+// an across and a down word of length 2..MAX_SLOT, and all white cells connect.
+const runLen = (g, r, c, dr, dc) => {
+  let n = 0,
+    rr = r,
+    cc = c;
+  while (rr >= 0 && rr < SIZE && cc >= 0 && cc < SIZE && g[rr][cc] === 1) {
+    n++;
+    rr += dr;
+    cc += dc;
   }
-  return a;
+  return n;
+};
+
+const isValidPattern = (g) => {
+  let whiteCount = 0;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (g[r][c] !== 1) continue;
+      whiteCount++;
+      const across = runLen(g, r, c, 0, 1) + runLen(g, r, c, 0, -1) - 1;
+      const down = runLen(g, r, c, 1, 0) + runLen(g, r, c, -1, 0) - 1;
+      if (across < 2 && down < 2) return false; // no isolated cells
+      if (across > MAX_SLOT || down > MAX_SLOT) return false;
+    }
+  }
+  // connectivity
+  let start = null;
+  for (let r = 0; r < SIZE && !start; r++)
+    for (let c = 0; c < SIZE && !start; c++) if (g[r][c] === 1) start = [r, c];
+  if (!start) return false;
+  const seen = new Set();
+  const stack = [start];
+  while (stack.length) {
+    const [r, c] = stack.pop();
+    const k = `${r},${c}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const nr = r + dr,
+        nc = c + dc;
+      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && g[nr][nc] === 1)
+        stack.push([nr, nc]);
+    }
+  }
+  return seen.size === whiteCount;
+};
+
+const generatePattern = () => {
+  if (SIZE <= 5) return PATTERNS_5[rand(PATTERNS_5.length)];
+  const density = SIZE <= 7 ? 0.18 : 0.22;
+  const target = Math.round(SIZE * SIZE * density);
+  for (let attempt = 0; attempt < 1500; attempt++) {
+    const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
+    let placed = 0,
+      guard = 0;
+    while (placed < target && guard < 400) {
+      guard++;
+      const r = rand(SIZE),
+        c = rand(SIZE);
+      const r2 = SIZE - 1 - r,
+        c2 = SIZE - 1 - c;
+      if (g[r][c] === 1 && g[r2][c2] === 1) {
+        g[r][c] = 0;
+        g[r2][c2] = 0;
+        placed += r === r2 && c === c2 ? 1 : 2;
+      }
+    }
+    if (isValidPattern(g)) return g;
+  }
+  return null;
 };
 
 async function loadDict() {
   const dict = {}; // length -> [{word, clue}]
-  for (const len of [3, 4, 5]) {
+  for (let len = 3; len <= MAX_DICT_LEN; len++) {
     const url =
       `${SUPABASE_URL}/rest/v1/words?select=word,clue,score` +
       `&wordLength=eq.${len}&clue=not.is.null&order=score.desc.nullslast&limit=12000`;
@@ -89,7 +164,7 @@ async function loadDict() {
       const clue = (r.clue || "").trim();
       // quality filter: drop malformed/cryptic/self-revealing clues
       if (clue.length < 4) continue;
-      if (/\(\d+\)\s*$/.test(clue)) continue; // cryptic length suffix e.g. "(3)"
+      if (/\(\d[\d,\-\s]*\)/.test(clue)) continue; // cryptic enumerations e.g. "(3)", "(4-3)"
       if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue; // starts with stray punctuation
       if (clue.toUpperCase().includes(w)) continue; // clue gives away the answer
       seen.add(w);
@@ -128,29 +203,54 @@ function getSlots(pattern) {
   return slots;
 }
 
+// Index words by (length, position, letter) so candidate lookups don't scan the
+// whole dictionary every step — this is what makes 7x7+ grids fillable.
+function buildIndex(dict) {
+  const index = {};
+  for (const len of Object.keys(dict)) {
+    const m = {};
+    for (const entry of dict[len]) {
+      for (let i = 0; i < entry.word.length; i++) {
+        const key = `${i}:${entry.word[i]}`;
+        (m[key] ||= []).push(entry);
+      }
+    }
+    index[len] = m;
+  }
+  return index;
+}
+
 // ---- backtracking fill ----
-function fillGrid(pattern, dict) {
+function fillGrid(pattern, dict, index) {
   const grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
   const slots = getSlots(pattern);
   const usedWords = new Set();
   let backtracks = 0;
-  const MAX_BACKTRACKS = 20000;
-
-  const currentPattern = (slot) =>
-    slot.cells.map(([r, c]) => grid[r][c] || ".").join("");
+  const MAX_BACKTRACKS = SIZE >= 8 ? 200000 : SIZE >= 7 ? 100000 : 20000;
 
   const candidates = (slot) => {
-    const pat = currentPattern(slot);
-    const pool = dict[slot.cells.length] || [];
-    const out = [];
-    for (const entry of pool) {
-      if (usedWords.has(entry.word)) continue;
-      let ok = true;
-      for (let i = 0; i < pat.length; i++) {
-        if (pat[i] !== "." && pat[i] !== entry.word[i]) { ok = false; break; }
+    const len = slot.cells.length;
+    const fixed = [];
+    slot.cells.forEach(([r, c], i) => {
+      if (grid[r][c]) fixed.push([i, grid[r][c]]);
+    });
+    let pool;
+    if (fixed.length === 0) {
+      pool = dict[len] || [];
+    } else {
+      // start from the smallest indexed list among the fixed letters
+      let smallest = null;
+      for (const [p, ch] of fixed) {
+        const list = (index[len] && index[len][`${p}:${ch}`]) || [];
+        if (smallest === null || list.length < smallest.length) smallest = list;
       }
-      if (ok) out.push(entry);
+      pool = smallest || [];
+      if (fixed.length > 1) {
+        pool = pool.filter((e) => fixed.every(([p, ch]) => e.word[p] === ch));
+      }
     }
+    const out = [];
+    for (const e of pool) if (!usedWords.has(e.word)) out.push(e);
     return out;
   };
 
@@ -267,11 +367,14 @@ async function insertPuzzle(p) {
 (async () => {
   console.log("Loading dictionary…");
   const dict = await loadDict();
+  const index = buildIndex(dict);
   let made = 0, attempts = 0;
-  while (made < COUNT && attempts < COUNT * 30) {
+  const attemptCap = COUNT * (SIZE >= 8 ? 200 : SIZE >= 7 ? 100 : 30);
+  while (made < COUNT && attempts < attemptCap) {
     attempts++;
-    const pattern = PATTERNS[rand(PATTERNS.length)];
-    const filled = fillGrid(pattern, dict);
+    const pattern = generatePattern();
+    if (!pattern) continue;
+    const filled = fillGrid(pattern, dict, index);
     if (!filled) continue;
     const p = buildPuzzle(pattern, filled.grid, dict);
     if (!p.allClued) continue; // skip puzzles missing any clue
