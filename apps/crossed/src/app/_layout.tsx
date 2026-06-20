@@ -38,6 +38,7 @@ import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { Alert } from "react-native";
 import { useAuth } from "../hooks/use-auth";
+import { useHeartbeat } from "../hooks/use-heartbeat";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
 import { BackButton } from "../components/BackButton";
@@ -91,6 +92,9 @@ export default function IndexLayout() {
       }
     }
   }, [isReady, router, segments, user]);
+
+  // Keep online presence fresh for the friends list.
+  useHeartbeat();
 
   // Check for updates
   useEffect(() => {
@@ -205,6 +209,7 @@ export default function IndexLayout() {
             headerBackVisible: false,
           }}
         />
+        <Stack.Screen name="friends" options={{ headerTitle: "Friends" }} />
         <Stack.Screen
           name="upgrade-to-pro"
           options={{

@@ -136,6 +136,7 @@ export interface Database {
           startedAt: string | null
           winnerId: string | null
           rematchGamesId: string | null
+          invitedProfileId: string | null
         }
         Insert: {
           createdAt?: string
@@ -148,6 +149,7 @@ export interface Database {
           startedAt?: string | null
           winnerId?: string | null
           rematchGamesId?: string | null
+          invitedProfileId?: string | null
         }
         Update: {
           createdAt?: string
@@ -160,6 +162,7 @@ export interface Database {
           startedAt?: string | null
           winnerId?: string | null
           rematchGamesId?: string | null
+          invitedProfileId?: string | null
         }
         Relationships: [
           {
@@ -191,6 +194,33 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+      friendships: {
+        Row: {
+          id: string
+          requesterId: string
+          addresseeId: string
+          status: string
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          requesterId: string
+          addresseeId: string
+          status?: string
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          requesterId?: string
+          addresseeId?: string
+          status?: string
+          createdAt?: string
+          updatedAt?: string
+        }
+        Relationships: []
       }
       rankedQueue: {
         Row: {
@@ -321,6 +351,7 @@ export interface Database {
           type: Database["public"]["Enums"]["ProfileType"]
           userId: string
           username: string
+          lastSeenAt: string | null
         }
         Insert: {
           avatar?: string | null
@@ -333,6 +364,7 @@ export interface Database {
           type?: Database["public"]["Enums"]["ProfileType"]
           userId: string
           username: string
+          lastSeenAt?: string | null
         }
         Update: {
           avatar?: string | null
@@ -345,6 +377,7 @@ export interface Database {
           type?: Database["public"]["Enums"]["ProfileType"]
           userId?: string
           username?: string
+          lastSeenAt?: string | null
         }
         Relationships: []
       }

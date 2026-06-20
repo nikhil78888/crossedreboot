@@ -138,7 +138,7 @@ export default function Game() {
       <View className="flex-1 items-center justify-center bg-white px-6">
         <WaitingSpinner />
         <Text className="mt-4 text-center font-[jost600] text-base">
-          Waiting for your opponent to accept the rematch…
+          Waiting for your opponent to join…
         </Text>
         <View className="mt-8 w-full">
           <Button

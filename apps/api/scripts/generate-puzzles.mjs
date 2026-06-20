@@ -104,7 +104,10 @@ const isValidPattern = (g) => {
       whiteCount++;
       const across = runLen(g, r, c, 0, 1) + runLen(g, r, c, 0, -1) - 1;
       const down = runLen(g, r, c, 1, 0) + runLen(g, r, c, -1, 0) - 1;
-      if (across < 2 && down < 2) return false; // no isolated cells
+      // Every white cell must belong to a real word (>=2) in at least one
+      // direction, so no square is ever isolated/unclued. (Full interlock isn't
+      // feasible at 7x7 with common words, but every cell always has a clue.)
+      if (across < 2 && down < 2) return false;
       if (across > MAX_SLOT || down > MAX_SLOT) return false;
     }
   }

@@ -9,6 +9,7 @@ import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { getRank } from "../../lib/rank";
+import { useFriends } from "../../hooks/use-friends";
 
 export default function Home() {
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
@@ -16,6 +17,7 @@ export default function Home() {
     gameId: currentGameId,
   });
   const { myProfile } = useMyProfile();
+  const { invites, requests } = useFriends();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -63,19 +65,49 @@ export default function Home() {
             Ready for a match?
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={() => router.push("/leaderboard")}
-          className="items-center rounded-2xl px-3 py-2 bg-crossed-gray-50"
-        >
-          <Text style={{ fontSize: 28 }}>{rank.emoji}</Text>
-          <Text
-            className="font-[jost600] text-xs mt-0.5"
-            style={{ color: rank.color }}
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.push("/friends")}
+            className="items-center rounded-2xl px-3 py-2 bg-crossed-gray-50 mr-2"
           >
-            {rank.label}
-          </Text>
-        </TouchableOpacity>
+            <Text style={{ fontSize: 28 }}>👥</Text>
+            <Text className="font-[jost600] text-xs mt-0.5">Friends</Text>
+            {!!requests?.length && (
+              <View className="absolute -top-1 -right-1 rounded-full bg-crossed-red-500 min-w-[18px] h-[18px] items-center justify-center px-1">
+                <Text className="text-white font-[jost700] text-[10px]">
+                  {requests.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/leaderboard")}
+            className="items-center rounded-2xl px-3 py-2 bg-crossed-gray-50"
+          >
+            <Text style={{ fontSize: 28 }}>{rank.emoji}</Text>
+            <Text
+              className="font-[jost600] text-xs mt-0.5"
+              style={{ color: rank.color }}
+            >
+              {rank.label}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Incoming friendly-match invite from a friend */}
+      {!!invites?.length && (
+        <TouchableOpacity
+          onPress={() => router.push(`/join-game?gameId=${invites[0].gameId}`)}
+          className="mt-3 rounded-xl bg-crossed-green-100 px-4 py-3 flex-row items-center"
+        >
+          <Text style={{ fontSize: 22 }}>🎮</Text>
+          <Text className="ml-2 flex-1 font-[jost600] text-crossed-gray-900">
+            {invites[0].from?.username || "A friend"} invited you to play
+          </Text>
+          <Text className="font-[jost700] text-crossed-blue-450">Join</Text>
+        </TouchableOpacity>
+      )}
 
       <View className="mt-4">
         <NewGameButtons />
