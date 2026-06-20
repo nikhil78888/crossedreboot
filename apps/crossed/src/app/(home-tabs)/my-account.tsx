@@ -2,6 +2,7 @@ import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
 import { Button } from "../../components/Button";
 import { useMyProfile } from "../../hooks/use-my-profile";
+import { RankBadge } from "../../components/RankBadge";
 import { avatars, images } from "../../lib/images";
 import { Avatar } from "react-native-ui-lib";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -66,6 +67,9 @@ export default function MyAccount() {
         <Text className="mt-4 font-[jost500] text-cr-gray-800 text-2xl">
           @{myProfile?.username}
         </Text>
+        <View className="mt-4">
+          <RankBadge rating={myProfile?.eloRating} size="lg" />
+        </View>
       </View>
       {user.isAnonymous ? (
         <AccountPageButton

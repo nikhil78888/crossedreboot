@@ -56,6 +56,20 @@ export default function HomeLayout() {
         }}
       />
       <Tabs.Screen
+        name="leaderboard"
+        options={{
+          tabBarLabel: "Ranks",
+          headerTitle: "Leaderboard",
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={images.rating}
+              className="h-5 w-5"
+              style={{ tintColor: color }}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="my-account"
         options={{
           headerTitle: "My Account",

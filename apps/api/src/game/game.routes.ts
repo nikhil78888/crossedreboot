@@ -139,25 +139,7 @@ gameRouter.post("/finish-game", async (req, res) => {
       .eq("gamesId", gameId)
       .eq("profilesId", scores[i].playerId);
   }
-  if (game.gameType === "RANKED" && winnerId !== null) {
-    const updatedRatings = updateEloRatings(
-      { id: game.players[0].id, eloRating: game.players[0].eloRating },
-      { id: game.players[1].id, eloRating: game.players[1].eloRating },
-      winnerId
-    );
-    console.log({ updatedRatings });
-    for (let i = 0; i < updatedRatings.length; i += 1) {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          eloRating: Math.round(updatedRatings[i].rating),
-        })
-        .eq("id", updatedRatings[i].playerId);
-      if (error) {
-        console.log({ error });
-      }
-    }
-  }
+  await applyRankedRatings(game, winnerId);
   await supabase
     .from("games")
     .update({ playState: "COMPLETED", winnerId })
@@ -204,25 +186,7 @@ gameRouter.post("/forfeit-game", async (req, res) => {
       .eq("gamesId", gameId)
       .eq("profilesId", scores[i].playerId);
   }
-  if (game.gameType === "RANKED" && winnerId !== null) {
-    const updatedRatings = updateEloRatings(
-      { id: game.players[0].id, eloRating: game.players[0].eloRating },
-      { id: game.players[1].id, eloRating: game.players[1].eloRating },
-      winnerId
-    );
-    console.log({ updatedRatings });
-    for (let i = 0; i < updatedRatings.length; i += 1) {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          eloRating: Math.round(updatedRatings[i].rating),
-        })
-        .eq("id", updatedRatings[i].playerId);
-      if (error) {
-        console.log({ error });
-      }
-    }
-  }
+  await applyRankedRatings(game, winnerId);
   await supabase
     .from("games")
     .update({ playState: "COMPLETED", winnerId })
@@ -230,43 +194,144 @@ gameRouter.post("/forfeit-game", async (req, res) => {
   res.send(200);
 });
 
-const updateEloRatings = (
-  playerOne: { eloRating: number; id: string },
-  playerTwo: { eloRating: number; id: string },
-  winnerId: string
+// --- Glicko-2 rating system (the system chess.com uses) --------------------
+// Each player has a rating, a rating deviation (RD = how uncertain the rating
+// is) and a volatility. New/uncertain players (high RD) move fast; established
+// players move slowly. Uses `ratingDeviation` + `volatility` columns on
+// profiles when present (defaults 350 / 0.06 otherwise).
+const GLICKO_SCALE = 173.7178;
+const GLICKO_TAU = 0.5;
+
+const glickoG = (phi: number) =>
+  1 / Math.sqrt(1 + (3 * phi * phi) / (Math.PI * Math.PI));
+
+const glickoE = (mu: number, muj: number, phij: number) =>
+  1 / (1 + Math.exp(-glickoG(phij) * (mu - muj)));
+
+const glicko2Update = (
+  player: { rating: number; rd: number; vol: number },
+  opponent: { rating: number; rd: number; vol: number },
+  score: number // 1 = win, 0 = loss
 ) => {
-  const K = 32;
-  const Pa = winningProbability(playerTwo.eloRating, playerOne.eloRating);
-  const Pb = winningProbability(playerOne.eloRating, playerTwo.eloRating);
-  if (winnerId === playerOne.id) {
-    return [
-      {
-        playerId: playerOne.id,
-        rating: playerOne.eloRating + K * (1 - Pa),
-      },
-      {
-        playerId: playerTwo.id,
-        rating: playerTwo.eloRating + K * (0 - Pb),
-      },
-    ];
+  const mu = (player.rating - 1500) / GLICKO_SCALE;
+  const phi = player.rd / GLICKO_SCALE;
+  const muj = (opponent.rating - 1500) / GLICKO_SCALE;
+  const phij = opponent.rd / GLICKO_SCALE;
+
+  const gj = glickoG(phij);
+  const e = glickoE(mu, muj, phij);
+  const v = 1 / (gj * gj * e * (1 - e));
+  const delta = v * gj * (score - e);
+
+  // iterate to the new volatility (Illinois algorithm)
+  const a = Math.log(player.vol * player.vol);
+  const f = (x: number) => {
+    const ex = Math.exp(x);
+    const d2 = delta * delta;
+    const p2 = phi * phi;
+    return (
+      (ex * (d2 - p2 - v - ex)) / (2 * Math.pow(p2 + v + ex, 2)) -
+      (x - a) / (GLICKO_TAU * GLICKO_TAU)
+    );
+  };
+  let A = a;
+  let B: number;
+  if (delta * delta > phi * phi + v) {
+    B = Math.log(delta * delta - phi * phi - v);
   } else {
-    return [
-      {
-        playerId: playerOne.id,
-        rating: playerOne.eloRating + K * (0 - Pa),
-      },
-      {
-        playerId: playerTwo.id,
-        rating: playerTwo.eloRating + K * (1 - Pb),
-      },
-    ];
+    let k = 1;
+    while (f(a - k * GLICKO_TAU) < 0) k += 1;
+    B = a - k * GLICKO_TAU;
   }
+  let fA = f(A);
+  let fB = f(B);
+  let iter = 0;
+  while (Math.abs(B - A) > 0.000001 && iter < 100) {
+    const C = A + ((A - B) * fA) / (fB - fA);
+    const fC = f(C);
+    if (fC * fB <= 0) {
+      A = B;
+      fA = fB;
+    } else {
+      fA = fA / 2;
+    }
+    B = C;
+    fB = fC;
+    iter += 1;
+  }
+  const newVol = Math.exp(A / 2);
+
+  const phiStar = Math.sqrt(phi * phi + newVol * newVol);
+  const newPhi = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+  const newMu = mu + newPhi * newPhi * gj * (score - e);
+
+  return {
+    rating: GLICKO_SCALE * newMu + 1500,
+    rd: GLICKO_SCALE * newPhi,
+    vol: newVol,
+  };
 };
 
-function winningProbability(rating1: number, rating2: number) {
-  const diff = rating1 - rating2;
-  return 1 / (1 + Math.pow(10, diff / 400));
-}
+type RankedPlayer = {
+  id: string;
+  eloRating: number;
+  ratingDeviation?: number;
+  volatility?: number;
+};
+
+const updateGlicko2Ratings = (
+  playerOne: RankedPlayer,
+  playerTwo: RankedPlayer,
+  winnerId: string
+) => {
+  const p1 = {
+    rating: playerOne.eloRating,
+    rd: playerOne.ratingDeviation ?? 350,
+    vol: playerOne.volatility ?? 0.06,
+  };
+  const p2 = {
+    rating: playerTwo.eloRating,
+    rd: playerTwo.ratingDeviation ?? 350,
+    vol: playerTwo.volatility ?? 0.06,
+  };
+  const s1 = winnerId === playerOne.id ? 1 : 0;
+  const r1 = glicko2Update(p1, p2, s1);
+  const r2 = glicko2Update(p2, p1, 1 - s1);
+  return [
+    { playerId: playerOne.id, ...r1 },
+    { playerId: playerTwo.id, ...r2 },
+  ];
+};
+
+// Compute + persist ranked ratings for a finished game. Writes the Glicko-2
+// fields if the columns exist, else falls back to updating the rating only —
+// so it never freezes ratings even before the migration is applied.
+const applyRankedRatings = async (
+  game: Game,
+  winnerId: string | null
+) => {
+  if (game.gameType !== "RANKED" || winnerId == null) return;
+  const players = game.players as unknown as RankedPlayer[];
+  if (!players || players.length < 2) return;
+  const updated = updateGlicko2Ratings(players[0], players[1], winnerId);
+  for (const r of updated) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        eloRating: Math.round(r.rating),
+        ratingDeviation: Math.round(r.rd * 100) / 100,
+        volatility: Math.round(r.vol * 1e6) / 1e6,
+      } as never)
+      .eq("id", r.playerId);
+    if (error) {
+      console.log({ ratingUpdateError: error });
+      await supabase
+        .from("profiles")
+        .update({ eloRating: Math.round(r.rating) })
+        .eq("id", r.playerId);
+    }
+  }
+};
 
 const calculateScore = ({
   correctSolution,
