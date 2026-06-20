@@ -40,10 +40,22 @@ const SIZE = parseInt(getArg("size", "5"), 10);
 // boards cap at 5-letter words (more black squares, reliably fillable).
 const MAX_SLOT = SIZE <= 5 ? SIZE : SIZE >= 9 ? 4 : 5;
 const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
-// Only allow answers at least this common (rank in a frequency list). Lower =
-// easier/more common. ~40k keeps answers recognizable ("oh, that makes sense")
-// without being trivially easy. Tunable via --maxrank.
-const MAX_FREQ_RANK = parseInt(getArg("maxrank", "40000"), 10);
+// Max frequency rank allowed per word length (lower = more common = easier).
+// Short crossing words are the usual source of obscure "huh?" fill, so they're
+// held to very common words; longer words get a little more leeway so grids
+// stay fillable.
+const maxRankForLen = (len) =>
+  len <= 3
+    ? 9000
+    : len === 4
+    ? 13000
+    : len === 5
+    ? 18000
+    : len === 6
+    ? 28000
+    : len === 7
+    ? 42000
+    : 50000;
 const FREQ_URL =
   "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";
 
@@ -181,7 +193,7 @@ async function loadDict(freqRank) {
   const dict = {}; // length -> [{word, clue}] ordered most-common-first
   for (let len = 3; len <= MAX_DICT_LEN; len++) {
     const common = [...freqRank.entries()]
-      .filter(([w, r]) => w.length === len && r <= MAX_FREQ_RANK)
+      .filter(([w, r]) => w.length === len && r <= maxRankForLen(len))
       .sort((a, b) => a[1] - b[1])
       .map(([w]) => w);
     const clueOf = {};

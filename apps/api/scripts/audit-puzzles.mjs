@@ -29,7 +29,19 @@ const getArg = (name, def) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 && args[i + 1] ? args[i + 1] : def;
 };
-const MAX_FREQ_RANK = parseInt(getArg("maxrank", "40000"), 10);
+// Same per-length commonness thresholds the generator uses.
+const maxRankForLen = (len) =>
+  len <= 3
+    ? 9000
+    : len === 4
+    ? 13000
+    : len === 5
+    ? 18000
+    : len === 6
+    ? 28000
+    : len === 7
+    ? 42000
+    : 50000;
 const APPLY = args.includes("--apply");
 const FREQ_URL =
   "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";
@@ -86,7 +98,7 @@ function wordsFromSolution(solution) {
   const rank = await loadFreq();
   const isCommon = (w) => {
     const r = rank.get(w);
-    return r !== undefined && r <= MAX_FREQ_RANK;
+    return r !== undefined && r <= maxRankForLen(w.length);
   };
 
   console.log("Fetching published puzzles…");
