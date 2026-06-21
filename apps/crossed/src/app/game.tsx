@@ -3,7 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { ConnectionBanner } from "../components/ConnectionBanner";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { events, trackEvent } from "../lib/track-event";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -96,8 +96,14 @@ export default function Game() {
     }
   }, [finishGame, forfeitGame, gameType, navigation]);
 
+  const navigatedAway = useRef(false);
   useEffect(() => {
-    if (gamePlayState === "COMPLETED" && navigation.isFocused()) {
+    if (
+      gamePlayState === "COMPLETED" &&
+      navigation.isFocused() &&
+      !navigatedAway.current
+    ) {
+      navigatedAway.current = true;
       if (gameType === "TOURNAMENT") {
         // Head back to the bracket (look up the tournament if not passed in).
         const goBack = async () => {

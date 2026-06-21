@@ -4,7 +4,7 @@ import {
   useRouter,
 } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Avatar } from "react-native-ui-lib";
 import { useTournament, TournamentMatch } from "../hooks/use-tournament";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -34,9 +34,17 @@ export default function Tournament() {
     isChampion,
   } = useTournament({ tournamentId: tournamentId as string | undefined });
 
-  // When my live match has a game ready, drop into it.
+  // When my live match has a game ready, drop into it — but only ONCE per game.
+  // Otherwise, when a finished game's match briefly still reads "PLAYING", this
+  // screen and the game screen bounce back and forth (max-update-depth crash).
+  const enteredGames = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (myActiveGameId && navigation.isFocused()) {
+    if (
+      myActiveGameId &&
+      navigation.isFocused() &&
+      !enteredGames.current.has(myActiveGameId)
+    ) {
+      enteredGames.current.add(myActiveGameId);
       router.replace(
         `/game?gameId=${myActiveGameId}&tournamentId=${tournamentId}`
       );
