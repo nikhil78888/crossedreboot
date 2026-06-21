@@ -11,6 +11,7 @@
 //
 import fs from "fs";
 import path from "path";
+import CURATED from "./curated-words.mjs";
 
 // ---- env ----
 const envText = fs.readFileSync(path.join(process.cwd(), ".env"), "utf8");
@@ -241,52 +242,86 @@ const clueScore = (clue, freqRank) => {
   return s;
 };
 // A word is only kept if it has at least one clue this clean.
-const MAX_CLUE_SCORE = 30;
+const MAX_CLUE_SCORE = 24;
+
+// Never allow offensive/slur/adult/crude words in the fill (the frequency list
+// and dictionary include some). Block-list + a couple of stem checks.
+const BLOCKLIST = new Set([
+  "NEGRO", "COON", "SPIC", "KIKE", "WOP", "DAGO", "GOOK", "CHINK", "WETBACK",
+  "FAG", "FAGS", "DYKE", "TRANNY", "RETARD", "SPAZ", "CRIPPLE",
+  "ANAL", "ANUS", "SEX", "SEXY", "SEXED", "NUDE", "NUDES", "NAKED", "PORN",
+  "PENIS", "VAGINA", "BOOB", "BOOBS", "BUTT", "TITS", "TIT", "ARSE", "ASS",
+  "CRAP", "CRAPS", "DAMN", "DAMNS", "HELL", "PISS", "TURD", "SCUM", "SLUT",
+  "WHORE", "RAPE", "RAPED", "RAPES", "KILL", "KILLS", "DEAD", "DIES", "DYING",
+  "DRUG", "DRUGS", "WEED", "DOPE", "OPIUM", "BOMB", "GUNS",
+]);
+const isBlocked = (w) => BLOCKLIST.has(w);
 
 // Build the dictionary from COMMON words only (frequency-ranked), pulling each
 // word's clue from the DB. This is the fix for "puzzles too hard": answers are
 // now recognizable everyday words instead of obscure cryptic-crossword fill.
+// Hybrid dictionary: fill from the large pool of common, real (non-proper-noun)
+// words so fully-interlocked grids are fillable, but use a hand-authored
+// original clue whenever one exists (curated words are listed first so the fill
+// favors them), falling back to a filtered DB clue otherwise. Every answer is
+// common; most clues are original.
 async function loadDict(freqRank, dictionaryWords) {
-  const dict = {}; // length -> [{word, clue}] ordered most-common-first
+  const dict = {};
   for (let len = 3; len <= MAX_DICT_LEN; len++) {
+    const curated = {};
+    for (const [w, clue] of Object.entries(CURATED[len] || {})) {
+      if (/^[A-Z]+$/.test(w) && w.length === len && !isBlocked(w))
+        curated[w] = clue;
+    }
     const common = [...freqRank.entries()]
       .filter(
         ([w, r]) =>
           w.length === len &&
           r <= maxRankForLen(len) &&
-          dictionaryWords.has(w) // real word, not a proper noun
+          !isBlocked(w) &&
+          (dictionaryWords.has(w) || curated[w])
       )
       .sort((a, b) => a[1] - b[1])
       .map(([w]) => w);
-    const clueOf = {};
-    const clueScoreOf = {};
-    for (let i = 0; i < common.length; i += 150) {
-      const batch = common.slice(i, i + 150);
+    // make sure every curated word is a fill candidate even if it's rarer
+    for (const w of Object.keys(curated)) if (!common.includes(w)) common.push(w);
+
+    const clueOf = { ...curated };
+    const need = common.filter((w) => !clueOf[w]);
+    for (let i = 0; i < need.length; i += 150) {
+      const batch = need.slice(i, i + 150);
       const inList = batch.map((w) => `"${w}"`).join(",");
       const url =
         `${SUPABASE_URL}/rest/v1/words?select=word,clue&clue=not.is.null` +
         `&word=in.(${encodeURIComponent(inList)})`;
       const rows = await (await fetch(url, { headers })).json();
       if (!Array.isArray(rows)) continue;
+      const best = {};
       for (const r of rows) {
         const w = (r.word || "").toUpperCase();
-        if (w.length !== len || !/^[A-Z]+$/.test(w)) continue;
+        if (w.length !== len || !/^[A-Z]+$/.test(w) || clueOf[w]) continue;
         const clue = stripClue(r.clue);
         if (clue.length < 4) continue;
-        if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue; // stray punctuation start
-        if (clue.toUpperCase().includes(w)) continue; // gives away the answer
-        // keep the simplest (most definitional) clue for each word
+        if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue;
+        if (clue.toUpperCase().includes(w)) continue;
         const sc = clueScore(clue, freqRank);
-        if (clueScoreOf[w] === undefined || sc < clueScoreOf[w]) {
+        if (sc > MAX_CLUE_SCORE) continue;
+        if (best[w] === undefined || sc < best[w]) {
+          best[w] = sc;
           clueOf[w] = clue;
-          clueScoreOf[w] = sc;
         }
       }
     }
-    dict[len] = common
-      .filter((w) => clueOf[w] && clueScoreOf[w] <= MAX_CLUE_SCORE)
-      .map((w) => ({ word: w, clue: clueOf[w] }));
-    console.log(`  dict[${len}] = ${dict[len].length} common words`);
+    // curated (original-clue) words first so the fill prefers them
+    const curatedPool = common.filter((w) => curated[w]);
+    const otherPool = common.filter((w) => !curated[w] && clueOf[w]);
+    dict[len] = [...curatedPool, ...otherPool].map((w) => ({
+      word: w,
+      clue: clueOf[w],
+    }));
+    console.log(
+      `  dict[${len}] = ${dict[len].length} words (${curatedPool.length} curated)`
+    );
   }
   return dict;
 }
@@ -485,7 +520,7 @@ async function insertPuzzle(p) {
   const freqRank = await loadFreq();
   console.log("Loading dictionary words (excluding proper nouns)…");
   const dictionaryWords = await loadDictionaryWords();
-  console.log("Building common-word dictionary…");
+  console.log("Building dictionary (curated clues + filtered fill)…");
   const dict = await loadDict(freqRank, dictionaryWords);
   const index = buildIndex(dict);
   let made = 0, attempts = 0;
