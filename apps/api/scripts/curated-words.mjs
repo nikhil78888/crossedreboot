@@ -5,7 +5,7 @@
 
 export default {
   3: {
-    ACE: ["Tennis serve winner", "Top pilot", "Card with one pip"],
+    ACE: ["Tennis serve winner", "Top pilot", "Expert"],
     ACT: ["Part of a play", "Do some theater", "Bit of behavior"],
     ADD: ["Find the sum", "Tack on", "Use a plus sign"],
     AGE: ["Years lived", "Grow older", "Era"],
@@ -20,8 +20,8 @@ export default {
     ASH: ["Fireplace residue", "Cigarette remains", "Volcano output"],
     BAD: ["Not good", "Naughty", "Spoiled, as milk"],
     BAG: ["Grocery carrier", "Sack", "Catch, as game"],
-    BAR: ["Pub counter", "Block the way", "Candy ___"],
-    BAT: ["Baseball swinger", "Cave flier", "Take a turn at the plate"],
+    BAR: ["Pub counter", "Block the way", "Long metal rod"],
+    BAT: ["Cave flier", "Slugger's stick", "Nocturnal flier"],
     BAY: ["Coastal inlet", "Hound's cry", "Loading ___"],
     BED: ["Place to sleep", "Garden plot", "Make the ___"],
     BEE: ["Honey maker", "Spelling contest", "Quilting gathering"],
