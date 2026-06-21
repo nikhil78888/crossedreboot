@@ -8,6 +8,7 @@ import { useCallback } from "react";
 import { events, trackEvent } from "../lib/track-event";
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { useTournament } from "../hooks/use-tournament";
+import { useGameGate } from "../hooks/use-subscription";
 
 export const NewGameButtons = () => {
   const router = useRouter();
@@ -16,6 +17,18 @@ export const NewGameButtons = () => {
   const { joinTournament, joiningTournament } = useTournament({
     tournamentId: undefined,
   });
+  const { checkCanPlay } = useGameGate();
+
+  // Returns true if the player may start a competitive game; otherwise sends
+  // them to the paywall and returns false.
+  const passesGate = useCallback(async () => {
+    const gate = await checkCanPlay();
+    if (!gate.allowed) {
+      router.push("/upgrade-to-pro");
+      return false;
+    }
+    return true;
+  }, [checkCanPlay, router]);
 
   const playSolo = useCallback(async () => {
     const gameId = await createSoloGame();
@@ -23,20 +36,23 @@ export const NewGameButtons = () => {
   }, [createSoloGame, router]);
 
   const playFriendly = useCallback(async () => {
+    if (!(await passesGate())) return;
     const gameId = await createFriendlyGame();
     router.push(`/invite-friend?gameId=${gameId}`);
-  }, [createFriendlyGame, router]);
+  }, [createFriendlyGame, router, passesGate]);
 
   const playRanked = useCallback(async () => {
+    if (!(await passesGate())) return;
     try {
       await joinLobby();
       router.push("/ranked-lobby");
     } catch (error) {
       Alert.alert("Could not join Lobby");
     }
-  }, [joinLobby, router]);
+  }, [joinLobby, router, passesGate]);
 
   const playTournament = useCallback(async () => {
+    if (!(await passesGate())) return;
     try {
       const id = await joinTournament();
       if (id) {
@@ -45,7 +61,7 @@ export const NewGameButtons = () => {
     } catch (error) {
       Alert.alert("Could not join tournament");
     }
-  }, [joinTournament, router]);
+  }, [joinTournament, router, passesGate]);
 
   return (
     <View>

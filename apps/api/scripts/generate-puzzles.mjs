@@ -38,24 +38,37 @@ const DRY_RUN = args.includes("--dry-run");
 const SIZE = parseInt(getArg("size", "5"), 10);
 // Cap word length so larger grids stay fillable. 5x5 minis use up to 5; bigger
 // boards cap at 5-letter words (more black squares, reliably fillable).
-const MAX_SLOT = SIZE <= 5 ? SIZE : SIZE >= 9 ? 4 : 5;
+// Allow longer words on bigger boards — longer entries interlock better, which
+// is what makes fully-checked (no single-stranded boxes) grids fillable.
+const MAX_SLOT = SIZE <= 5 ? SIZE : Math.min(SIZE, 7);
+// No abandoned squares: every white cell must be in a word BOTH ways. 0 = fully
+// interlocked, always. (This makes 8x8 effectively ungenerable with common
+// words, so we don't ship 8x8.)
+const MAX_UNCHECKED = 0;
 const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
 // Max frequency rank allowed per word length (lower = more common = easier).
 // Short crossing words are the usual source of obscure "huh?" fill, so they're
 // held to very common words; longer words get a little more leeway so grids
 // stay fillable.
+// Bigger boards need a deeper word pool to fill, so they get more leeway on
+// commonness (their long answers can be slightly less common). 5x5 stays the
+// strictest/easiest since it's the most-played size.
+const FREQ_SIZE_FACTOR = SIZE <= 5 ? 1 : SIZE <= 7 ? 1.8 : 2.6;
 const maxRankForLen = (len) =>
-  len <= 3
-    ? 9000
-    : len === 4
-    ? 13000
-    : len === 5
-    ? 18000
-    : len === 6
-    ? 28000
-    : len === 7
-    ? 42000
-    : 50000;
+  Math.round(
+    FREQ_SIZE_FACTOR *
+      (len <= 3
+        ? 9000
+        : len === 4
+        ? 13000
+        : len === 5
+        ? 18000
+        : len === 6
+        ? 28000
+        : len === 7
+        ? 42000
+        : 50000)
+  );
 const FREQ_URL =
   "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";
 
@@ -110,19 +123,20 @@ const runLen = (g, r, c, dr, dc) => {
 
 const isValidPattern = (g) => {
   let whiteCount = 0;
+  let unchecked = 0;
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       if (g[r][c] !== 1) continue;
       whiteCount++;
       const across = runLen(g, r, c, 0, 1) + runLen(g, r, c, 0, -1) - 1;
       const down = runLen(g, r, c, 1, 0) + runLen(g, r, c, -1, 0) - 1;
-      // Every white cell must belong to a real word (>=2) in at least one
-      // direction, so no square is ever isolated/unclued. (Full interlock isn't
-      // feasible at 7x7 with common words, but every cell always has a clue.)
-      if (across < 2 && down < 2) return false;
+      if (across < 2 && down < 2) return false; // never fully isolated/unclued
       if (across > MAX_SLOT || down > MAX_SLOT) return false;
+      // a cell in a word one direction only is "unchecked" (single-stranded)
+      if ((across >= 2) !== (down >= 2)) unchecked++;
     }
   }
+  if (unchecked > MAX_UNCHECKED) return false;
   // connectivity
   let start = null;
   for (let r = 0; r < SIZE && !start; r++)
@@ -147,9 +161,11 @@ const isValidPattern = (g) => {
 
 const generatePattern = () => {
   if (SIZE <= 5) return PATTERNS_5[rand(PATTERNS_5.length)];
-  const density = SIZE <= 7 ? 0.18 : 0.22;
+  // Fewer black squares -> more cells in both directions -> easier to keep the
+  // grid fully checked.
+  const density = SIZE <= 7 ? 0.12 : 0.16;
   const target = Math.round(SIZE * SIZE * density);
-  for (let attempt = 0; attempt < 1500; attempt++) {
+  for (let attempt = 0; attempt < 6000; attempt++) {
     const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
     let placed = 0,
       guard = 0;
@@ -170,6 +186,21 @@ const generatePattern = () => {
   return null;
 };
 
+// English dictionary headwords (lowercase common words, basically no modern
+// proper nouns) -> used to exclude name/place answers like ALF, ELENA, SALEM
+// that always end up with trivia clues.
+const WEBSTER_URL =
+  "https://raw.githubusercontent.com/matthewreagan/WebstersEnglishDictionary/master/dictionary_compact.json";
+async function loadDictionaryWords() {
+  const d = await (await fetch(WEBSTER_URL)).json();
+  const set = new Set();
+  for (const k of Object.keys(d)) {
+    const w = k.trim().toUpperCase();
+    if (/^[A-Z]+$/.test(w)) set.add(w);
+  }
+  return set;
+}
+
 // Frequency list -> Map(UPPERCASE word -> rank). Lower rank = more common.
 async function loadFreq() {
   const txt = await (await fetch(FREQ_URL)).text();
@@ -186,17 +217,49 @@ async function loadFreq() {
 const stripClue = (clue) =>
   (clue || "").replace(/\s*\(\d[\d,\-\s]*\)\s*$/g, "").trim();
 
+// Lower = simpler/more approachable. Penalize cryptic hallmarks (long, wordy,
+// puns, multi-clause, fill-in-the-blank) AND trivia: a clue that references an
+// uncommon/proper-noun word ("Aeneid queen", "Author Jong", "Plato on TV") is
+// hard even when the answer is common, so we penalize any clue word that isn't
+// itself common.
+const TRIVIA_WORD_RANK = 25000;
+const clueScore = (clue, freqRank) => {
+  let s = clue.length;
+  const words = clue.split(/\s+/).length;
+  if (words === 1) s += 14; // prefer a little context over a lone synonym
+  if (words > 6) s += (words - 6) * 10;
+  if (/\?\s*$/.test(clue)) s += 25;
+  if (/[;:]/.test(clue)) s += 20;
+  if (/[,]/.test(clue)) s += 6;
+  if (/_/.test(clue)) s += 30; // fill-in-the-blank, often pop-culture
+  const cw = clue.toLowerCase().match(/[a-z]+/g) || [];
+  for (const w of cw) {
+    if (w.length <= 2) continue; // skip stopwords (a, of, on, to, in, etc.)
+    const r = freqRank.get(w.toUpperCase());
+    if (r === undefined || r > TRIVIA_WORD_RANK) s += 45;
+  }
+  return s;
+};
+// A word is only kept if it has at least one clue this clean.
+const MAX_CLUE_SCORE = 30;
+
 // Build the dictionary from COMMON words only (frequency-ranked), pulling each
 // word's clue from the DB. This is the fix for "puzzles too hard": answers are
 // now recognizable everyday words instead of obscure cryptic-crossword fill.
-async function loadDict(freqRank) {
+async function loadDict(freqRank, dictionaryWords) {
   const dict = {}; // length -> [{word, clue}] ordered most-common-first
   for (let len = 3; len <= MAX_DICT_LEN; len++) {
     const common = [...freqRank.entries()]
-      .filter(([w, r]) => w.length === len && r <= maxRankForLen(len))
+      .filter(
+        ([w, r]) =>
+          w.length === len &&
+          r <= maxRankForLen(len) &&
+          dictionaryWords.has(w) // real word, not a proper noun
+      )
       .sort((a, b) => a[1] - b[1])
       .map(([w]) => w);
     const clueOf = {};
+    const clueScoreOf = {};
     for (let i = 0; i < common.length; i += 150) {
       const batch = common.slice(i, i + 150);
       const inList = batch.map((w) => `"${w}"`).join(",");
@@ -212,12 +275,16 @@ async function loadDict(freqRank) {
         if (clue.length < 4) continue;
         if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue; // stray punctuation start
         if (clue.toUpperCase().includes(w)) continue; // gives away the answer
-        // keep the shortest clean clue for each word
-        if (!clueOf[w] || clue.length < clueOf[w].length) clueOf[w] = clue;
+        // keep the simplest (most definitional) clue for each word
+        const sc = clueScore(clue, freqRank);
+        if (clueScoreOf[w] === undefined || sc < clueScoreOf[w]) {
+          clueOf[w] = clue;
+          clueScoreOf[w] = sc;
+        }
       }
     }
     dict[len] = common
-      .filter((w) => clueOf[w])
+      .filter((w) => clueOf[w] && clueScoreOf[w] <= MAX_CLUE_SCORE)
       .map((w) => ({ word: w, clue: clueOf[w] }));
     console.log(`  dict[${len}] = ${dict[len].length} common words`);
   }
@@ -416,11 +483,13 @@ async function insertPuzzle(p) {
 (async () => {
   console.log("Loading frequency list…");
   const freqRank = await loadFreq();
-  console.log("Loading dictionary (common words only)…");
-  const dict = await loadDict(freqRank);
+  console.log("Loading dictionary words (excluding proper nouns)…");
+  const dictionaryWords = await loadDictionaryWords();
+  console.log("Building common-word dictionary…");
+  const dict = await loadDict(freqRank, dictionaryWords);
   const index = buildIndex(dict);
   let made = 0, attempts = 0;
-  const attemptCap = COUNT * (SIZE >= 8 ? 200 : SIZE >= 7 ? 100 : 30);
+  const attemptCap = COUNT * (SIZE >= 8 ? 300 : SIZE >= 6 ? 150 : 30);
   while (made < COUNT && attempts < attemptCap) {
     attempts++;
     const pattern = generatePattern();

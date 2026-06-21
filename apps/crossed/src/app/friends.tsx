@@ -12,6 +12,7 @@ import {
   UserResult,
   useFriends,
 } from "../hooks/use-friends";
+import { useGameGate } from "../hooks/use-subscription";
 
 export default function Friends() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function Friends() {
     searchUsers,
     getRecentOpponents,
   } = useFriends();
+  const { checkCanPlay } = useGameGate();
 
   const [q, setQ] = useState("");
   const [results, setResults] = useState<UserResult[]>([]);
@@ -56,6 +58,11 @@ export default function Friends() {
   }, [q]);
 
   const onPlay = async (friendId: string) => {
+    const gate = await checkCanPlay();
+    if (!gate.allowed) {
+      router.push("/upgrade-to-pro");
+      return;
+    }
     const gameId = await inviteToGame(friendId);
     if (gameId) router.push(`/game?gameId=${gameId}`);
   };

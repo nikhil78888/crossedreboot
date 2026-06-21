@@ -39,6 +39,8 @@ import * as Updates from "expo-updates";
 import { Alert } from "react-native";
 import { useAuth } from "../hooks/use-auth";
 import { useHeartbeat } from "../hooks/use-heartbeat";
+import { useMyProfile } from "../hooks/use-my-profile";
+import { configureRevenueCat } from "../lib/revenuecat";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
 import { BackButton } from "../components/BackButton";
@@ -95,6 +97,12 @@ export default function IndexLayout() {
 
   // Keep online presence fresh for the friends list.
   useHeartbeat();
+
+  // Initialize RevenueCat (anonymously first, then tie purchases to the profile).
+  const { myProfile } = useMyProfile();
+  useEffect(() => {
+    configureRevenueCat(myProfile?.id);
+  }, [myProfile?.id]);
 
   // Check for updates
   useEffect(() => {
