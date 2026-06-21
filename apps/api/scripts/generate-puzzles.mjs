@@ -413,11 +413,13 @@ function buildPuzzle(pattern, grid, dict) {
     }
   }
 
-  // clue lookup by word
+  // clue lookup by word. A word may have several clues in the bank — pick one
+  // at random so the same answer varies across puzzles.
   const clueOf = (word) => {
     const pool = dict[word.length] || [];
     const hit = pool.find((e) => e.word === word);
-    return hit ? hit.clue : null;
+    if (!hit) return null;
+    return Array.isArray(hit.clue) ? hit.clue[rand(hit.clue.length)] : hit.clue;
   };
 
   const clues = { Across: [], Down: [] };
