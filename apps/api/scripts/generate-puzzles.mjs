@@ -42,10 +42,11 @@ const SIZE = parseInt(getArg("size", "5"), 10);
 // Allow longer words on bigger boards — longer entries interlock better, which
 // is what makes fully-checked (no single-stranded boxes) grids fillable.
 const MAX_SLOT = SIZE <= 5 ? SIZE : Math.min(SIZE, 7);
-// No abandoned squares: every white cell must be in a word BOTH ways. 0 = fully
-// interlocked, always. (This makes 8x8 effectively ungenerable with common
-// words, so we don't ship 8x8.)
-const MAX_UNCHECKED = 0;
+// Every white cell must be in at least one word (so it always has a clue), but
+// it need NOT cross both ways. Allowing one-way ("unchecked") cells massively
+// increases how many grids the curated bank can fill, while never leaving a
+// square clueless.
+const MAX_UNCHECKED = SIZE * SIZE;
 const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
 // Max frequency rank allowed per word length (lower = more common = easier).
 // Short crossing words are the usual source of obscure "huh?" fill, so they're
@@ -161,12 +162,11 @@ const isValidPattern = (g) => {
 };
 
 const generatePattern = () => {
-  if (SIZE <= 5) return PATTERNS_5[rand(PATTERNS_5.length)];
-  // Fewer black squares -> more cells in both directions -> easier to keep the
-  // grid fully checked.
-  const density = SIZE <= 7 ? 0.12 : 0.16;
+  // More black squares -> shorter words -> fillable from the curated bank, while
+  // the validator still guarantees every cell is fully checked.
+  const density = SIZE <= 5 ? 0.2 : SIZE <= 7 ? 0.18 : 0.2;
   const target = Math.round(SIZE * SIZE * density);
-  for (let attempt = 0; attempt < 6000; attempt++) {
+  for (let attempt = 0; attempt < 8000; attempt++) {
     const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
     let placed = 0,
       guard = 0;
@@ -260,68 +260,18 @@ const isBlocked = (w) => BLOCKLIST.has(w);
 // Build the dictionary from COMMON words only (frequency-ranked), pulling each
 // word's clue from the DB. This is the fix for "puzzles too hard": answers are
 // now recognizable everyday words instead of obscure cryptic-crossword fill.
-// Hybrid dictionary: fill from the large pool of common, real (non-proper-noun)
-// words so fully-interlocked grids are fillable, but use a hand-authored
-// original clue whenever one exists (curated words are listed first so the fill
-// favors them), falling back to a filtered DB clue otherwise. Every answer is
-// common; most clues are original.
-async function loadDict(freqRank, dictionaryWords) {
+// Dictionary = ONLY the hand-authored curated bank (original clues). No DB
+// clues, so no cryptic clues, no cross-references ("See 56"), no offensive
+// words. Small but vetted; the layout engine uses sparser patterns so these
+// fully-checked grids still fill.
+function loadDict() {
   const dict = {};
   for (let len = 3; len <= MAX_DICT_LEN; len++) {
-    const curated = {};
-    for (const [w, clue] of Object.entries(CURATED[len] || {})) {
-      if (/^[A-Z]+$/.test(w) && w.length === len && !isBlocked(w))
-        curated[w] = clue;
-    }
-    const common = [...freqRank.entries()]
-      .filter(
-        ([w, r]) =>
-          w.length === len &&
-          r <= maxRankForLen(len) &&
-          !isBlocked(w) &&
-          (dictionaryWords.has(w) || curated[w])
-      )
-      .sort((a, b) => a[1] - b[1])
-      .map(([w]) => w);
-    // make sure every curated word is a fill candidate even if it's rarer
-    for (const w of Object.keys(curated)) if (!common.includes(w)) common.push(w);
-
-    const clueOf = { ...curated };
-    const need = common.filter((w) => !clueOf[w]);
-    for (let i = 0; i < need.length; i += 150) {
-      const batch = need.slice(i, i + 150);
-      const inList = batch.map((w) => `"${w}"`).join(",");
-      const url =
-        `${SUPABASE_URL}/rest/v1/words?select=word,clue&clue=not.is.null` +
-        `&word=in.(${encodeURIComponent(inList)})`;
-      const rows = await (await fetch(url, { headers })).json();
-      if (!Array.isArray(rows)) continue;
-      const best = {};
-      for (const r of rows) {
-        const w = (r.word || "").toUpperCase();
-        if (w.length !== len || !/^[A-Z]+$/.test(w) || clueOf[w]) continue;
-        const clue = stripClue(r.clue);
-        if (clue.length < 4) continue;
-        if (/^[^A-Za-z0-9"'¿]/.test(clue)) continue;
-        if (clue.toUpperCase().includes(w)) continue;
-        const sc = clueScore(clue, freqRank);
-        if (sc > MAX_CLUE_SCORE) continue;
-        if (best[w] === undefined || sc < best[w]) {
-          best[w] = sc;
-          clueOf[w] = clue;
-        }
-      }
-    }
-    // curated (original-clue) words first so the fill prefers them
-    const curatedPool = common.filter((w) => curated[w]);
-    const otherPool = common.filter((w) => !curated[w] && clueOf[w]);
-    dict[len] = [...curatedPool, ...otherPool].map((w) => ({
-      word: w,
-      clue: clueOf[w],
-    }));
-    console.log(
-      `  dict[${len}] = ${dict[len].length} words (${curatedPool.length} curated)`
-    );
+    const entries = CURATED[len] || {};
+    dict[len] = Object.entries(entries)
+      .filter(([w]) => /^[A-Z]+$/.test(w) && w.length === len && !isBlocked(w))
+      .map(([w, clue]) => ({ word: w, clue }));
+    console.log(`  dict[${len}] = ${dict[len].length} curated words`);
   }
   return dict;
 }
@@ -377,7 +327,8 @@ function fillGrid(pattern, dict, index) {
   const slots = getSlots(pattern);
   const usedWords = new Set();
   let backtracks = 0;
-  const MAX_BACKTRACKS = SIZE >= 8 ? 200000 : SIZE >= 7 ? 100000 : 20000;
+  const MAX_BACKTRACKS =
+    SIZE >= 8 ? 200000 : SIZE >= 7 ? 120000 : SIZE >= 6 ? 80000 : 60000;
 
   const candidates = (slot) => {
     const len = slot.cells.length;
@@ -516,15 +467,12 @@ async function insertPuzzle(p) {
 
 // ---- main ----
 (async () => {
-  console.log("Loading frequency list…");
-  const freqRank = await loadFreq();
-  console.log("Loading dictionary words (excluding proper nouns)…");
-  const dictionaryWords = await loadDictionaryWords();
-  console.log("Building dictionary (curated clues + filtered fill)…");
-  const dict = await loadDict(freqRank, dictionaryWords);
+  console.log("Loading curated word/clue bank…");
+  const dict = loadDict();
   const index = buildIndex(dict);
   let made = 0, attempts = 0;
-  const attemptCap = COUNT * (SIZE >= 8 ? 300 : SIZE >= 6 ? 150 : 30);
+  const seen = new Set(); // dedupe identical grids
+  const attemptCap = COUNT * (SIZE >= 8 ? 400 : SIZE >= 6 ? 300 : 200);
   while (made < COUNT && attempts < attemptCap) {
     attempts++;
     const pattern = generatePattern();
@@ -533,6 +481,9 @@ async function insertPuzzle(p) {
     if (!filled) continue;
     const p = buildPuzzle(pattern, filled.grid, dict);
     if (!p.allClued) continue; // skip puzzles missing any clue
+    const key = JSON.stringify(p.solution);
+    if (seen.has(key)) continue; // skip duplicates
+    seen.add(key);
     made++;
     if (DRY_RUN) {
       console.log(`\n--- puzzle ${made} ---`);
