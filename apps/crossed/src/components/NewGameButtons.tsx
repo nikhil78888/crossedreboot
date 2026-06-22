@@ -137,8 +137,8 @@ export const NewGameButtons = () => {
           style={{ flex: 1, borderRadius: 16, padding: 16, backgroundColor: "#ede9fe" }}
         >
           <Image
-            source={images.play_friendly}
-            style={{ height: 56, width: 56 }}
+            source={images.friend}
+            style={{ height: 48, width: 48 }}
             contentFit="contain"
           />
           <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
@@ -157,8 +157,8 @@ export const NewGameButtons = () => {
           style={{ flex: 1, borderRadius: 16, padding: 16, backgroundColor: "#dcfce7" }}
         >
           <Image
-            source={images.play_solo}
-            style={{ height: 56, width: 56 }}
+            source={images.solo}
+            style={{ height: 48, width: 48 }}
             contentFit="contain"
           />
           <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">

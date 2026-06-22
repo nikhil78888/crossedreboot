@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { useAuth } from "../../hooks/use-auth";
 import { Image } from "expo-image";
 import { images } from "../../lib/images";
+import colors from "../../lib/colors";
 
 export default function HomeLayout() {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ export default function HomeLayout() {
           fontFamily: "jost500",
           fontSize: 12,
         },
-        tabBarActiveTintColor: "#000",
+        tabBarActiveTintColor: colors["crossed-blue"]["450"],
         tabBarInactiveTintColor: "#B8B8B8",
       }}
     >
@@ -62,7 +63,7 @@ export default function HomeLayout() {
           headerTitle: "Leaderboard",
           tabBarIcon: ({ color }) => (
             <Image
-              source={images.rating}
+              source={images.ranked}
               className="h-5 w-5"
               style={{ tintColor: color }}
             />
