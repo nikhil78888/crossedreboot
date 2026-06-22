@@ -19,12 +19,21 @@ export const SUDOKU_DURATION_SECONDS = 600;
 // A solution grid is letters (crossword) or 1-9 ints (sudoku); null = blank.
 type SolutionGrid = (string | number | null)[][];
 
+// A cell is a "given" (pre-filled, not the player's work) when the puzzle has a
+// non-blank value there (sudoku givens; crossword has none).
+const isGivenCell = (v: string | number | null | undefined) =>
+  v !== undefined && v !== null && v !== 0 && v !== "0" && v !== "#";
+
 export const calculateScore = ({
   correctSolution,
   solution,
+  puzzle,
 }: {
   correctSolution: SolutionGrid;
   solution: SolutionGrid | undefined;
+  // When provided (sudoku), pre-filled givens are excluded so progress reflects
+  // only the player's own work — otherwise the ~30 givens start the bar ~40%.
+  puzzle?: SolutionGrid;
 }) => {
   if (!solution) {
     return 0;
@@ -35,7 +44,7 @@ export const calculateScore = ({
     const rowSolution = correctSolution[i];
     for (let j = 0; j < rowSolution.length; j += 1) {
       const cellCorrectSolution = rowSolution[j];
-      if (cellCorrectSolution) {
+      if (cellCorrectSolution && !isGivenCell(puzzle?.[i]?.[j])) {
         totalChars += 1;
         if (solution[i][j] === cellCorrectSolution) {
           correctChars += 1;
@@ -53,6 +62,13 @@ export const solutionOf = (game: Game): SolutionGrid =>
   (game.gameVariant === "SUDOKU"
     ? game.sudoku?.solution
     : game.crossword?.solution) as SolutionGrid;
+
+// The puzzle grid (for excluding givens from sudoku scoring); undefined for
+// crossword so all clued cells count.
+export const puzzleOf = (game: Game): SolutionGrid | undefined =>
+  game.gameVariant === "SUDOKU"
+    ? (game.sudoku?.puzzle as unknown as SolutionGrid)
+    : undefined;
 
 export const fixType = (game: any): Game => {
   if (game?.gameVariant === "SUDOKU") {
@@ -460,6 +476,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         opponentProgress = calculateScore({
           correctSolution: solutionOf(game),
           solution: game.gameState[opponent.id].solution,
+          puzzle: puzzleOf(game),
         });
       }
     }

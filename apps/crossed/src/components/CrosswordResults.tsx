@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { ScrollView, Text, View } from "react-native";
 import { avatars, images } from "../lib/images";
 import { useRouter } from "expo-router";
-import { calculateScore, solutionOf, useGame } from "../hooks/use-game";
+import { calculateScore, solutionOf, puzzleOf, useGame } from "../hooks/use-game";
 import { classNames } from "../lib/utils";
 import { ShareAppButton } from "./ShareAppButton";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -162,7 +162,11 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   }
   const solution = game.gameState?.[myProfile.id]?.solution;
   const correctSolution = solutionOf(game);
-  const points = calculateScore({ solution, correctSolution });
+  const points = calculateScore({
+    solution,
+    correctSolution,
+    puzzle: puzzleOf(game),
+  });
   const result = points === 100 ? "PERFECT_SCORE" : points > 0 ? "WON" : "LOST";
   return (
     <View className="h-full w-full bg-white">
