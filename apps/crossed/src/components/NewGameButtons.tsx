@@ -3,14 +3,14 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useRouter } from "expo-router";
-import { GameVariant, useGame } from "../hooks/use-game";
+import { useGame } from "../hooks/use-game";
 import { useCallback } from "react";
 import { events, trackEvent } from "../lib/track-event";
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { useTournament } from "../hooks/use-tournament";
 import { useGameGate } from "../hooks/use-subscription";
 import { useVariant } from "../hooks/use-variant";
-import colors from "../lib/colors";
+import { VariantTabs } from "./VariantTabs";
 
 export const NewGameButtons = () => {
   const router = useRouter();
@@ -22,9 +22,9 @@ export const NewGameButtons = () => {
     });
   const { checkCanPlay } = useGameGate();
 
-  // App-wide Crossword vs Sudoku selection — drives every mode button below and
-  // the leaderboard/rank shown elsewhere.
-  const { variant, setVariant } = useVariant();
+  // App-wide Crosswords vs Sudoku selection — drives every mode button below and
+  // the leaderboard/stats/rank shown elsewhere.
+  const { variant } = useVariant();
 
   // Returns true if the player may start a competitive game; otherwise sends
   // them to the paywall and returns false.
@@ -82,69 +82,11 @@ export const NewGameButtons = () => {
     }
   }, [createPrivateTournament, router, passesGate, variant]);
 
-  const VARIANTS: {
-    key: GameVariant;
-    label: string;
-    emoji: string;
-    blurb: string;
-  }[] = [
-    { key: "CROSSWORD", label: "Crossword", emoji: "✍️", blurb: "Mini puzzles" },
-    { key: "SUDOKU", label: "Sudoku", emoji: "🔢", blurb: "9×9 grids" },
-  ];
-
   return (
     <View>
-      {/* Crossword / Sudoku picker — two cards; the selected one drives every
-          mode button below and the leaderboard. */}
-      <View className="mb-4 flex-row" style={{ gap: 12 }}>
-        {VARIANTS.map((v) => {
-          const selected = variant === v.key;
-          return (
-            <TouchableOpacity
-              key={v.key}
-              activeOpacity={0.85}
-              onPress={() => setVariant(v.key)}
-              className="flex-1 rounded-2xl px-4 py-3"
-              style={{
-                backgroundColor: selected
-                  ? colors["crossed-blue"]["450"]
-                  : "#fff",
-                borderWidth: 2,
-                borderColor: selected
-                  ? colors["crossed-blue"]["450"]
-                  : colors["crossed-gray"]["100"],
-                shadowColor: "#000",
-                shadowOpacity: selected ? 0.18 : 0.05,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 3 },
-                elevation: selected ? 4 : 1,
-              }}
-            >
-              <View className="flex-row items-center">
-                <Text style={{ fontSize: 22 }}>{v.emoji}</Text>
-                <View className="ml-2 flex-1">
-                  <Text
-                    className="font-[jost700] text-[16px]"
-                    style={{ color: selected ? "#fff" : "#1f2937" }}
-                  >
-                    {v.label}
-                  </Text>
-                  <Text
-                    className="font-[jost400] text-[11px]"
-                    style={{
-                      color: selected ? "rgba(255,255,255,0.85)" : "#9ca3af",
-                    }}
-                  >
-                    {v.blurb}
-                  </Text>
-                </View>
-                {selected && (
-                  <Text style={{ color: "#fff", fontSize: 14 }}>●</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+      {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard. */}
+      <View className="mb-4">
+        <VariantTabs />
       </View>
       <TouchableOpacity
         onPress={() => {

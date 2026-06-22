@@ -3,11 +3,11 @@ import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 import { startOfDay } from "date-fns";
 
-export const useStats = () => {
+export const useStats = (variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD") => {
   const { myProfile } = useMyProfile();
 
   const { data: stats, mutate: refreshStats } = useSWR(
-    myProfile ? `stats-${myProfile.id}` : null,
+    myProfile ? `stats-${myProfile.id}-${variant}` : null,
     async () => {
       if (myProfile) {
         const { count: gamesPlayed, error: fetchGamesPlayedError } =
@@ -18,6 +18,7 @@ export const useStats = () => {
               head: true,
             })
             .eq("gameType", "RANKED")
+            .eq("gameVariant", variant)
             .eq("playState", "COMPLETED")
             .filter("profiles.id", "eq", myProfile.id);
 
@@ -33,6 +34,7 @@ export const useStats = () => {
               count: "exact",
               head: true,
             })
+            .eq("gameVariant", variant)
             .eq("playState", "COMPLETED")
             .gte("createdAt", startOfDay(new Date()).toISOString())
             .filter("profiles.id", "eq", myProfile.id);
@@ -49,6 +51,7 @@ export const useStats = () => {
             head: true,
           })
           .eq("gameType", "RANKED")
+          .eq("gameVariant", variant)
           .eq("winnerId", myProfile.id);
 
         if (fetchGamesWonError) {
