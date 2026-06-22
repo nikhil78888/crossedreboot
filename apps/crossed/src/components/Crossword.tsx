@@ -109,9 +109,12 @@ export const CrosswordGrid = ({
           // more of the grid (targetFraction) and work faster (paceFactor).
           const botRating =
             (opponent as { eloRating?: number }).eloRating || 1000;
+          // How much of the grid the bot ultimately completes. Floor raised so
+          // even weak bots' bars visibly approach the top instead of stalling
+          // around half.
           const targetFraction = Math.min(
-            0.98,
-            Math.max(0.5, 0.5 + (botRating - 800) / 1400)
+            0.99,
+            Math.max(0.65, 0.6 + (botRating - 800) / 1200)
           );
           const totalBotFillableCells = Math.max(
             1,
@@ -132,10 +135,12 @@ export const CrosswordGrid = ({
             ),
             new Date(new Date().toUTCString())
           );
-          // higher-rated bots use less of the remaining time (finish sooner)
+          // Fraction of the remaining time the bot spreads its fills over —
+          // lower = finishes sooner = more urgency. Strong bots race to the
+          // finish; weak bots still fill at a steady, beatable clip.
           const paceFactor = Math.min(
-            1,
-            Math.max(0.45, 1 - (botRating - 1000) / 1600)
+            0.85,
+            Math.max(0.35, 0.85 - (botRating - 800) / 1500)
           );
           const avgDelay =
             cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
@@ -144,8 +149,8 @@ export const CrosswordGrid = ({
           // rather than at a constant tick. The effect re-runs after each fill,
           // so every gap is freshly randomized.
           const nextDelayMs = Math.max(
-            400,
-            avgDelay * (0.3 + Math.random() * 1.5) * 1000
+            300,
+            avgDelay * (0.3 + Math.random() * 1.2) * 1000
           );
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {

@@ -64,10 +64,10 @@ export const SudokuGrid = ({
 
     const totalCells = 81;
     const botRating = (opponent as { eloRating?: number }).eloRating || 1000;
-    // Higher-rated bots complete more of the grid and work faster.
+    // How much of the grid the bot completes (floor raised so bars don't stall).
     const targetFraction = Math.min(
       0.99,
-      Math.max(0.5, 0.5 + (botRating - 800) / 1400)
+      Math.max(0.65, 0.6 + (botRating - 800) / 1200)
     );
     const targetFilled = Math.max(1, Math.floor(totalCells * targetFraction));
     const botFilled = countFilled(botGameState.solution as Cell[][]);
@@ -76,16 +76,17 @@ export const SudokuGrid = ({
       addSeconds(new Date(`${game.startedAt}Z`), game.gameDurationInSeconds),
       new Date(new Date().toUTCString())
     );
+    // Lower = finishes sooner = more urgency, scaled by bot strength.
     const paceFactor = Math.min(
-      1,
-      Math.max(0.45, 1 - (botRating - 1000) / 1600)
+      0.85,
+      Math.max(0.35, 0.85 - (botRating - 800) / 1500)
     );
     const avgDelay =
       cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
     // bursty, human-like cadence (re-randomized after each fill)
     const nextDelayMs = Math.max(
-      350,
-      avgDelay * (0.3 + Math.random() * 1.5) * 1000
+      300,
+      avgDelay * (0.3 + Math.random() * 1.2) * 1000
     );
 
     if (cellsToFill > 0 && secondsLeft > 0) {
