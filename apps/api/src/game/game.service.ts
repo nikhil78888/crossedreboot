@@ -7,10 +7,46 @@ import { onTournamentGameFinished } from "../tournament/tournament.service";
 export const durationForSize = (size: number | null | undefined, base: number) =>
   size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
 
+// Sudoku is a longer solve than a mini crossword: 10 minutes.
+export const SUDOKU_DURATION_SECONDS = 600;
+
+export type GameVariant = "CROSSWORD" | "SUDOKU";
+
 export const createRankedMatch = async (
   playerOneId: string,
-  playerTwoId: string
+  playerTwoId: string,
+  gameVariant: GameVariant = "CROSSWORD"
 ) => {
+  if (gameVariant === "SUDOKU") {
+    const { data, error } = await supabase.rpc("get_available_ranked_sudoku", {
+      player_one_id: playerOneId,
+      player_two_id: playerTwoId,
+    });
+    if (error || !data?.[0]) {
+      throw new Error(
+        `Error fetching sudoku b/w ${playerOneId} and ${playerTwoId}`
+      );
+    }
+    const { data: game, error: createGameError } = await supabase
+      .from("games")
+      .insert({
+        sudokusId: data[0].id,
+        gameVariant: "SUDOKU",
+        gameType: "RANKED",
+        playState: "PLAYING",
+        gameDurationInSeconds: SUDOKU_DURATION_SECONDS,
+        startedAt: addSeconds(new Date(), 10).toISOString(),
+      })
+      .select("*")
+      .single();
+    if (createGameError) throw createGameError;
+    await supabase.from("gamePlayers").insert([
+      { gamesId: game.id, profilesId: playerOneId },
+      { gamesId: game.id, profilesId: playerTwoId },
+    ]);
+    return game;
+  }
+
   const { data, error } = await supabase.rpc("get_available_ranked_crossword", {
     player_one_id: playerOneId,
     player_two_id: playerTwoId,
@@ -47,12 +83,16 @@ export const createRankedMatch = async (
 };
 
 // --- Scoring -------------------------------------------------------------
+// Works for both crosswords (single letters, black squares = null) and sudokus
+// (1-9 ints, no blanks in the solution): counts how many fillable cells the
+// player got right, as a 0-100 percentage.
+type SolutionGrid = (string | number | null)[][];
 export const calculateScore = ({
   correctSolution,
   solution,
 }: {
-  correctSolution: Game["crossword"]["solution"];
-  solution: Game["crossword"]["solution"] | undefined;
+  correctSolution: SolutionGrid;
+  solution: SolutionGrid | undefined;
 }) => {
   if (!solution) {
     return 0;
@@ -257,13 +297,21 @@ export const finalizeGame = async (
 ): Promise<string | null> => {
   const { data: games } = await supabase
     .from("games")
-    .select("*, players:profiles!gamePlayers(*), crossword:crosswords(*)")
+    .select(
+      "*, players:profiles!gamePlayers(*), crossword:crosswords(*), sudoku:sudokus(*)"
+    )
     .eq("id", gameId)
     .returns<Game[]>();
 
   if (!games?.length) return null;
   const [game] = games;
   if (game.playState !== "PLAYING") return game.winnerId;
+
+  const correctSolution = (
+    game.gameVariant === "SUDOKU"
+      ? game.sudoku?.solution
+      : game.crossword?.solution
+  ) as unknown as SolutionGrid;
 
   let scores: { playerId: string; score: number }[];
   if (opts?.forfeitProfileId) {
@@ -275,9 +323,9 @@ export const finalizeGame = async (
     scores = game.players.map((player) => ({
       playerId: player.id,
       score: calculateScore({
-        correctSolution: game.crossword?.solution as unknown as string[][],
+        correctSolution,
         solution: game.gameState?.[player.id]?.solution as unknown as
-          | string[][]
+          | SolutionGrid
           | undefined,
       }),
     }));

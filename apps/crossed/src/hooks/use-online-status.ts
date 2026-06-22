@@ -26,17 +26,21 @@ export const useOnlineStatus = () => {
     }
   }, [myProfile]);
 
-  const joinLobby = useCallback(async () => {
-    if (!myProfile) return;
-    await supabase.from("rankedQueue").upsert(
-      {
-        profilesId: myProfile.id,
-        rating: myProfile.eloRating ?? 1000,
-        joinedAt: new Date().toISOString(),
-      },
-      { onConflict: "profilesId" }
-    );
-  }, [myProfile]);
+  const joinLobby = useCallback(
+    async (gameVariant: "CROSSWORD" | "SUDOKU" = "CROSSWORD") => {
+      if (!myProfile) return;
+      await supabase.from("rankedQueue").upsert(
+        {
+          profilesId: myProfile.id,
+          rating: myProfile.eloRating ?? 1000,
+          joinedAt: new Date().toISOString(),
+          gameVariant,
+        },
+        { onConflict: "profilesId" }
+      );
+    },
+    [myProfile]
+  );
 
   return {
     leaveLobby,

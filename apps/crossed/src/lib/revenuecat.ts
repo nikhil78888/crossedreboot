@@ -1,4 +1,4 @@
-import Purchases from "react-native-purchases";
+import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import { Platform } from "react-native";
 
 // Public App Store SDK key (safe to ship in the app).
@@ -15,6 +15,11 @@ let configured = false;
 export const configureRevenueCat = (appUserId?: string) => {
   if (Platform.OS !== "ios") return; // only the App Store is configured
   if (!configured) {
+    // DEBUG logs print the exact reason offerings come back empty (e.g.
+    // "None of the products registered in the RevenueCat dashboard could be
+    // fetched from App Store Connect"). View in Console.app with the device
+    // attached, filtered to "Purchases".
+    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
     Purchases.configure({ apiKey: APPLE_API_KEY, appUserID: appUserId });
     configured = true;
   } else if (appUserId) {

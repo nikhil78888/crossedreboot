@@ -17,6 +17,9 @@ export const useSubscription = () => {
   const [isPro, setIsPro] = useState(false);
   const [offering, setOffering] = useState<PurchasesOffering | null>(null);
   const [loading, setLoading] = useState(true);
+  // Human-readable reason the paywall has no plans, shown on-screen so it can be
+  // diagnosed from TestFlight without a Mac/Console.app.
+  const [diagnostic, setDiagnostic] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (Platform.OS !== "ios") {
@@ -27,9 +30,40 @@ export const useSubscription = () => {
       const info = await Purchases.getCustomerInfo();
       setIsPro(hasProEntitlement(info));
       const offerings = await Purchases.getOfferings();
-      setOffering(offerings.current);
+      // Prefer the Current offering, but fall back to ANY offering that has
+      // fetchable packages — so the paywall still works if "Current" isn't set
+      // in RevenueCat while products clearly exist.
+      const chosen =
+        offerings.current ??
+        Object.values(offerings.all).find(
+          (o) => o.availablePackages.length > 0
+        ) ??
+        null;
+      setOffering(chosen);
+      const all = Object.keys(offerings.all);
+      const count = chosen?.availablePackages.length ?? 0;
+      console.info("[RevenueCat] offerings", {
+        current: offerings.current?.identifier ?? null,
+        chosen: chosen?.identifier ?? null,
+        packageCount: count,
+        allOfferings: all,
+      });
+      // Build an on-screen reason when there are no purchasable plans.
+      if (count > 0) {
+        setDiagnostic(null);
+      } else if (all.length === 0) {
+        setDiagnostic(
+          "No offerings reached the app. Check the RevenueCat API key + bundle ID match this app, and that the Paid Apps Agreement is active in App Store Connect."
+        );
+      } else {
+        setDiagnostic(
+          `Offering(s) ${all.join(", ")} returned 0 fetchable products. The products exist in RevenueCat, so this is almost always the App Store Connect side: Paid Apps Agreement not Active, or the IDs (rc_1999_1y / rc_199_1m) don't exactly match the App Store Connect product IDs.`
+        );
+      }
     } catch (e) {
-      // offline / not configured yet — leave defaults
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[RevenueCat] getOfferings failed", e);
+      setDiagnostic(`Couldn't load plans: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -57,7 +91,7 @@ export const useSubscription = () => {
     return hasProEntitlement(info);
   }, []);
 
-  return { isPro, offering, loading, purchase, restore, refresh };
+  return { isPro, offering, loading, purchase, restore, refresh, diagnostic };
 };
 
 // Gate for competitive games (ranked/friendly/tournament). Returns whether the

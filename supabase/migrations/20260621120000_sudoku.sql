@@ -17,6 +17,8 @@ CREATE POLICY "sudokus_select" ON "sudokus"
 
 ALTER TABLE "games" ADD COLUMN IF NOT EXISTS "gameVariant" text NOT NULL DEFAULT 'CROSSWORD';
 ALTER TABLE "games" ADD COLUMN IF NOT EXISTS "sudokusId" uuid REFERENCES "sudokus"("id");
+-- A sudoku game has no crossword, so crosswordsId can no longer be required.
+ALTER TABLE "games" ALTER COLUMN "crosswordsId" DROP NOT NULL;
 
 -- Pick a sudoku the player hasn't seen (mirrors get_available_crossword).
 CREATE OR REPLACE FUNCTION "public"."get_available_sudoku"("profileid" uuid)
@@ -68,3 +70,9 @@ begin
   end if;
 end;
 $$;
+
+-- Matchmaking + tournaments must keep crossword and sudoku players apart so a
+-- sudoku seeker is never paired with a crossword seeker. Both reuse the existing
+-- queue/bracket machinery, segmented by this column.
+ALTER TABLE "rankedQueue" ADD COLUMN IF NOT EXISTS "gameVariant" text NOT NULL DEFAULT 'CROSSWORD';
+ALTER TABLE "tournaments" ADD COLUMN IF NOT EXISTS "gameVariant" text NOT NULL DEFAULT 'CROSSWORD';

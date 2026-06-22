@@ -3,8 +3,8 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useRouter } from "expo-router";
-import { useGame } from "../hooks/use-game";
-import { useCallback } from "react";
+import { GameVariant, useGame } from "../hooks/use-game";
+import { useCallback, useState } from "react";
 import { events, trackEvent } from "../lib/track-event";
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { useTournament } from "../hooks/use-tournament";
@@ -19,6 +19,9 @@ export const NewGameButtons = () => {
   });
   const { checkCanPlay } = useGameGate();
 
+  // Crossword vs Sudoku: a single toggle that every mode button below respects.
+  const [variant, setVariant] = useState<GameVariant>("CROSSWORD");
+
   // Returns true if the player may start a competitive game; otherwise sends
   // them to the paywall and returns false.
   const passesGate = useCallback(async () => {
@@ -31,40 +34,63 @@ export const NewGameButtons = () => {
   }, [checkCanPlay, router]);
 
   const playSolo = useCallback(async () => {
-    const gameId = await createSoloGame();
+    const gameId = await createSoloGame(variant);
     router.push(`/game?gameId=${gameId}`);
-  }, [createSoloGame, router]);
+  }, [createSoloGame, router, variant]);
 
   const playFriendly = useCallback(async () => {
     if (!(await passesGate())) return;
-    const gameId = await createFriendlyGame();
+    const gameId = await createFriendlyGame(variant);
     router.push(`/invite-friend?gameId=${gameId}`);
-  }, [createFriendlyGame, router, passesGate]);
+  }, [createFriendlyGame, router, passesGate, variant]);
 
   const playRanked = useCallback(async () => {
     if (!(await passesGate())) return;
     try {
-      await joinLobby();
-      router.push("/ranked-lobby");
+      await joinLobby(variant);
+      router.push(`/ranked-lobby?variant=${variant}`);
     } catch (error) {
       Alert.alert("Could not join Lobby");
     }
-  }, [joinLobby, router, passesGate]);
+  }, [joinLobby, router, passesGate, variant]);
 
   const playTournament = useCallback(async () => {
     if (!(await passesGate())) return;
     try {
-      const id = await joinTournament();
+      const id = await joinTournament(variant);
       if (id) {
         router.push(`/tournament?tournamentId=${id}`);
       }
     } catch (error) {
       Alert.alert("Could not join tournament");
     }
-  }, [joinTournament, router, passesGate]);
+  }, [joinTournament, router, passesGate, variant]);
 
   return (
     <View>
+      {/* Crossword / Sudoku toggle — applies to every mode button below. */}
+      <View className="mb-4 flex-row rounded-full bg-crossed-gray-100 p-1">
+        {(["CROSSWORD", "SUDOKU"] as GameVariant[]).map((v) => {
+          const selected = variant === v;
+          return (
+            <TouchableOpacity
+              key={v}
+              onPress={() => setVariant(v)}
+              className={`flex-1 items-center rounded-full py-2 ${
+                selected ? "bg-white shadow" : ""
+              }`}
+            >
+              <Text
+                className={`font-[jost600] text-[15px] ${
+                  selected ? "text-crossed-blue-450" : "text-crossed-gray-400"
+                }`}
+              >
+                {v === "CROSSWORD" ? "Crossword" : "Sudoku"}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       <TouchableOpacity
         onPress={() => {
           trackEvent(events.START_RANKED_GAME_CLICK);

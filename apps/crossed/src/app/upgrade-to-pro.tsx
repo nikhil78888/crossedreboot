@@ -16,7 +16,8 @@ const PERKS = [
 
 export default function UpgradeToPro() {
   const router = useRouter();
-  const { isPro, offering, loading, purchase, restore } = useSubscription();
+  const { isPro, offering, loading, purchase, restore, diagnostic } =
+    useSubscription();
   const [busy, setBusy] = useState(false);
 
   if (loading) {
@@ -116,9 +117,16 @@ export default function UpgradeToPro() {
 
       <View className="mt-6">
         {packages.length === 0 ? (
-          <Text className="text-center font-[jost400] text-crossed-gray-400 py-4">
-            Plans are loading… if this persists, check your connection.
-          </Text>
+          <View className="py-4">
+            <Text className="text-center font-[jost400] text-crossed-gray-400">
+              Plans are loading… if this persists, check your connection.
+            </Text>
+            {!!diagnostic && (
+              <Text className="mt-3 text-center font-[jost400] text-[11px] text-crossed-gray-400">
+                {diagnostic}
+              </Text>
+            )}
+          </View>
         ) : (
           packages.map((pkg) => (
             <TouchableOpacity

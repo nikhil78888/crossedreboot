@@ -9,12 +9,20 @@ import { useEffect } from "react";
 import { addSeconds } from "date-fns";
 import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status";
 
+export type GameVariant = "CROSSWORD" | "SUDOKU";
+
+// Sudoku is a longer solve than a mini crossword: 10 minutes.
+export const SUDOKU_DURATION_SECONDS = 600;
+
+// A solution grid is letters (crossword) or 1-9 ints (sudoku); null = blank.
+type SolutionGrid = (string | number | null)[][];
+
 export const calculateScore = ({
   correctSolution,
   solution,
 }: {
-  correctSolution: Game["crossword"]["solution"];
-  solution: Game["crossword"]["solution"] | undefined;
+  correctSolution: SolutionGrid;
+  solution: SolutionGrid | undefined;
 }) => {
   if (!solution) {
     return 0;
@@ -33,18 +41,77 @@ export const calculateScore = ({
       }
     }
   }
+  if (totalChars === 0) return 0;
   const score = Math.round((correctChars / totalChars) * 100);
   return score;
 };
 
+// The correct-answer grid for whichever variant this game is.
+export const solutionOf = (game: Game): SolutionGrid =>
+  (game.gameVariant === "SUDOKU"
+    ? game.sudoku?.solution
+    : game.crossword?.solution) as SolutionGrid;
+
 export const fixType = (game: any): Game => {
+  if (game?.gameVariant === "SUDOKU") {
+    return {
+      ...game,
+      sudoku: game.sudoku
+        ? {
+            ...game.sudoku,
+            solution: game.sudoku.solution as unknown as number[][],
+            puzzle: game.sudoku.puzzle as unknown as number[][],
+          }
+        : game.sudoku,
+    };
+  }
   return {
     ...game,
-    crossword: {
-      ...game.crossword,
-      solution: game.crossword.solution as unknown as string[][],
-      puzzle: game.crossword.puzzle as unknown as string[][],
-    },
+    crossword: game.crossword
+      ? {
+          ...game.crossword,
+          solution: game.crossword.solution as unknown as string[][],
+          puzzle: game.crossword.puzzle as unknown as string[][],
+        }
+      : game.crossword,
+  };
+};
+
+// Pick a puzzle the player hasn't seen and return the game-insert fields for it.
+// Shared by every "new game" creator so crossword/sudoku stay in lockstep.
+const puzzleFieldsForNewGame = async (
+  variant: GameVariant,
+  profileId: string,
+  crosswordBaseDuration: number
+): Promise<{
+  fields: {
+    crosswordsId?: string;
+    sudokusId?: string;
+    gameVariant: GameVariant;
+  };
+  durationInSeconds: number;
+} | null> => {
+  if (variant === "SUDOKU") {
+    const { data, error } = await supabase.rpc("get_available_sudoku", {
+      profileid: profileId,
+    });
+    if (error) throw error;
+    const id = data?.[0]?.id;
+    if (!id) return null;
+    return {
+      fields: { sudokusId: id, gameVariant: "SUDOKU" },
+      durationInSeconds: SUDOKU_DURATION_SECONDS,
+    };
+  }
+  const { data, error } = await supabase.rpc("get_available_crossword", {
+    profileid: profileId,
+  });
+  if (error) throw error;
+  const id = data?.[0]?.id;
+  if (!id) return null;
+  return {
+    fields: { crosswordsId: id, gameVariant: "CROSSWORD" },
+    durationInSeconds: durationForSize(data?.[0]?.size, crosswordBaseDuration),
   };
 };
 
@@ -85,7 +152,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             const { data: game, error: fetchGameError } = await supabase
               .from("games")
               .select(
-                "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*)"
+                "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*), sudoku:sudokus(*)"
               )
               .eq("id", gameId)
               .single();
@@ -106,7 +173,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           const { data: game, error: fetchGameError } = await supabase
             .from("games")
             .select(
-              "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*)"
+              "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*), sudoku:sudokus(*)"
             )
             .eq("id", gameId)
             .single();
@@ -135,82 +202,62 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   }, [playState, refreshStats, refreshMyProfile]);
 
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
-    useSWRMutation("create-solo-game", async () => {
-      if (myProfile) {
-        let crosswordId: string | null = null;
-        const { data, error } = await supabase.rpc("get_available_crossword", {
-          profileid: myProfile.id,
-        });
-
-        if (error) {
-          throw error;
+    useSWRMutation(
+      "create-solo-game",
+      async (_key, { arg }: { arg?: GameVariant } = {}) => {
+        if (!myProfile) return;
+        const variant = arg ?? "CROSSWORD";
+        const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 300);
+        if (!picked) return;
+        const { data: game, error: createGameError } = await supabase
+          .from("games")
+          .insert({
+            ...picked.fields,
+            gameType: "SOLO",
+            playState: "PLAYING",
+            gameDurationInSeconds: picked.durationInSeconds,
+          })
+          .select("*")
+          .single();
+        if (createGameError) {
+          console.info({ createGameError });
+          throw createGameError;
         }
-
-        if (data && data.length) {
-          crosswordId = data[0].id;
-        }
-
-        if (crosswordId) {
-          const { data: game, error: createGameError } = await supabase
-            .from("games")
-            .insert({
-              crosswordsId: crosswordId,
-              gameType: "SOLO",
-              playState: "PLAYING",
-              gameDurationInSeconds: durationForSize(data?.[0]?.size, 300),
-            })
-            .select("*")
-            .single();
-          if (createGameError) {
-            console.info({ createGameError });
-            throw createGameError;
-          }
-          await supabase
-            .from("gamePlayers")
-            .insert({ gamesId: game.id, profilesId: myProfile.id });
-          return game.id;
-        }
+        await supabase
+          .from("gamePlayers")
+          .insert({ gamesId: game.id, profilesId: myProfile.id });
+        return game.id;
       }
-    });
+    );
 
   const { trigger: createFriendlyGame, isMutating: creatingFriendlyGame } =
-    useSWRMutation("create-friendly-game", async () => {
-      if (myProfile) {
-        let crosswordId: string | null = null;
-        const { data, error } = await supabase.rpc("get_available_crossword", {
-          profileid: myProfile.id,
-        });
-
-        if (error) {
-          throw error;
+    useSWRMutation(
+      "create-friendly-game",
+      async (_key, { arg }: { arg?: GameVariant } = {}) => {
+        if (!myProfile) return;
+        const variant = arg ?? "CROSSWORD";
+        const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 180);
+        if (!picked) return;
+        const { data: game, error: createGameError } = await supabase
+          .from("games")
+          .insert({
+            ...picked.fields,
+            gameType: "FRIENDLY",
+            playState: "WAITING_FOR_OPPONENT",
+            gameDurationInSeconds: picked.durationInSeconds,
+          })
+          .select("*")
+          .single();
+        if (createGameError) {
+          console.info({ createGameError });
+          throw createGameError;
         }
-
-        if (data && data.length) {
-          crosswordId = data[0].id;
-        }
-
-        if (crosswordId) {
-          const { data: game, error: createGameError } = await supabase
-            .from("games")
-            .insert({
-              crosswordsId: crosswordId,
-              gameType: "FRIENDLY",
-              playState: "WAITING_FOR_OPPONENT",
-              gameDurationInSeconds: durationForSize(data?.[0]?.size, 180),
-            })
-            .select("*")
-            .single();
-          if (createGameError) {
-            console.info({ createGameError });
-            throw createGameError;
-          }
-          await supabase
-            .from("gamePlayers")
-            .insert({ gamesId: game.id, profilesId: myProfile.id });
-          return game.id;
-        }
+        await supabase
+          .from("gamePlayers")
+          .insert({ gamesId: game.id, profilesId: myProfile.id });
+        return game.id;
       }
-    });
+    );
 
   const { trigger: startGame, isMutating: startingGame } = useSWRMutation(
     "start-friendly-game",
@@ -238,20 +285,20 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: playAgainFriendly, isMutating: playingAgain } =
     useSWRMutation("play-again-friendly", async () => {
       if (!gameId || !myProfile) return;
-      const { data: cw } = await supabase.rpc("get_available_crossword", {
-        profileid: myProfile.id,
-      });
-      const crosswordId = cw?.[0]?.id;
-      if (!crosswordId) return;
+      // Rematch in the same variant as the game that just finished.
+      const variant: GameVariant =
+        game?.gameVariant === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
+      const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 180);
+      if (!picked) return;
 
       // 1. create my candidate rematch game (waiting for opponent)
       const { data: rematch } = await supabase
         .from("games")
         .insert({
-          crosswordsId: crosswordId,
+          ...picked.fields,
           gameType: "FRIENDLY",
           playState: "WAITING_FOR_OPPONENT",
-          gameDurationInSeconds: durationForSize(cw?.[0]?.size, 180),
+          gameDurationInSeconds: picked.durationInSeconds,
         })
         .select("*")
         .single();
@@ -333,62 +380,50 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   );
 
   const { trigger: createRankedBotMatch, isMutating: creatingRankedBotMatch } =
-    useSWRMutation("create-ranked-bot-game", async () => {
-      console.info("here");
-      if (myProfile) {
-        let crosswordId: string | null = null;
-        const { data, error } = await supabase.rpc("get_available_crossword", {
-          profileid: myProfile.id,
-        });
+    useSWRMutation(
+      "create-ranked-bot-game",
+      async (_key, { arg }: { arg?: GameVariant } = {}) => {
+        if (!myProfile) return;
+        const variant = arg ?? "CROSSWORD";
+        const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 180);
+        if (!picked) return;
 
-        if (error) {
-          console.info({ error });
-          throw error;
+        // Pick a bot whose rating is closest to the player's, so the fallback
+        // match feels fair (not a random-strength opponent).
+        const { data: bots } = await supabase
+          .from("random_bot_profiles")
+          .select();
+        const myRating = myProfile.eloRating ?? 1100;
+        const bot = (bots || [])
+          .slice()
+          .sort(
+            (a, b) =>
+              Math.abs((a.eloRating ?? 1100) - myRating) -
+              Math.abs((b.eloRating ?? 1100) - myRating)
+          )[0];
+        if (!bot?.id) return;
+        const { data: game, error: createGameError } = await supabase
+          .from("games")
+          .insert({
+            ...picked.fields,
+            gameType: "RANKED",
+            playState: "PLAYING",
+            startedAt: addSeconds(new Date(), 10).toISOString(),
+            gameDurationInSeconds: picked.durationInSeconds,
+          })
+          .select("*")
+          .single();
+        if (createGameError) {
+          console.info({ createGameError });
+          throw createGameError;
         }
-
-        if (data && data.length) {
-          crosswordId = data[0].id;
-        }
-
-        if (crosswordId) {
-          // Pick a bot whose rating is closest to the player's, so the fallback
-          // match feels fair (not a random-strength opponent).
-          const { data: bots } = await supabase
-            .from("random_bot_profiles")
-            .select();
-          const myRating = myProfile.eloRating ?? 1100;
-          const bot = (bots || [])
-            .slice()
-            .sort(
-              (a, b) =>
-                Math.abs((a.eloRating ?? 1100) - myRating) -
-                Math.abs((b.eloRating ?? 1100) - myRating)
-            )[0];
-          if (bot?.id) {
-            const { data: game, error: createGameError } = await supabase
-              .from("games")
-              .insert({
-                crosswordsId: crosswordId,
-                gameType: "RANKED",
-                playState: "PLAYING",
-                startedAt: addSeconds(new Date(), 10).toISOString(),
-                gameDurationInSeconds: durationForSize(data?.[0]?.size, 180),
-              })
-              .select("*")
-              .single();
-            if (createGameError) {
-              console.info({ createGameError });
-              throw createGameError;
-            }
-            await supabase.from("gamePlayers").insert([
-              { gamesId: game.id, profilesId: myProfile.id },
-              { gamesId: game.id, profilesId: bot.id },
-            ]);
-            return game.id;
-          }
-        }
+        await supabase.from("gamePlayers").insert([
+          { gamesId: game.id, profilesId: myProfile.id },
+          { gamesId: game.id, profilesId: bot.id },
+        ]);
+        return game.id;
       }
-    });
+    );
 
   let opponentProgress = 0;
   let opponentUsername = "";
@@ -404,7 +439,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       opponentUsername = opponent.username;
       if (game.gameState?.[opponent.id]) {
         opponentProgress = calculateScore({
-          correctSolution: game.crossword.solution,
+          correctSolution: solutionOf(game),
           solution: game.gameState[opponent.id].solution,
         });
       }

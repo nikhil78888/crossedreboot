@@ -1,7 +1,8 @@
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { useRankedGame } from "../hooks/use-ranked-game";
 import { useEffect, useState } from "react";
-import { useNavigation, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { GameVariant } from "../hooks/use-game";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
@@ -14,6 +15,9 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 
 export default function RankedLobby() {
   const router = useRouter();
+  const { variant: variantParam } = useLocalSearchParams();
+  const variant: GameVariant =
+    variantParam === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
   const { myProfile } = useMyProfile();
   const { leaveLobby } = useOnlineStatus();
   const { gameId } = useRankedGame();
@@ -27,13 +31,13 @@ export default function RankedLobby() {
     const timer = setTimeout(() => {
       if (playState !== "PLAYING") {
         leaveLobby().then(() => {
-          createRankedBotMatch();
+          createRankedBotMatch(variant);
         });
       }
     }, 15000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playState, leaveLobby, createRankedBotMatch]);
+  }, [playState, leaveLobby, createRankedBotMatch, variant]);
 
   useEffect(() => {
     if (playState === "PLAYING") {

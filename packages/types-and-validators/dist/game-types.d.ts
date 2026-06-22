@@ -1,11 +1,17 @@
 import { Crossword } from "./crosswod-types";
 import { Database } from "./supabase-types";
 export type GameRow = Database["public"]["Tables"]["games"]["Row"];
+export type SudokuRow = Database["public"]["Tables"]["sudokus"]["Row"];
+export type Sudoku = Omit<SudokuRow, "puzzle" | "solution"> & {
+    puzzle: number[][];
+    solution: number[][];
+};
 export type Game = Omit<GameRow, "gameState"> & {
     gameState: Record<string, GameState>;
     players: Database["public"]["Tables"]["profiles"]["Row"][];
     scores: Database["public"]["Tables"]["gamePlayers"]["Row"][];
-    crossword: Crossword;
+    crossword?: Crossword;
+    sudoku?: Sudoku;
 };
 export type GameState = {
     currentCell: {
@@ -13,6 +19,6 @@ export type GameState = {
         y: number;
     };
     direction: "Across" | "Down";
-    solution: (string | null)[][];
+    solution: (string | number | null)[][];
 };
 //# sourceMappingURL=game-types.d.ts.map

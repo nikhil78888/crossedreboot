@@ -127,7 +127,7 @@ export interface Database {
       games: {
         Row: {
           createdAt: string
-          crosswordsId: string
+          crosswordsId: string | null
           gameDurationInSeconds: number
           gameState: Json | null
           gameType: Database["public"]["Enums"]["GameType"]
@@ -142,7 +142,7 @@ export interface Database {
         }
         Insert: {
           createdAt?: string
-          crosswordsId: string
+          crosswordsId?: string | null
           gameDurationInSeconds: number
           gameState?: Json | null
           gameType: Database["public"]["Enums"]["GameType"]
@@ -157,7 +157,7 @@ export interface Database {
         }
         Update: {
           createdAt?: string
-          crosswordsId?: string
+          crosswordsId?: string | null
           gameDurationInSeconds?: number
           gameState?: Json | null
           gameType?: Database["public"]["Enums"]["GameType"]
@@ -260,16 +260,19 @@ export interface Database {
           profilesId: string
           rating: number
           joinedAt: string
+          gameVariant: string
         }
         Insert: {
           profilesId: string
           rating?: number
           joinedAt?: string
+          gameVariant?: string
         }
         Update: {
           profilesId?: string
           rating?: number
           joinedAt?: string
+          gameVariant?: string
         }
         Relationships: []
       }
@@ -282,6 +285,7 @@ export interface Database {
           createdAt: string
           startedAt: string | null
           completedAt: string | null
+          gameVariant: string
         }
         Insert: {
           id?: string
@@ -291,6 +295,7 @@ export interface Database {
           createdAt?: string
           startedAt?: string | null
           completedAt?: string | null
+          gameVariant?: string
         }
         Update: {
           id?: string
@@ -300,6 +305,7 @@ export interface Database {
           createdAt?: string
           startedAt?: string | null
           completedAt?: string | null
+          gameVariant?: string
         }
         Relationships: []
       }

@@ -121,10 +121,15 @@ export const useTournament = ({ tournamentId }: { tournamentId?: string }) => {
   const isChampion = !!tournament?.winnerId && tournament.winnerId === myId;
 
   const { trigger: joinTournament, isMutating: joiningTournament } =
-    useSWRMutation("join-tournament", async () => {
-      const { data: res } = await axios.post("/api/tournaments/join");
-      return res?.tournamentId as string | undefined;
-    });
+    useSWRMutation(
+      "join-tournament",
+      async (_key, { arg }: { arg?: "CROSSWORD" | "SUDOKU" } = {}) => {
+        const { data: res } = await axios.post("/api/tournaments/join", {
+          gameVariant: arg ?? "CROSSWORD",
+        });
+        return res?.tournamentId as string | undefined;
+      }
+    );
 
   return {
     tournament,

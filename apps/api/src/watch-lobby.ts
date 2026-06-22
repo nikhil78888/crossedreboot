@@ -1,4 +1,4 @@
-import { createRankedMatch } from "./game/game.service";
+import { createRankedMatch, GameVariant } from "./game/game.service";
 import { supabase } from "./lib/supabase";
 
 // Acceptable rating gap as a function of how long a player has waited. Starts
@@ -43,6 +43,7 @@ const tryMatch = async () => {
         profilesId: r.profilesId,
         rating: r.rating ?? 1100,
         joinedAt: new Date(r.joinedAt).getTime(),
+        gameVariant: (r.gameVariant ?? "CROSSWORD") as GameVariant,
       }))
       // longest-waiting first
       .sort((a, b) => a.joinedAt - b.joinedAt);
@@ -51,11 +52,13 @@ const tryMatch = async () => {
     for (const p1 of players) {
       if (used.has(p1.profilesId)) continue;
 
-      // closest-rated opponent still available
+      // closest-rated opponent still available — and of the SAME variant, so a
+      // sudoku seeker is never paired into a crossword game.
       let best: (typeof players)[number] | null = null;
       let bestGap = Infinity;
       for (const p2 of players) {
         if (p2.profilesId === p1.profilesId || used.has(p2.profilesId)) continue;
+        if (p2.gameVariant !== p1.gameVariant) continue;
         const gap = Math.abs(p1.rating - p2.rating);
         if (gap < bestGap) {
           bestGap = gap;
@@ -81,7 +84,7 @@ const tryMatch = async () => {
         )}s)`
       );
       try {
-        await createRankedMatch(p1.profilesId, best.profilesId);
+        await createRankedMatch(p1.profilesId, best.profilesId, p1.gameVariant);
       } catch (error) {
         console.log({ matchError: error });
       }

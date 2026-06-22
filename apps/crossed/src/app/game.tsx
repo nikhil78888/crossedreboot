@@ -2,6 +2,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
+import { SudokuGrid } from "../components/Sudoku";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
@@ -161,8 +162,13 @@ export default function Game() {
     );
   }
 
-  // Don't render the board until the full crossword payload is present.
-  if (!game || !game.crossword?.puzzle || !game.crossword?.solution) {
+  const isSudoku = game?.gameVariant === "SUDOKU";
+
+  // Don't render the board until the full puzzle payload is present.
+  const puzzleReady = isSudoku
+    ? !!game?.sudoku?.puzzle && !!game?.sudoku?.solution
+    : !!game?.crossword?.puzzle && !!game?.crossword?.solution;
+  if (!game || !puzzleReady) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
@@ -192,7 +198,11 @@ export default function Game() {
   return (
     <View className={`flex-1 bg-white`}>
       <ConnectionBanner />
-      <CrosswordGrid gameId={gameId as string} />
+      {isSudoku ? (
+        <SudokuGrid gameId={gameId as string} />
+      ) : (
+        <CrosswordGrid gameId={gameId as string} />
+      )}
     </View>
   );
 }

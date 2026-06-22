@@ -17,7 +17,9 @@ tournamentRouter.post("/join", async (req, res) => {
     return;
   }
   try {
-    const tournamentId = await joinTournament(profile.id);
+    const gameVariant =
+      req.body?.gameVariant === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
+    const tournamentId = await joinTournament(profile.id, gameVariant);
     res.send({ tournamentId });
   } catch (error) {
     console.log({ joinTournamentError: error });

@@ -3,6 +3,7 @@ import { useLayoutEffect } from "react";
 import { View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
+import { SudokuGrid } from "../components/Sudoku";
 import { Text } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -44,7 +45,11 @@ export default function ViewAnswers() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 60 }}
     >
-      <CrosswordGrid gameId={gameId as string} showResults={{ playerId }} />
+      {game.gameVariant === "SUDOKU" ? (
+        <SudokuGrid gameId={gameId as string} showResults={{ playerId }} />
+      ) : (
+        <CrosswordGrid gameId={gameId as string} showResults={{ playerId }} />
+      )}
       <View className="flex-1 px-5">
         {game.gameType !== "SOLO" && (
           <View className="flex-1">

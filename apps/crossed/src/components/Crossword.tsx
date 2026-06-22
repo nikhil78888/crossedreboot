@@ -254,7 +254,7 @@ export const CrosswordGrid = ({
       const isCorrectSolution =
         !hasEmptyCell &&
         JSON.stringify(gameState.solution) ===
-          JSON.stringify(game.crossword.solution);
+          JSON.stringify(game.crossword?.solution);
       if (isCorrectSolution) {
         finishGame();
       }
@@ -580,7 +580,9 @@ export const CrosswordGrid = ({
                             rowIndex={rowIndex}
                             colIndex={colIndex}
                             puzzleCell={puzzleCell}
-                            value={solution[rowIndex][colIndex]}
+                            value={
+                              solution[rowIndex][colIndex] as string | null
+                            }
                             handleBackspace={handleBackspace}
                             handleKey={handleKey}
                             toggleDirection={toggleDirection}
@@ -588,7 +590,7 @@ export const CrosswordGrid = ({
                           />
                           {showResults &&
                             solution[rowIndex][colIndex] !==
-                              game.crossword.solution[rowIndex][colIndex] && (
+                              game.crossword?.solution[rowIndex][colIndex] && (
                               <View className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-red-700"></View>
                             )}
                         </View>
@@ -843,45 +845,46 @@ const CrosswordClue = ({
 
   const currentClue = getCurrentClue();
 
+  // One flat, ordered list of every clue (Across then Down) so the arrows can
+  // always step to the next/previous one — even when the current cell has no
+  // clue in the active direction (a one-way cell), where currentClue is
+  // undefined and the arrows used to get stuck.
+  const orderedClues: {
+    clue: { number: string; clue: string };
+    direction: "Across" | "Down";
+  }[] = [
+    ...crossword.clues.Across.map((clue) => ({
+      clue,
+      direction: "Across" as const,
+    })),
+    ...crossword.clues.Down.map((clue) => ({
+      clue,
+      direction: "Down" as const,
+    })),
+  ];
+
+  const currentOrderedIndex = currentClue
+    ? orderedClues.findIndex(
+        (o) => o.direction === direction && o.clue === currentClue
+      )
+    : -1;
+
   const gotoPrevClue = () => {
-    if (currentClue) {
-      const currentClueIndex = crossword.clues[direction].indexOf(currentClue);
-      if (currentClueIndex > 0) {
-        const prevClue = crossword.clues[direction][currentClueIndex - 1];
-        jumpToClue({ clue: prevClue, direction });
-      } else {
-        if (direction === "Across") {
-          const downClues = crossword.clues["Down"];
-          const prevClue = downClues[downClues.length - 1];
-          jumpToClue({ clue: prevClue, direction: "Down" });
-        }
-        if (direction === "Down") {
-          const acrossClues = crossword.clues["Across"];
-          const prevClue = acrossClues[acrossClues.length - 1];
-          jumpToClue({ clue: prevClue, direction: "Across" });
-        }
-      }
-    }
+    if (!orderedClues.length) return;
+    // -1 (no current clue) wraps to the last clue; 0 wraps to the last too.
+    const prevIndex =
+      currentOrderedIndex <= 0
+        ? orderedClues.length - 1
+        : currentOrderedIndex - 1;
+    const prev = orderedClues[prevIndex];
+    jumpToClue({ clue: prev.clue, direction: prev.direction });
   };
   const gotoNextClue = () => {
-    if (currentClue) {
-      const currentClueIndex = crossword.clues[direction].indexOf(currentClue);
-      if (currentClueIndex < crossword.clues[direction].length - 1) {
-        const nextClue = crossword.clues[direction][currentClueIndex + 1];
-        jumpToClue({ clue: nextClue, direction });
-      } else {
-        if (direction === "Across") {
-          const downClues = crossword.clues["Down"];
-          const nextClue = downClues[0];
-          jumpToClue({ clue: nextClue, direction: "Down" });
-        }
-        if (direction === "Down") {
-          const acrossClues = crossword.clues["Across"];
-          const nextClue = acrossClues[0];
-          jumpToClue({ clue: nextClue, direction: "Across" });
-        }
-      }
-    }
+    if (!orderedClues.length) return;
+    // -1 (no current clue) -> 0, the first clue; otherwise step forward + wrap.
+    const next =
+      orderedClues[(currentOrderedIndex + 1) % orderedClues.length];
+    jumpToClue({ clue: next.clue, direction: next.direction });
   };
 
   return (

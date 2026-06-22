@@ -7,6 +7,9 @@ const durationForSize = (size: number | null | undefined, base: number) =>
   size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
 
 const TOURNAMENT_SIZE = 8;
+const SUDOKU_DURATION_SECONDS = 600;
+
+export type GameVariant = "CROSSWORD" | "SUDOKU";
 
 type TPlayer = {
   id: string;
@@ -55,7 +58,10 @@ const markEliminated = async (tournamentId: string, profileId: string) => {
 
 // A player joins (or is matched into) a tournament. Returns the tournament id.
 // Re-joining returns the player's existing active tournament.
-export const joinTournament = async (profileId: string): Promise<string> => {
+export const joinTournament = async (
+  profileId: string,
+  gameVariant: GameVariant = "CROSSWORD"
+): Promise<string> => {
   const { data: mine } = await supabase
     .from("tournamentPlayers")
     .select("tournamentsId")
@@ -67,16 +73,18 @@ export const joinTournament = async (profileId: string): Promise<string> => {
       .select("*")
       .in("id", tids)
       .in("status", ["FILLING", "IN_PROGRESS"])
+      .eq("gameVariant", gameVariant)
       .order("createdAt", { ascending: false })
       .limit(1);
     if (activeT?.length) return activeT[0].id;
   }
 
-  // Find the oldest FILLING tournament that still has an open seat.
+  // Find the oldest FILLING tournament of this variant that still has a seat.
   const { data: filling } = await supabase
     .from("tournaments")
     .select("*")
     .eq("status", "FILLING")
+    .eq("gameVariant", gameVariant)
     .order("createdAt", { ascending: true });
   let target = null as null | { id: string; size: number };
   for (const t of filling ?? []) {
@@ -92,7 +100,7 @@ export const joinTournament = async (profileId: string): Promise<string> => {
   if (!target) {
     const { data: created } = await supabase
       .from("tournaments")
-      .insert({ status: "FILLING", size: TOURNAMENT_SIZE })
+      .insert({ status: "FILLING", size: TOURNAMENT_SIZE, gameVariant })
       .select("*")
       .single();
     target = created;
@@ -190,8 +198,9 @@ export const startTournament = async (tournamentId: string) => {
       .single();
     if (row) created.push({ row: row as TMatch, p1, p2 });
   }
+  const variant = (t.gameVariant ?? "CROSSWORD") as GameVariant;
   for (const m of created) {
-    await startMatch(tournamentId, m.row, m.p1, m.p2);
+    await startMatch(tournamentId, m.row, m.p1, m.p2, variant);
   }
   // Cascade in case an entire round resolved instantly (all-bot matches).
   await advanceTournament(tournamentId);
@@ -203,31 +212,68 @@ const startMatch = async (
   tournamentId: string,
   match: TMatch,
   p1?: TPlayer,
-  p2?: TPlayer
+  p2?: TPlayer,
+  gameVariant: GameVariant = "CROSSWORD"
 ) => {
   if (!p1 || !p2) return;
   if (p1.isBot && p2.isBot) {
     await resolveBotMatch(tournamentId, match, p1, p2);
     return;
   }
-  const { data: cw } = await supabase.rpc("get_available_ranked_crossword", {
-    player_one_id: p1.profilesId,
-    player_two_id: p2.profilesId,
-  });
-  const crossword = cw?.[0];
-  if (!crossword) {
-    console.log({ tournamentMatchNoCrossword: match.id });
-    return;
-  }
-  const { data: game } = await supabase
-    .from("games")
-    .insert({
+
+  let gameInsert:
+    | {
+        crosswordsId?: string;
+        sudokusId?: string;
+        gameVariant: GameVariant;
+        gameType: "TOURNAMENT";
+        playState: "PLAYING";
+        gameDurationInSeconds: number;
+        startedAt: string;
+      }
+    | null = null;
+
+  if (gameVariant === "SUDOKU") {
+    const { data: sk } = await supabase.rpc("get_available_ranked_sudoku", {
+      player_one_id: p1.profilesId,
+      player_two_id: p2.profilesId,
+    });
+    const sudoku = sk?.[0];
+    if (!sudoku) {
+      console.log({ tournamentMatchNoSudoku: match.id });
+      return;
+    }
+    gameInsert = {
+      sudokusId: sudoku.id,
+      gameVariant: "SUDOKU",
+      gameType: "TOURNAMENT",
+      playState: "PLAYING",
+      gameDurationInSeconds: SUDOKU_DURATION_SECONDS,
+      startedAt: addSeconds(new Date(), 10).toISOString(),
+    };
+  } else {
+    const { data: cw } = await supabase.rpc("get_available_ranked_crossword", {
+      player_one_id: p1.profilesId,
+      player_two_id: p2.profilesId,
+    });
+    const crossword = cw?.[0];
+    if (!crossword) {
+      console.log({ tournamentMatchNoCrossword: match.id });
+      return;
+    }
+    gameInsert = {
       crosswordsId: crossword.id,
+      gameVariant: "CROSSWORD",
       gameType: "TOURNAMENT",
       playState: "PLAYING",
       gameDurationInSeconds: durationForSize(crossword.size, 180),
       startedAt: addSeconds(new Date(), 10).toISOString(),
-    })
+    };
+  }
+
+  const { data: game } = await supabase
+    .from("games")
+    .insert(gameInsert)
     .select("*")
     .single();
   if (!game) return;
@@ -357,8 +403,9 @@ export const advanceTournament = async (tournamentId: string) => {
       p2: w2 ? byProfile.get(w2) : undefined,
     });
   }
+  const variant = (t.gameVariant ?? "CROSSWORD") as GameVariant;
   for (const m of created) {
-    await startMatch(tournamentId, m.row, m.p1, m.p2);
+    await startMatch(tournamentId, m.row, m.p1, m.p2, variant);
   }
 
   // If the whole new round resolved instantly (all bots), keep advancing.
