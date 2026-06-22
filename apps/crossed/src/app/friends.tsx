@@ -141,6 +141,15 @@ export default function Friends() {
               avatar={f.avatar}
               online={f.online}
               subtitle={f.online ? "online" : "offline"}
+              onPress={() =>
+                router.push(
+                  `/friend-profile?id=${f.id}&username=${encodeURIComponent(
+                    f.username
+                  )}&avatar=${f.avatar ?? ""}&eloRating=${Math.round(
+                    f.eloRating ?? 1000
+                  )}`
+                )
+              }
               right={
                 <View className="flex-row items-center">
                   <SmallButton label="Play" onPress={() => onPlay(f.id)} />
@@ -223,44 +232,53 @@ const Row = ({
   subtitle,
   online,
   right,
+  onPress,
 }: {
   username: string;
   avatar?: string | null;
   subtitle?: string;
   online?: boolean;
   right?: ReactNode;
+  onPress?: () => void;
 }) => (
   <View className="flex-row items-center py-2">
-    <View>
-      <Avatar
-        size={44}
-        name={username || "?"}
-        source={avatars[avatar as keyof typeof avatars]}
-        imageStyle={{ backgroundColor: "white" }}
-      />
-      {online !== undefined && (
-        <View
-          className="absolute bottom-0 right-0 rounded-full border-2 border-white"
-          style={{
-            width: 12,
-            height: 12,
-            backgroundColor: online
-              ? colors["crossed-green"]["700"]
-              : colors["crossed-gray"]["300"],
-          }}
+    <TouchableOpacity
+      disabled={!onPress}
+      onPress={onPress}
+      activeOpacity={0.7}
+      className="flex-1 flex-row items-center"
+    >
+      <View>
+        <Avatar
+          size={44}
+          name={username || "?"}
+          source={avatars[avatar as keyof typeof avatars]}
+          imageStyle={{ backgroundColor: "white" }}
         />
-      )}
-    </View>
-    <View className="flex-1 ml-3">
-      <Text className="font-[jost600] text-[15px]" numberOfLines={1}>
-        {username}
-      </Text>
-      {!!subtitle && (
-        <Text className="font-[jost400] text-xs text-crossed-gray-400">
-          {subtitle}
+        {online !== undefined && (
+          <View
+            className="absolute bottom-0 right-0 rounded-full border-2 border-white"
+            style={{
+              width: 12,
+              height: 12,
+              backgroundColor: online
+                ? colors["crossed-green"]["700"]
+                : colors["crossed-gray"]["300"],
+            }}
+          />
+        )}
+      </View>
+      <View className="flex-1 ml-3">
+        <Text className="font-[jost600] text-[15px]" numberOfLines={1}>
+          {username}
         </Text>
-      )}
-    </View>
+        {!!subtitle && (
+          <Text className="font-[jost400] text-xs text-crossed-gray-400">
+            {subtitle}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
     {right}
   </View>
 );

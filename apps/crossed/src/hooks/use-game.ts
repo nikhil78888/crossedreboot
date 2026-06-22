@@ -8,6 +8,8 @@ import { useStats } from "./use-stats";
 import { useEffect } from "react";
 import { addSeconds } from "date-fns";
 import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status";
+import { resolveAndLogClues } from "../lib/clue-resolver";
+import { Crossword, Json } from "types-and-validators";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
 
@@ -72,6 +74,8 @@ export const fixType = (game: any): Game => {
           ...game.crossword,
           solution: game.crossword.solution as unknown as string[][],
           puzzle: game.crossword.puzzle as unknown as string[][],
+          // Per-game never-repeat clue override, when present.
+          clues: game.resolvedClues ?? game.crossword.clues,
         }
       : game.crossword,
   };
@@ -88,6 +92,7 @@ const puzzleFieldsForNewGame = async (
     crosswordsId?: string;
     sudokusId?: string;
     gameVariant: GameVariant;
+    resolvedClues?: Json;
   };
   durationInSeconds: number;
 } | null> => {
@@ -107,11 +112,25 @@ const puzzleFieldsForNewGame = async (
     profileid: profileId,
   });
   if (error) throw error;
-  const id = data?.[0]?.id;
-  if (!id) return null;
+  const cw = data?.[0];
+  if (!cw?.id) return null;
+  // Never-repeat: swap each word's clue for one this player hasn't seen, and
+  // log it. Falls back to the puzzle's baked clues on any failure.
+  const resolvedClues = await resolveAndLogClues(
+    {
+      puzzle: cw.puzzle as unknown as Crossword["puzzle"],
+      solution: cw.solution as unknown as Crossword["solution"],
+      clues: cw.clues as unknown as Crossword["clues"],
+    },
+    profileId
+  );
   return {
-    fields: { crosswordsId: id, gameVariant: "CROSSWORD" },
-    durationInSeconds: durationForSize(data?.[0]?.size, crosswordBaseDuration),
+    fields: {
+      crosswordsId: cw.id,
+      gameVariant: "CROSSWORD",
+      ...(resolvedClues ? { resolvedClues: resolvedClues as unknown as Json } : {}),
+    },
+    durationInSeconds: durationForSize(cw.size, crosswordBaseDuration),
   };
 };
 

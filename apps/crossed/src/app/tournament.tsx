@@ -29,9 +29,12 @@ export default function Tournament() {
     players,
     matches,
     iAmEliminated,
+    iAmCreator,
+    isPrivate,
     myActiveGameId,
     humanCount,
     isChampion,
+    startNow,
   } = useTournament({ tournamentId: tournamentId as string | undefined });
 
   // When my live match has a game ready, drop into it — but only ONCE per game.
@@ -74,10 +77,13 @@ export default function Tournament() {
           Tournament Lobby
         </Text>
         <Text className="mt-2 text-center font-[jost400] text-crossed-gray-400">
-          Gathering players… {humanCount}/{size} joined
+          {isPrivate ? "Private tournament · " : ""}
+          {humanCount}/{size} joined
         </Text>
         <Text className="mt-1 text-center font-[jost400] text-xs text-crossed-gray-400">
-          Empty seats fill with bots near your skill if the field isn&apos;t full.
+          {isPrivate
+            ? "Invite friends, then start whenever you're ready — empty seats become bots."
+            : "Empty seats fill with bots near your skill if the field isn't full."}
         </Text>
         <View className="mt-6 flex-row flex-wrap justify-center">
           {Array.from({ length: size }).map((_, i) => {
@@ -119,12 +125,44 @@ export default function Tournament() {
             );
           })}
         </View>
-        <View className="mt-8 flex-row items-center justify-center">
-          <WaitingSpinner />
-          <Text className="ml-2 font-[jost600] text-sm">
-            waiting for the bracket…
-          </Text>
-        </View>
+        {!iAmCreator && (
+          <View className="mt-8 flex-row items-center justify-center">
+            <WaitingSpinner />
+            <Text className="ml-2 font-[jost600] text-sm">
+              waiting for the bracket…
+            </Text>
+          </View>
+        )}
+        {/* Private tournament creator controls */}
+        {isPrivate && iAmCreator && (
+          <View className="mt-8">
+            <Button
+              label="Invite Friends"
+              intent={"primary"}
+              size={"lg"}
+              rounded={"full"}
+              onPress={() =>
+                router.push(`/tournament-invite?tournamentId=${tournamentId}`)
+              }
+            />
+            <View className="mt-3">
+              <Button
+                label="Start Tournament Now"
+                intent={"primary"}
+                mode={"outline"}
+                size={"lg"}
+                rounded={"full"}
+                onPress={async () => {
+                  try {
+                    await startNow(tournamentId as string);
+                  } catch {
+                    // ignore; realtime will reflect the start
+                  }
+                }}
+              />
+            </View>
+          </View>
+        )}
         <View className="absolute bottom-8 inset-x-4">
           <Button
             label="Leave"

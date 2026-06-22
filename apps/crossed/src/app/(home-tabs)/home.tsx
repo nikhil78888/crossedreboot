@@ -10,6 +10,11 @@ import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { getRank } from "../../lib/rank";
 import { useFriends } from "../../hooks/use-friends";
+import { useVariant } from "../../hooks/use-variant";
+import {
+  useTournament,
+  useTournamentInvites,
+} from "../../hooks/use-tournament";
 
 export default function Home() {
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
@@ -18,11 +23,20 @@ export default function Home() {
   });
   const { myProfile } = useMyProfile();
   const { invites, requests } = useFriends();
+  const { tournamentInvites, refreshTournamentInvites } =
+    useTournamentInvites();
+  const { acceptInvite } = useTournament({ tournamentId: undefined });
   const router = useRouter();
   const navigation = useNavigation();
 
+  const { variant } = useVariant();
   const gamePlayState = game?.playState;
-  const rank = getRank(myProfile?.eloRating);
+  // Show the rank for whichever variant is selected.
+  const variantRating =
+    variant === "SUDOKU"
+      ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
+      : myProfile?.eloRating;
+  const rank = getRank(variantRating);
 
   useEffect(() => {
     if (navigation.isFocused()) {
@@ -104,6 +118,29 @@ export default function Home() {
           <Text style={{ fontSize: 22 }}>🎮</Text>
           <Text className="ml-2 flex-1 font-[jost600] text-crossed-gray-900">
             {invites[0].from?.username || "A friend"} invited you to play
+          </Text>
+          <Text className="font-[jost700] text-crossed-blue-450">Join</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Incoming tournament invite from a friend */}
+      {!!tournamentInvites.length && (
+        <TouchableOpacity
+          onPress={async () => {
+            try {
+              const tid = await acceptInvite(tournamentInvites[0].tournamentId);
+              refreshTournamentInvites();
+              if (tid) router.push(`/tournament?tournamentId=${tid}`);
+            } catch {
+              // invite no longer valid (tournament started/full)
+              refreshTournamentInvites();
+            }
+          }}
+          className="mt-3 rounded-xl bg-crossed-yellow-200 px-4 py-3 flex-row items-center"
+        >
+          <Text style={{ fontSize: 22 }}>🏆</Text>
+          <Text className="ml-2 flex-1 font-[jost600] text-crossed-gray-900">
+            {tournamentInvites[0].fromUsername} invited you to a tournament
           </Text>
           <Text className="font-[jost700] text-crossed-blue-450">Join</Text>
         </TouchableOpacity>

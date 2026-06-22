@@ -134,6 +134,7 @@ export interface Database {
                     invitedProfileId: string | null;
                     gameVariant: string;
                     sudokusId: string | null;
+                    resolvedClues: Json | null;
                 };
                 Insert: {
                     createdAt?: string;
@@ -149,6 +150,7 @@ export interface Database {
                     invitedProfileId?: string | null;
                     gameVariant?: string;
                     sudokusId?: string | null;
+                    resolvedClues?: Json | null;
                 };
                 Update: {
                     createdAt?: string;
@@ -164,6 +166,7 @@ export interface Database {
                     invitedProfileId?: string | null;
                     gameVariant?: string;
                     sudokusId?: string | null;
+                    resolvedClues?: Json | null;
                 };
                 Relationships: [
                     {
@@ -281,6 +284,8 @@ export interface Database {
                     startedAt: string | null;
                     completedAt: string | null;
                     gameVariant: string;
+                    isPrivate: boolean;
+                    createdByProfileId: string | null;
                 };
                 Insert: {
                     id?: string;
@@ -291,6 +296,8 @@ export interface Database {
                     startedAt?: string | null;
                     completedAt?: string | null;
                     gameVariant?: string;
+                    isPrivate?: boolean;
+                    createdByProfileId?: string | null;
                 };
                 Update: {
                     id?: string;
@@ -301,6 +308,71 @@ export interface Database {
                     startedAt?: string | null;
                     completedAt?: string | null;
                     gameVariant?: string;
+                    isPrivate?: boolean;
+                    createdByProfileId?: string | null;
+                };
+                Relationships: [];
+            };
+            tournamentInvites: {
+                Row: {
+                    id: string;
+                    tournamentsId: string;
+                    invitedProfileId: string;
+                    status: string;
+                    createdAt: string;
+                };
+                Insert: {
+                    id?: string;
+                    tournamentsId: string;
+                    invitedProfileId: string;
+                    status?: string;
+                    createdAt?: string;
+                };
+                Update: {
+                    id?: string;
+                    tournamentsId?: string;
+                    invitedProfileId?: string;
+                    status?: string;
+                    createdAt?: string;
+                };
+                Relationships: [];
+            };
+            seenClues: {
+                Row: {
+                    profilesId: string;
+                    word: string;
+                    clue: string;
+                    createdAt: string;
+                };
+                Insert: {
+                    profilesId: string;
+                    word: string;
+                    clue: string;
+                    createdAt?: string;
+                };
+                Update: {
+                    profilesId?: string;
+                    word?: string;
+                    clue?: string;
+                    createdAt?: string;
+                };
+                Relationships: [];
+            };
+            wordClues: {
+                Row: {
+                    id: string;
+                    word: string;
+                    clue: string;
+                };
+                Insert: {
+                    id?: string;
+                    word: string;
+                    clue: string;
+                };
+                Update: {
+                    id?: string;
+                    word?: string;
+                    clue?: string;
                 };
                 Relationships: [];
             };
@@ -379,6 +451,11 @@ export interface Database {
                     country: string | null;
                     createdAt: string;
                     eloRating: number;
+                    ratingDeviation: number;
+                    volatility: number;
+                    eloRatingSudoku: number;
+                    ratingDeviationSudoku: number;
+                    volatilitySudoku: number;
                     email: string | null;
                     id: string;
                     name: string | null;
@@ -392,6 +469,11 @@ export interface Database {
                     country?: string | null;
                     createdAt?: string;
                     eloRating?: number;
+                    ratingDeviation?: number;
+                    volatility?: number;
+                    eloRatingSudoku?: number;
+                    ratingDeviationSudoku?: number;
+                    volatilitySudoku?: number;
                     email?: string | null;
                     id?: string;
                     name?: string | null;
@@ -405,6 +487,11 @@ export interface Database {
                     country?: string | null;
                     createdAt?: string;
                     eloRating?: number;
+                    ratingDeviation?: number;
+                    volatility?: number;
+                    eloRatingSudoku?: number;
+                    ratingDeviationSudoku?: number;
+                    volatilitySudoku?: number;
                     email?: string | null;
                     id?: string;
                     name?: string | null;
@@ -551,6 +638,18 @@ export interface Database {
             };
         };
         Functions: {
+            head_to_head: {
+                Args: {
+                    viewer_id: string;
+                    opponent_id: string;
+                };
+                Returns: {
+                    viewer_wins: number;
+                    opponent_wins: number;
+                    ties: number;
+                    total: number;
+                }[];
+            };
             get_available_crossword: {
                 Args: {
                     profileid: string;

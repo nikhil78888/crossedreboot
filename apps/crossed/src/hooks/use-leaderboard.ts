@@ -10,13 +10,16 @@ export type LeaderboardEntry = {
 };
 
 // Fetches the global leaderboard from the backend (service-role endpoint, so it
-// can read all profiles — anon reads are blocked by RLS).
-export const useLeaderboard = () => {
+// can read all profiles — anon reads are blocked by RLS). Ranked per variant:
+// crossword and sudoku have separate ladders.
+export const useLeaderboard = (
+  variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD"
+) => {
   const { data, isLoading, error, mutate } = useSWR(
-    "leaderboard",
+    ["leaderboard", variant],
     async () => {
       const res = await axios.get<LeaderboardEntry[]>(
-        "/api/profiles/leaderboard?limit=100"
+        `/api/profiles/leaderboard?limit=100&variant=${variant}`
       );
       return res.data;
     },

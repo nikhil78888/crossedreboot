@@ -79,12 +79,14 @@ export const joinTournament = async (
     if (activeT?.length) return activeT[0].id;
   }
 
-  // Find the oldest FILLING tournament of this variant that still has a seat.
+  // Find the oldest PUBLIC FILLING tournament of this variant with an open seat.
+  // Private tournaments are invite-only and never matched into here.
   const { data: filling } = await supabase
     .from("tournaments")
     .select("*")
     .eq("status", "FILLING")
     .eq("gameVariant", gameVariant)
+    .eq("isPrivate", false)
     .order("createdAt", { ascending: true });
   let target = null as null | { id: string; size: number };
   for (const t of filling ?? []) {
@@ -120,6 +122,158 @@ export const joinTournament = async (
     await startTournament(target.id);
   }
   return target.id;
+};
+
+// --- Private (friends-only) tournaments ------------------------------------
+
+// Create a private bracket and seat the creator. Friends are added by invite;
+// it never appears in public matchmaking.
+export const createPrivateTournament = async (
+  creatorId: string,
+  gameVariant: GameVariant = "CROSSWORD"
+): Promise<string> => {
+  const { data: t } = await supabase
+    .from("tournaments")
+    .insert({
+      status: "FILLING",
+      size: TOURNAMENT_SIZE,
+      gameVariant,
+      isPrivate: true,
+      createdByProfileId: creatorId,
+    })
+    .select("*")
+    .single();
+  if (!t) throw new Error("could not create tournament");
+  await supabase
+    .from("tournamentPlayers")
+    .insert({ tournamentsId: t.id, profilesId: creatorId, isBot: false });
+  return t.id;
+};
+
+// Creator invites friends to a private tournament (idempotent per friend).
+export const inviteToTournament = async (
+  tournamentId: string,
+  inviterId: string,
+  friendIds: string[]
+) => {
+  const { data: t } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournamentId)
+    .single();
+  if (!t || t.createdByProfileId !== inviterId) {
+    throw new Error("only the creator can invite");
+  }
+  if (!friendIds?.length) return;
+  await supabase.from("tournamentInvites").upsert(
+    friendIds.map((fid) => ({
+      tournamentsId: tournamentId,
+      invitedProfileId: fid,
+    })),
+    { onConflict: "tournamentsId,invitedProfileId", ignoreDuplicates: true }
+  );
+};
+
+// An invited player accepts and is seated. Auto-starts when the field is full.
+export const acceptTournamentInvite = async (
+  profileId: string,
+  tournamentId: string
+): Promise<string> => {
+  const { data: inv } = await supabase
+    .from("tournamentInvites")
+    .select("*")
+    .eq("tournamentsId", tournamentId)
+    .eq("invitedProfileId", profileId)
+    .maybeSingle();
+  if (!inv) throw new Error("no invite for this tournament");
+  const { data: t } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournamentId)
+    .single();
+  if (!t || t.status !== "FILLING") throw new Error("tournament not joinable");
+
+  const { data: seated } = await supabase
+    .from("tournamentPlayers")
+    .select("id")
+    .eq("tournamentsId", tournamentId);
+  if ((seated?.length ?? 0) >= (t.size ?? TOURNAMENT_SIZE)) {
+    throw new Error("tournament is full");
+  }
+
+  await supabase
+    .from("tournamentInvites")
+    .update({ status: "ACCEPTED" })
+    .eq("id", inv.id);
+  await supabase.from("tournamentPlayers").upsert(
+    { tournamentsId: tournamentId, profilesId: profileId, isBot: false },
+    { onConflict: "tournamentsId,profilesId", ignoreDuplicates: true }
+  );
+
+  const { data: count } = await supabase
+    .from("tournamentPlayers")
+    .select("id")
+    .eq("tournamentsId", tournamentId);
+  if ((count?.length ?? 0) >= (t.size ?? TOURNAMENT_SIZE)) {
+    await startTournament(tournamentId);
+  }
+  return tournamentId;
+};
+
+// Pending tournament invites for a player (only to still-FILLING brackets),
+// with the inviter's name + tournament variant for display.
+export const listTournamentInvitesForProfile = async (profileId: string) => {
+  const { data: invites } = await supabase
+    .from("tournamentInvites")
+    .select("*")
+    .eq("invitedProfileId", profileId)
+    .eq("status", "PENDING");
+  if (!invites?.length) return [];
+  const tids = invites.map((i) => i.tournamentsId);
+  const { data: tournaments } = await supabase
+    .from("tournaments")
+    .select("id, status, gameVariant, createdByProfileId")
+    .in("id", tids)
+    .eq("status", "FILLING");
+  const tMap = new Map((tournaments ?? []).map((t) => [t.id, t]));
+  const creatorIds = (tournaments ?? [])
+    .map((t) => t.createdByProfileId)
+    .filter(Boolean) as string[];
+  const { data: creators } = creatorIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", creatorIds)
+    : { data: [] as { id: string; username: string }[] };
+  const cMap = new Map((creators ?? []).map((c) => [c.id, c.username]));
+  return invites
+    .filter((i) => tMap.has(i.tournamentsId))
+    .map((i) => {
+      const t = tMap.get(i.tournamentsId)!;
+      return {
+        tournamentId: i.tournamentsId,
+        gameVariant: t.gameVariant,
+        fromUsername: t.createdByProfileId
+          ? cMap.get(t.createdByProfileId) ?? "A friend"
+          : "A friend",
+      };
+    });
+};
+
+// Creator starts a FILLING private tournament now (remaining seats -> bots).
+export const startTournamentByCreator = async (
+  tournamentId: string,
+  creatorId: string
+) => {
+  const { data: t } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournamentId)
+    .single();
+  if (!t || t.createdByProfileId !== creatorId) {
+    throw new Error("only the creator can start");
+  }
+  await startTournament(tournamentId);
 };
 
 // Fill empty seats with bots, seed the bracket, and kick off round 1.

@@ -87,12 +87,22 @@ export const createRankedMatch = async (
 // (1-9 ints, no blanks in the solution): counts how many fillable cells the
 // player got right, as a 0-100 percentage.
 type SolutionGrid = (string | number | null)[][];
+type PuzzleGrid = (string | number | null)[][];
+// A cell is a "given" (pre-filled, not the player's work) when the puzzle has a
+// non-blank value there. Crossword blanks = "#"/"0"/null; sudoku blanks = 0.
+const isGivenCell = (v: string | number | null | undefined) =>
+  v !== undefined && v !== null && v !== 0 && v !== "0" && v !== "#";
 export const calculateScore = ({
   correctSolution,
   solution,
+  puzzle,
 }: {
   correctSolution: SolutionGrid;
   solution: SolutionGrid | undefined;
+  // When provided (sudoku), cells already filled in the puzzle (givens) are
+  // excluded so the score reflects only the player's own work — otherwise the
+  // ~30 free givens inflate every sudoku score (audit C2).
+  puzzle?: PuzzleGrid;
 }) => {
   if (!solution) {
     return 0;
@@ -103,7 +113,7 @@ export const calculateScore = ({
     const rowSolution = correctSolution[i];
     for (let j = 0; j < rowSolution.length; j += 1) {
       const cellCorrectSolution = rowSolution[j];
-      if (cellCorrectSolution) {
+      if (cellCorrectSolution && !isGivenCell(puzzle?.[i]?.[j])) {
         totalChars += 1;
         if (solution[i][j] === cellCorrectSolution) {
           correctChars += 1;
@@ -224,9 +234,24 @@ const updateGlicko2Ratings = (
   ];
 };
 
-// Compute + persist ratings for a finished rated game (RANKED or TOURNAMENT).
-// Writes the Glicko-2 fields if the columns exist, else falls back to updating
-// the rating only — so it never freezes ratings even before the migration.
+// Which profile columns hold the rating for each variant, so crossword and
+// sudoku ladders are fully independent.
+const RATING_FIELDS = {
+  CROSSWORD: {
+    rating: "eloRating",
+    rd: "ratingDeviation",
+    vol: "volatility",
+  },
+  SUDOKU: {
+    rating: "eloRatingSudoku",
+    rd: "ratingDeviationSudoku",
+    vol: "volatilitySudoku",
+  },
+} as const;
+
+// Compute + persist ratings for a finished rated game (RANKED or TOURNAMENT),
+// in the column set for the game's variant. Bots' ratings are never written
+// (they're fixed anchors for matchmaking), but the human still moves vs the bot.
 export const applyRankedRatings = async (
   game: Game,
   winnerId: string | null
@@ -236,24 +261,49 @@ export const applyRankedRatings = async (
     winnerId == null
   )
     return;
-  const players = game.players as unknown as RankedPlayer[];
+  const players = game.players as unknown as (RankedPlayer & {
+    type?: string;
+    eloRatingSudoku?: number;
+    ratingDeviationSudoku?: number;
+    volatilitySudoku?: number;
+  })[];
   if (!players || players.length < 2) return;
-  // Don't rate bot-vs-bot (no human in the match).
-  const updated = updateGlicko2Ratings(players[0], players[1], winnerId);
+
+  const f =
+    game.gameVariant === "SUDOKU" ? RATING_FIELDS.SUDOKU : RATING_FIELDS.CROSSWORD;
+  const botIds = new Set(
+    players.filter((p) => p.type === "BOT").map((p) => p.id)
+  );
+  const toPlayer = (p: (typeof players)[number]): RankedPlayer => {
+    const rec = p as unknown as Record<string, number>;
+    return {
+      id: p.id,
+      eloRating: rec[f.rating] ?? 1000,
+      ratingDeviation: rec[f.rd] ?? 350,
+      volatility: rec[f.vol] ?? 0.06,
+    };
+  };
+
+  const updated = updateGlicko2Ratings(
+    toPlayer(players[0]),
+    toPlayer(players[1]),
+    winnerId
+  );
   for (const r of updated) {
+    if (botIds.has(r.playerId)) continue; // never drift bot ratings
     const { error } = await supabase
       .from("profiles")
       .update({
-        eloRating: Math.round(r.rating),
-        ratingDeviation: Math.round(r.rd * 100) / 100,
-        volatility: Math.round(r.vol * 1e6) / 1e6,
+        [f.rating]: Math.round(r.rating),
+        [f.rd]: Math.round(r.rd * 100) / 100,
+        [f.vol]: Math.round(r.vol * 1e6) / 1e6,
       } as never)
       .eq("id", r.playerId);
     if (error) {
       console.log({ ratingUpdateError: error });
       await supabase
         .from("profiles")
-        .update({ eloRating: Math.round(r.rating) })
+        .update({ [f.rating]: Math.round(r.rating) } as never)
         .eq("id", r.playerId);
     }
   }
@@ -307,11 +357,14 @@ export const finalizeGame = async (
   const [game] = games;
   if (game.playState !== "PLAYING") return game.winnerId;
 
+  const isSudoku = game.gameVariant === "SUDOKU";
   const correctSolution = (
-    game.gameVariant === "SUDOKU"
-      ? game.sudoku?.solution
-      : game.crossword?.solution
+    isSudoku ? game.sudoku?.solution : game.crossword?.solution
   ) as unknown as SolutionGrid;
+  // For sudoku, exclude givens from scoring (audit C2).
+  const puzzle = isSudoku
+    ? (game.sudoku?.puzzle as unknown as PuzzleGrid)
+    : undefined;
 
   let scores: { playerId: string; score: number }[];
   if (opts?.forfeitProfileId) {
@@ -327,11 +380,30 @@ export const finalizeGame = async (
         solution: game.gameState?.[player.id]?.solution as unknown as
           | SolutionGrid
           | undefined,
+        puzzle,
       }),
     }));
   }
 
   const winnerId = pickWinner(game, scores);
+
+  // Atomically claim completion: only the caller whose UPDATE actually flips
+  // PLAYING -> COMPLETED applies scores/ratings/bracket. Prevents a double-apply
+  // when the client finish and the server timeout sweeper race (audit C3).
+  const { data: claimed } = await supabase
+    .from("games")
+    .update({ playState: "COMPLETED", winnerId })
+    .eq("id", gameId)
+    .eq("playState", "PLAYING")
+    .select("id");
+  if (!claimed || claimed.length === 0) {
+    const { data: current } = await supabase
+      .from("games")
+      .select("winnerId")
+      .eq("id", gameId)
+      .single();
+    return current?.winnerId ?? null;
+  }
 
   for (const s of scores) {
     await supabase
@@ -341,10 +413,6 @@ export const finalizeGame = async (
       .eq("profilesId", s.playerId);
   }
   await applyRankedRatings(game, winnerId);
-  await supabase
-    .from("games")
-    .update({ playState: "COMPLETED", winnerId })
-    .eq("id", gameId);
 
   // Advance the bracket if this game backs a tournament match.
   if (game.gameType === "TOURNAMENT") {

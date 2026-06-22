@@ -29,10 +29,16 @@ export const useOnlineStatus = () => {
   const joinLobby = useCallback(
     async (gameVariant: "CROSSWORD" | "SUDOKU" = "CROSSWORD") => {
       if (!myProfile) return;
+      // Queue with the rating for the variant being played, so matchmaking
+      // pairs by the right skill ladder.
+      const rating =
+        gameVariant === "SUDOKU"
+          ? (myProfile as { eloRatingSudoku?: number }).eloRatingSudoku ?? 1000
+          : myProfile.eloRating ?? 1000;
       await supabase.from("rankedQueue").upsert(
         {
           profilesId: myProfile.id,
-          rating: myProfile.eloRating ?? 1000,
+          rating,
           joinedAt: new Date().toISOString(),
           gameVariant,
         },

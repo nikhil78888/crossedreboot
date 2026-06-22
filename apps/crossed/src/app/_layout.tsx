@@ -45,6 +45,7 @@ import { mobileConfig } from "../mobile-config";
 import axios from "axios";
 import { BackButton } from "../components/BackButton";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { VariantProvider } from "../hooks/use-variant";
 
 axios.defaults.baseURL = mobileConfig.apiBaseUrl;
 
@@ -141,6 +142,7 @@ export default function IndexLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ErrorBoundary>
+    <VariantProvider>
     <KeyboardProvider>
       <Stack
         screenOptions={{
@@ -217,7 +219,15 @@ export default function IndexLayout() {
             headerBackVisible: false,
           }}
         />
+        <Stack.Screen
+          name="tournament-invite"
+          options={{ headerTitle: "Invite Friends" }}
+        />
         <Stack.Screen name="friends" options={{ headerTitle: "Friends" }} />
+        <Stack.Screen
+          name="friend-profile"
+          options={{ headerTitle: "Profile" }}
+        />
         <Stack.Screen
           name="upgrade-to-pro"
           options={{
@@ -238,6 +248,7 @@ export default function IndexLayout() {
         />
       </Stack>
     </KeyboardProvider>
+    </VariantProvider>
     </ErrorBoundary>
     </GestureHandlerRootView>
   );

@@ -1,5 +1,6 @@
 import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
 import useSWRMutation from "swr/mutation";
+import useSWR from "swr";
 import axios from "axios";
 import { supabase } from "../lib/supabase";
 import { useMyProfile } from "./use-my-profile";
@@ -131,16 +132,65 @@ export const useTournament = ({ tournamentId }: { tournamentId?: string }) => {
       }
     );
 
+  // Whether the signed-in player created this (private) tournament.
+  const iAmCreator =
+    !!tournament?.createdByProfileId && tournament.createdByProfileId === myId;
+  const isPrivate = !!tournament?.isPrivate;
+
+  const createPrivateTournament = async (
+    variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD"
+  ): Promise<string | undefined> => {
+    const { data } = await axios.post("/api/tournaments/create-private", {
+      gameVariant: variant,
+    });
+    return data?.tournamentId as string | undefined;
+  };
+  const inviteFriends = async (tid: string, friendIds: string[]) => {
+    await axios.post(`/api/tournaments/${tid}/invite`, { friendIds });
+  };
+  const acceptInvite = async (tid: string): Promise<string | undefined> => {
+    const { data } = await axios.post(`/api/tournaments/${tid}/accept`);
+    return data?.tournamentId as string | undefined;
+  };
+  const startNow = async (tid: string) => {
+    await axios.post(`/api/tournaments/${tid}/start`);
+  };
+
   return {
     tournament,
     players,
     matches,
     iAmIn,
     iAmEliminated,
+    iAmCreator,
+    isPrivate,
     myActiveGameId,
     humanCount,
     isChampion,
     joinTournament,
     joiningTournament,
+    createPrivateTournament,
+    inviteFriends,
+    acceptInvite,
+    startNow,
+  };
+};
+
+export type TournamentInvite = {
+  tournamentId: string;
+  gameVariant: string;
+  fromUsername: string;
+};
+
+// Pending tournament invites for the signed-in player (home banner).
+export const useTournamentInvites = () => {
+  const { data, mutate } = useSWR<TournamentInvite[]>(
+    "tournament-invites",
+    async () => (await axios.get("/api/tournaments/invites")).data,
+    { refreshInterval: 20000 }
+  );
+  return {
+    tournamentInvites: data ?? [],
+    refreshTournamentInvites: mutate,
   };
 };

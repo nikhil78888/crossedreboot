@@ -12,6 +12,7 @@ import { supabase } from "../lib/supabase";
 import { Crossword, GameState } from "types-and-validators";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { addSeconds, differenceInSeconds } from "date-fns";
+import { logSeenClues } from "../lib/clue-resolver";
 
 type CrosswordContextType = {
   crossword: Crossword;
@@ -68,6 +69,16 @@ export const CrosswordGrid = ({
 
   const isGameFinished = game?.playState === "COMPLETED";
   const [gameState, setGameState] = useState<GameState | null>(null);
+
+  // Record the (word, clue) pairs this player was shown, so they're never
+  // served the same pair again — even in a game they didn't create. Once.
+  const loggedClues = useRef(false);
+  useEffect(() => {
+    if (!showResults && crossword && myProfile && !loggedClues.current) {
+      loggedClues.current = true;
+      logSeenClues(crossword, crossword.clues, myProfile.id);
+    }
+  }, [crossword, myProfile, showResults]);
 
   // auto update bot game state if applicable
   useEffect(() => {

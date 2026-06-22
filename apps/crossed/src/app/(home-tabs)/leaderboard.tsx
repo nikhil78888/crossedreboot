@@ -1,13 +1,25 @@
-import { View, Text, ActivityIndicator, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
 import { useLeaderboard, LeaderboardEntry } from "../../hooks/use-leaderboard";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { RankBadge } from "../../components/RankBadge";
+import { useVariant } from "../../hooks/use-variant";
+import { GameVariant } from "../../hooks/use-game";
 
 const medal = (rank: number) =>
   rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
 
 export default function Leaderboard() {
-  const { leaderboard, isLoadingLeaderboard, refreshLeaderboard } = useLeaderboard();
+  // Shares the app-wide variant selection, so the board matches whatever the
+  // player picked on Home — and can be switched here too.
+  const { variant, setVariant } = useVariant();
+  const { leaderboard, isLoadingLeaderboard, refreshLeaderboard } =
+    useLeaderboard(variant);
   const { myProfile } = useMyProfile();
 
   if (isLoadingLeaderboard && !leaderboard) {
@@ -65,8 +77,34 @@ export default function Leaderboard() {
               Global Leaderboard
             </Text>
             <Text className="font-[jost400] text-sm text-crossed-gray-400 mt-1">
-              Top players worldwide by ranking score
+              Top {variant === "SUDOKU" ? "Sudoku" : "Crossword"} players
+              worldwide
             </Text>
+            {/* Per-variant ladder switch */}
+            <View className="mt-3 flex-row rounded-full bg-crossed-gray-100 p-1">
+              {(["CROSSWORD", "SUDOKU"] as GameVariant[]).map((v) => {
+                const selected = variant === v;
+                return (
+                  <TouchableOpacity
+                    key={v}
+                    onPress={() => setVariant(v)}
+                    className={`flex-1 items-center rounded-full py-2 ${
+                      selected ? "bg-white shadow" : ""
+                    }`}
+                  >
+                    <Text
+                      className={`font-[jost600] text-[14px] ${
+                        selected
+                          ? "text-crossed-blue-450"
+                          : "text-crossed-gray-400"
+                      }`}
+                    >
+                      {v === "CROSSWORD" ? "Crossword" : "Sudoku"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         }
         ListEmptyComponent={
