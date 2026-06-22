@@ -4,41 +4,44 @@ import { GameVariant } from "../hooks/use-game";
 import { useVariant } from "../hooks/use-variant";
 import colors from "../lib/colors";
 
-// Matched icon family: 🔠 (letters) for crosswords, 🔢 (numbers) for sudoku —
-// instantly reads as words vs. numbers.
-const TABS: { key: GameVariant; label: string; icon: string }[] = [
-  { key: "CROSSWORD", label: "Crosswords", icon: "🔠" },
-  { key: "SUDOKU", label: "Sudoku", icon: "🔢" },
+const TABS: { key: GameVariant; label: string }[] = [
+  { key: "CROSSWORD", label: "Crosswords" },
+  { key: "SUDOKU", label: "Sudoku" },
 ];
 
-// Full-width Crosswords / Sudoku tabs (underline style). Reads the app-wide
-// variant context so home, leaderboard, and stats all stay in sync.
+// Full-width Crosswords / Sudoku segmented control. Reads the app-wide variant
+// context so home, leaderboard, and stats stay in sync.
 export const VariantTabs = () => {
   const { variant, setVariant } = useVariant();
   const blue = colors["crossed-blue"]["450"];
-  const gray = colors["crossed-gray"]["400"];
   return (
-    <View className="flex-row border-b border-crossed-gray-100">
+    <View
+      className="flex-row rounded-full p-1"
+      style={{ backgroundColor: colors["crossed-gray"]["100"] }}
+    >
       {TABS.map((t) => {
         const active = variant === t.key;
         return (
           <TouchableOpacity
             key={t.key}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
             onPress={() => setVariant(t.key)}
-            className="flex-1 flex-row items-center justify-center pt-1.5 pb-3"
+            className="flex-1 items-center rounded-full"
             style={{
-              borderBottomWidth: 2.5,
-              borderBottomColor: active ? blue : "transparent",
-              marginBottom: -1,
+              paddingVertical: 11,
+              backgroundColor: active ? blue : "transparent",
+              shadowColor: "#000",
+              shadowOpacity: active ? 0.15 : 0,
+              shadowRadius: 4,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: active ? 2 : 0,
             }}
           >
-            <Text style={{ fontSize: 17, opacity: active ? 1 : 0.55 }}>
-              {t.icon}
-            </Text>
             <Text
-              className="ml-2 font-[jost700] text-[16px]"
-              style={{ color: active ? blue : gray }}
+              className="font-[jost700] text-[15px]"
+              style={{
+                color: active ? "#ffffff" : colors["crossed-gray"]["400"],
+              }}
             >
               {t.label}
             </Text>

@@ -1,56 +1,79 @@
 import { View, Text, ActivityIndicator, FlatList } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import { useState } from "react";
+import { Avatar } from "react-native-ui-lib";
 import { useLeaderboard, LeaderboardEntry } from "../../hooks/use-leaderboard";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { RankBadge } from "../../components/RankBadge";
-import { useVariant } from "../../hooks/use-variant";
 import { VariantTabs } from "../../components/VariantTabs";
+import { useVariant } from "../../hooks/use-variant";
+import { avatars } from "../../lib/images";
+import colors from "../../lib/colors";
 
-const medal = (rank: number) =>
-  rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+const MEDAL_BG: Record<number, string> = {
+  1: "#E7B402",
+  2: "#9AA4B2",
+  3: "#A9712B",
+};
+
+type Scope = "GLOBAL" | "FRIENDS";
 
 export default function Leaderboard() {
-  // Shares the app-wide variant selection, so the board matches whatever the
-  // player picked on Home — and can be switched here too.
   const { variant } = useVariant();
+  const [scope, setScope] = useState<Scope>("GLOBAL");
   const { leaderboard, isLoadingLeaderboard, refreshLeaderboard } =
-    useLeaderboard(variant);
+    useLeaderboard(variant, scope);
   const { myProfile } = useMyProfile();
 
-  if (isLoadingLeaderboard && !leaderboard) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  const renderRow = ({ item, index }: { item: LeaderboardEntry; index: number }) => {
+  const renderRow = ({
+    item,
+    index,
+  }: {
+    item: LeaderboardEntry;
+    index: number;
+  }) => {
     const place = index + 1;
     const isMe = myProfile?.id === item.id;
     return (
       <View
-        className={`flex-row items-center px-4 py-3 mx-3 my-1 rounded-2xl ${
-          isMe ? "bg-crossed-blue-50" : "bg-white"
-        }`}
+        className="mx-3 my-1 flex-row items-center rounded-2xl px-3 py-2.5"
+        style={{
+          backgroundColor: isMe ? colors["crossed-blue"]["50"] : "#fff",
+        }}
       >
-        <View className="w-9 items-center">
-          {medal(place) ? (
-            <Text style={{ fontSize: 20 }}>{medal(place)}</Text>
+        <View className="w-8 items-center">
+          {place <= 3 ? (
+            <View
+              className="h-7 w-7 items-center justify-center rounded-full"
+              style={{ backgroundColor: MEDAL_BG[place] }}
+            >
+              <Text className="font-[jost700] text-[13px] text-white">
+                {place}
+              </Text>
+            </View>
           ) : (
-            <Text className="font-[jost700] text-base text-crossed-gray-400">{place}</Text>
+            <Text className="font-[jost700] text-base text-crossed-gray-400">
+              {place}
+            </Text>
           )}
         </View>
-        <View className="flex-1 ml-2">
+        <Avatar
+          size={40}
+          name={item.username || "?"}
+          source={avatars[item.avatar as keyof typeof avatars]}
+          imageStyle={{ backgroundColor: "white" }}
+        />
+        <View className="ml-3 flex-1">
           <Text
-            className="font-[jost600] text-base text-crossed-gray-900"
+            className="font-[jost700] text-[15px] text-crossed-gray-900"
             numberOfLines={1}
           >
             {item.username}
-            {isMe ? " (you)" : ""}
+            {isMe ? " (You)" : ""}
           </Text>
           <RankBadge rating={item.eloRating} />
         </View>
-        <Text className="font-[jost700] text-base text-crossed-gray-900 ml-2">
+        <Text className="ml-2 font-[jost700] text-base text-crossed-gray-900">
           {Math.round(item.eloRating)}
         </Text>
       </View>
@@ -66,26 +89,65 @@ export default function Leaderboard() {
         refreshing={isLoadingLeaderboard}
         onRefresh={refreshLeaderboard}
         ListHeaderComponent={
-          <View>
-            {/* Per-variant ladder switch (shared app-wide) */}
-            <View className="bg-white px-4 pt-2">
-              <VariantTabs />
+          <View className="bg-white px-4 pb-2 pt-2">
+            <VariantTabs />
+            {/* Global / Friends scope */}
+            <View
+              className="mt-3 flex-row rounded-full p-1"
+              style={{ backgroundColor: colors["crossed-gray"]["100"] }}
+            >
+              {(
+                [
+                  { key: "GLOBAL", label: "🌐  Global" },
+                  { key: "FRIENDS", label: "👥  Friends" },
+                ] as { key: Scope; label: string }[]
+              ).map((s) => {
+                const active = scope === s.key;
+                return (
+                  <TouchableOpacity
+                    key={s.key}
+                    activeOpacity={0.8}
+                    onPress={() => setScope(s.key)}
+                    className="flex-1 items-center rounded-full py-2"
+                    style={{
+                      backgroundColor: active
+                        ? colors["crossed-blue"]["450"]
+                        : "transparent",
+                    }}
+                  >
+                    <Text
+                      className="font-[jost600] text-[14px]"
+                      style={{
+                        color: active ? "#fff" : colors["crossed-gray"]["400"],
+                      }}
+                    >
+                      {s.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <View className="px-4 pt-4 pb-2">
-              <Text className="font-[jost700] text-2xl text-crossed-gray-900">
-                Global Leaderboard
-              </Text>
-              <Text className="font-[jost400] text-sm text-crossed-gray-400 mt-1">
-                Top {variant === "SUDOKU" ? "Sudoku" : "Crossword"} players
-                worldwide
-              </Text>
-            </View>
+            <Text className="mt-3 font-[jost400] text-[13px] text-crossed-gray-400">
+              {scope === "FRIENDS"
+                ? `Your friends · ${
+                    variant === "SUDOKU" ? "Sudoku" : "Crosswords"
+                  }`
+                : `Top ${
+                    variant === "SUDOKU" ? "Sudoku" : "Crossword"
+                  } players worldwide`}
+            </Text>
           </View>
         }
         ListEmptyComponent={
-          <Text className="text-center mt-10 font-[jost400] text-crossed-gray-400">
-            No players yet — play a ranked match to get on the board!
-          </Text>
+          isLoadingLeaderboard ? (
+            <ActivityIndicator className="mt-10" />
+          ) : (
+            <Text className="mt-10 text-center font-[jost400] text-crossed-gray-400">
+              {scope === "FRIENDS"
+                ? "Add friends to see them ranked here!"
+                : "No players yet — play a ranked match to get on the board!"}
+            </Text>
+          )
         }
         contentContainerStyle={{ paddingBottom: 24 }}
       />

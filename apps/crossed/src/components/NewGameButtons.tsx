@@ -11,6 +11,7 @@ import { useTournament } from "../hooks/use-tournament";
 import { useGameGate } from "../hooks/use-subscription";
 import { useVariant } from "../hooks/use-variant";
 import { VariantTabs } from "./VariantTabs";
+import colors from "../lib/colors";
 
 export const NewGameButtons = () => {
   const router = useRouter();
@@ -88,74 +89,114 @@ export const NewGameButtons = () => {
       <View className="mb-4">
         <VariantTabs />
       </View>
+
+      {/* Play Ranked hero */}
       <TouchableOpacity
+        activeOpacity={0.9}
         onPress={() => {
           trackEvent(events.START_RANKED_GAME_CLICK);
           playRanked();
         }}
-        className="bg-crossed-blue-50 h-[175px] rounded-2xl shadow-md"
+        className="rounded-2xl"
+        style={{ backgroundColor: colors["crossed-blue"]["50"] }}
       >
-        <View className="flex-row items-center">
+        <View className="flex-row items-center p-5">
+          <View className="flex-1 pr-2">
+            <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
+              Play Ranked
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
+              Compete with players worldwide and climb the leaderboard.
+            </Text>
+            <View
+              className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
+              style={{ backgroundColor: colors["crossed-blue"]["450"] }}
+            >
+              <Text className="font-[jost700] text-[14px] text-white">
+                Play Now
+              </Text>
+              <Text className="ml-1 text-white">→</Text>
+            </View>
+          </View>
           <Image
             source={images.play_ranked}
-            className="h-[119px] w-[126px] ml-[25] my-6"
+            style={{ height: 110, width: 116 }}
+            contentFit="contain"
           />
-          <Text className="ml-7 font-[jost600] text-[26px]">Play Ranked</Text>
         </View>
       </TouchableOpacity>
-      <View className="flex-row space-x-4 mt-3">
-        <View className="flex-1">
-          <TouchableOpacity
-            onPress={() => {
-              trackEvent(events.START_FRIENDLY_GAME_CLICK);
-              playFriendly();
-            }}
-            className="bg-crossed-blue-50 h-[175px] w-full rounded-2xl shadow-md items-center"
-          >
-            <Image
-              source={images.play_friendly}
-              className="h-[94px] w-[94px] mt-[35px]"
-            />
-            <Text className="mt-2 font-[jost600] text-base">
-              With Your Friend
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View className="flex-1">
-          <TouchableOpacity
-            onPress={() => {
-              trackEvent(events.START_SOLO_GAME_CLICK);
-              playSolo();
-            }}
-            className="bg-crossed-blue-50 h-[175px] w-full rounded-2xl shadow-md items-center"
-          >
-            <Image
-              source={images.play_solo}
-              className="h-[100px] w-[100px] mt-[25px]"
-              contentFit="contain"
-            />
-            <Text className="mt-2 font-[jost600] text-base">Solo Game</Text>
-          </TouchableOpacity>
-        </View>
+
+      {/* With Friend / Solo cards */}
+      <View className="mt-3 flex-row" style={{ gap: 12 }}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => {
+            trackEvent(events.START_FRIENDLY_GAME_CLICK);
+            playFriendly();
+          }}
+          className="flex-1 rounded-2xl p-4"
+          style={{ backgroundColor: "#ede9fe" }}
+        >
+          <Image
+            source={images.play_friendly}
+            style={{ height: 56, width: 56 }}
+            contentFit="contain"
+          />
+          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
+            With Your Friend
+          </Text>
+          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+            Invite and challenge your friend.
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => {
+            trackEvent(events.START_SOLO_GAME_CLICK);
+            playSolo();
+          }}
+          className="flex-1 rounded-2xl p-4"
+          style={{ backgroundColor: "#dcfce7" }}
+        >
+          <Image
+            source={images.play_solo}
+            style={{ height: 56, width: 56 }}
+            contentFit="contain"
+          />
+          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
+            Solo Game
+          </Text>
+          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+            Play at your own pace anytime.
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Tournament bar */}
       <TouchableOpacity
+        activeOpacity={0.9}
         onPress={() => {
           trackEvent(events.START_RANKED_GAME_CLICK);
           playTournament();
         }}
         disabled={joiningTournament}
-        className="mt-3 bg-crossed-yellow-300 h-[90px] rounded-2xl shadow-md flex-row items-center px-6"
+        className="mt-3 flex-row items-center rounded-2xl px-5 py-4"
+        style={{ backgroundColor: colors["crossed-yellow"]["300"] }}
       >
-        <Text style={{ fontSize: 38 }}>🏆</Text>
-        <View className="ml-4 flex-1">
-          <Text className="font-[jost600] text-[22px]">Tournament</Text>
-          <Text className="font-[jost400] text-[13px] text-crossed-gray-900/70">
+        <Text style={{ fontSize: 30 }}>🏆</Text>
+        <View className="ml-3 flex-1">
+          <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
+            Tournament
+          </Text>
+          <Text className="font-[jost400] text-[12px] text-crossed-gray-900/70">
             {joiningTournament
               ? "Finding a bracket…"
               : "8-player bracket · winner takes the crown"}
           </Text>
         </View>
+        <Text className="text-crossed-gray-900/50 text-xl">›</Text>
       </TouchableOpacity>
+
       {/* Private friends-only tournament */}
       <TouchableOpacity
         onPress={playPrivateTournament}

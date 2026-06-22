@@ -13,13 +13,16 @@ export type LeaderboardEntry = {
 // can read all profiles — anon reads are blocked by RLS). Ranked per variant:
 // crossword and sudoku have separate ladders.
 export const useLeaderboard = (
-  variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD"
+  variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+  scope: "GLOBAL" | "FRIENDS" = "GLOBAL"
 ) => {
   const { data, isLoading, error, mutate } = useSWR(
-    ["leaderboard", variant],
+    ["leaderboard", variant, scope],
     async () => {
       const res = await axios.get<LeaderboardEntry[]>(
-        `/api/profiles/leaderboard?limit=100&variant=${variant}`
+        `/api/profiles/leaderboard?limit=100&variant=${variant}${
+          scope === "FRIENDS" ? "&scope=friends" : ""
+        }`
       );
       return res.data;
     },
