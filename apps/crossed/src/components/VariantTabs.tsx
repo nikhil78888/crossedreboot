@@ -9,10 +9,9 @@ const TABS: { key: GameVariant; label: string }[] = [
   { key: "SUDOKU", label: "Sudoku" },
 ];
 
-// Full-width Crosswords / Sudoku segmented control. Reads the app-wide variant
-// context so home, leaderboard, and stats stay in sync.
-// NOTE: flex uses inline styles, not nativewind className — `flex-1` via
-// className does not apply on react-native-gesture-handler's TouchableOpacity.
+// Full-width Crosswords / Sudoku segmented control. flex:1 lives on a plain
+// wrapper View (it does not apply reliably on react-native-gesture-handler's
+// TouchableOpacity), and the touchable stretches to fill it.
 export const VariantTabs = () => {
   const { variant, setVariant } = useVariant();
   const blue = colors["crossed-blue"]["450"];
@@ -21,40 +20,41 @@ export const VariantTabs = () => {
       style={{
         flexDirection: "row",
         borderRadius: 9999,
-        padding: 4,
+        padding: 5,
+        gap: 6,
         backgroundColor: colors["crossed-gray"]["100"],
       }}
     >
       {TABS.map((t) => {
         const active = variant === t.key;
         return (
-          <TouchableOpacity
-            key={t.key}
-            activeOpacity={0.8}
-            onPress={() => setVariant(t.key)}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 9999,
-              paddingVertical: 11,
-              backgroundColor: active ? blue : "transparent",
-              shadowColor: "#000",
-              shadowOpacity: active ? 0.15 : 0,
-              shadowRadius: 4,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: active ? 2 : 0,
-            }}
-          >
-            <Text
-              className="font-[jost700] text-[15px]"
+          <View key={t.key} style={{ flex: 1 }}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setVariant(t.key)}
               style={{
-                color: active ? "#ffffff" : colors["crossed-gray"]["400"],
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 9999,
+                paddingVertical: 11,
+                backgroundColor: active ? blue : "transparent",
+                shadowColor: "#000",
+                shadowOpacity: active ? 0.15 : 0,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: active ? 2 : 0,
               }}
             >
-              {t.label}
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className="font-[jost700] text-[15px]"
+                style={{
+                  color: active ? "#ffffff" : colors["crossed-gray"]["400"],
+                }}
+              >
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          </View>
         );
       })}
     </View>

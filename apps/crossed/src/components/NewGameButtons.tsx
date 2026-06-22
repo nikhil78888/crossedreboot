@@ -126,48 +126,53 @@ export const NewGameButtons = () => {
         </View>
       </TouchableOpacity>
 
-      {/* With Friend / Solo cards */}
+      {/* With Friend / Solo cards (flex:1 on wrapper Views so they're equal
+          halves and never overflow). */}
       <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => {
-            trackEvent(events.START_FRIENDLY_GAME_CLICK);
-            playFriendly();
-          }}
-          style={{ flex: 1, borderRadius: 16, padding: 16, backgroundColor: "#ede9fe" }}
-        >
-          <Image
-            source={images.friend}
-            style={{ height: 48, width: 48 }}
-            contentFit="contain"
-          />
-          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
-            With Your Friend
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-            Invite and challenge your friend.
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => {
-            trackEvent(events.START_SOLO_GAME_CLICK);
-            playSolo();
-          }}
-          style={{ flex: 1, borderRadius: 16, padding: 16, backgroundColor: "#dcfce7" }}
-        >
-          <Image
-            source={images.solo}
-            style={{ height: 48, width: 48 }}
-            contentFit="contain"
-          />
-          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
-            Solo Game
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-            Play at your own pace anytime.
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              playFriendly();
+            }}
+            style={{ borderRadius: 16, padding: 16, backgroundColor: "#ede9fe" }}
+          >
+            <Image
+              source={images.friend}
+              style={{ height: 48, width: 48 }}
+              contentFit="contain"
+            />
+            <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
+              With Your Friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Invite and challenge your friend.
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_SOLO_GAME_CLICK);
+              playSolo();
+            }}
+            style={{ borderRadius: 16, padding: 16, backgroundColor: "#dcfce7" }}
+          >
+            <Image
+              source={images.solo}
+              style={{ height: 48, width: 48 }}
+              contentFit="contain"
+            />
+            <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
+              Solo Game
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Play at your own pace anytime.
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tournament bar */}

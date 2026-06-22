@@ -97,7 +97,8 @@ export default function Leaderboard() {
                 flexDirection: "row",
                 marginTop: 12,
                 borderRadius: 9999,
-                padding: 4,
+                padding: 5,
+                gap: 6,
                 backgroundColor: colors["crossed-gray"]["100"],
               }}
             >
@@ -109,30 +110,32 @@ export default function Leaderboard() {
               ).map((s) => {
                 const active = scope === s.key;
                 return (
-                  <TouchableOpacity
-                    key={s.key}
-                    activeOpacity={0.8}
-                    onPress={() => setScope(s.key)}
-                    style={{
-                      flex: 1,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 9999,
-                      paddingVertical: 9,
-                      backgroundColor: active
-                        ? colors["crossed-blue"]["450"]
-                        : "transparent",
-                    }}
-                  >
-                    <Text
-                      className="font-[jost600] text-[14px]"
+                  <View key={s.key} style={{ flex: 1 }}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => setScope(s.key)}
                       style={{
-                        color: active ? "#fff" : colors["crossed-gray"]["400"],
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 9999,
+                        paddingVertical: 9,
+                        backgroundColor: active
+                          ? colors["crossed-blue"]["450"]
+                          : "transparent",
                       }}
                     >
-                      {s.label}
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        className="font-[jost600] text-[14px]"
+                        style={{
+                          color: active
+                            ? "#fff"
+                            : colors["crossed-gray"]["400"],
+                        }}
+                      >
+                        {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>

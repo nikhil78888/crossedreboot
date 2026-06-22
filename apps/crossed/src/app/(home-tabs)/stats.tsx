@@ -90,7 +90,7 @@ export default function Stats() {
         <View className="flex-row items-center justify-between">
           <View>
             <Text
-              className="font-[rubik700] text-[56px] leading-none"
+              className="font-[rubik700] text-[68px] leading-none"
               style={{ color: "#ffffff" }}
             >
               {rating != null ? Math.round(rating) : "—"}
@@ -112,29 +112,35 @@ export default function Stats() {
       </View>
 
       {/* Stat cards */}
-      <View className="mt-4 flex-row" style={{ gap: 12 }}>
-        <View className="flex-1 rounded-2xl border border-crossed-gray-100 p-4">
-          <Text style={{ fontSize: 22 }}>🎮</Text>
-          <Text className="mt-1 font-[rubik700] text-[30px] text-crossed-gray-900">
+      <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
+        <View
+          style={{ flex: 1 }}
+          className="rounded-2xl border border-crossed-gray-100 px-5 py-5"
+        >
+          <Text style={{ fontSize: 24 }}>🎮</Text>
+          <Text className="mt-2 font-[rubik700] text-[32px] text-crossed-gray-900">
             {stats?.gamesPlayed ?? 0}
           </Text>
-          <Text className="font-[jost600] text-[13px] text-crossed-gray-400">
+          <Text className="mt-0.5 font-[jost600] text-[13px] text-crossed-gray-400">
             Games Played
           </Text>
         </View>
-        <View className="flex-1 rounded-2xl border border-crossed-gray-100 p-4">
-          <Text style={{ fontSize: 22 }}>🏆</Text>
-          <Text className="mt-1 font-[rubik700] text-[30px] text-crossed-gray-900">
+        <View
+          style={{ flex: 1 }}
+          className="rounded-2xl border border-crossed-gray-100 px-5 py-5"
+        >
+          <Text style={{ fontSize: 24 }}>🏆</Text>
+          <Text className="mt-2 font-[rubik700] text-[32px] text-crossed-gray-900">
             {stats?.gamesWon ?? 0}
           </Text>
-          <Text className="font-[jost600] text-[13px] text-crossed-gray-400">
+          <Text className="mt-0.5 font-[jost600] text-[13px] text-crossed-gray-400">
             Games Won
           </Text>
         </View>
       </View>
 
       {/* Recent activity */}
-      <View className="mt-5 rounded-2xl border border-crossed-gray-100 p-4">
+      <View className="mt-5 rounded-2xl border border-crossed-gray-100 px-5 py-4">
         <Text className="font-[jost700] text-[17px] text-crossed-gray-900">
           Recent Activity
         </Text>

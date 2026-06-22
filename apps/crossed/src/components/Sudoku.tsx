@@ -366,8 +366,9 @@ export const SudokuGrid = ({
                             >
                               <Text
                                 style={{
-                                  fontSize: cellPx * 0.2,
-                                  color: isSelected ? "#dbeafe" : "#6b7280",
+                                  fontSize: cellPx * 0.26,
+                                  fontWeight: "600",
+                                  color: isSelected ? "#ffffff" : "#4b5563",
                                 }}
                               >
                                 {notes[cellKey(r, c)].includes(n) ? n : ""}
@@ -386,7 +387,7 @@ export const SudokuGrid = ({
           {/* Number pad */}
           {!disabled && (
             <View className="mt-6">
-              <View className="flex-row justify-between">
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
                   <TouchableOpacity
                     key={`pad-${n}`}
@@ -398,9 +399,11 @@ export const SudokuGrid = ({
                       alignItems: "center",
                       justifyContent: "center",
                       borderRadius: 8,
+                      // Purple tint while in Notes mode so it's clear taps jot
+                      // candidates, not values.
                       backgroundColor: notesMode ? "#f5f3ff" : "#eff6ff",
                       borderWidth: 1,
-                      borderColor: notesMode ? "#ddd6fe" : "#bfdbfe",
+                      borderColor: notesMode ? "#c4b5fd" : "#bfdbfe",
                     }}
                   >
                     <Text
@@ -415,34 +418,62 @@ export const SudokuGrid = ({
                   </TouchableOpacity>
                 ))}
               </View>
-              <View className="mt-3 flex-row" style={{ gap: 10 }}>
-                {/* Notes (pencil) toggle */}
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setNotesMode((v) => !v)}
-                  className="flex-1 flex-row items-center justify-center rounded-lg py-3"
-                  style={{
-                    backgroundColor: notesMode ? "#7c3aed" : "#f3f4f6",
-                  }}
-                >
-                  <Text style={{ fontSize: 16 }}>✏️</Text>
-                  <Text
-                    className="ml-2 font-[jost600] text-base"
-                    style={{ color: notesMode ? "#ffffff" : "#6b7280" }}
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+                {/* Notes (pencil) toggle — clearly shows On/Off */}
+                <View style={{ flex: 1 }}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setNotesMode((v) => !v)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 10,
+                      paddingVertical: 14,
+                      backgroundColor: notesMode ? "#7c3aed" : "#f3f4f6",
+                    }}
                   >
-                    Notes {notesMode ? "ON" : "OFF"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleErase}
-                  className="flex-1 items-center justify-center rounded-lg bg-crossed-gray-100 py-3"
-                >
-                  <Text className="font-[jost600] text-base text-crossed-gray-400">
-                    Erase
-                  </Text>
-                </TouchableOpacity>
+                    <Text style={{ fontSize: 16 }}>✏️</Text>
+                    <Text
+                      className="ml-2 font-[jost600] text-base"
+                      style={{ color: notesMode ? "#ffffff" : "#6b7280" }}
+                    >
+                      Notes: {notesMode ? "On" : "Off"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleErase}
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 10,
+                      paddingVertical: 14,
+                      backgroundColor: "#f3f4f6",
+                    }}
+                  >
+                    <Text className="font-[jost600] text-base text-crossed-gray-400">
+                      ⌫  Erase
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+              {notesMode && (
+                <Text
+                  style={{
+                    marginTop: 8,
+                    textAlign: "center",
+                    fontSize: 12,
+                    color: "#7c3aed",
+                  }}
+                  className="font-[jost500]"
+                >
+                  Pencil mode: tap a cell, then numbers to jot candidates. Tap
+                  “Notes: On” to turn it off.
+                </Text>
+              )}
             </View>
           )}
         </View>

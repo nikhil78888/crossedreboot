@@ -244,53 +244,55 @@ const Row = ({
   onPress?: () => void;
   rating?: number;
 }) => (
-  // Inline flex styles (not nativewind classes on the gesture-handler
-  // touchable) so the name reliably gets its width and shows.
+  // flex:1 lives on a plain wrapper View (it doesn't apply reliably on the
+  // gesture-handler TouchableOpacity), so the name column gets real width.
   <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}>
-    <TouchableOpacity
-      disabled={!onPress}
-      onPress={onPress}
-      activeOpacity={0.7}
-      style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
-    >
-      <View>
-        <Avatar
-          size={44}
-          name={username || "?"}
-          source={avatars[avatar as keyof typeof avatars]}
-          imageStyle={{ backgroundColor: "white" }}
-        />
-        {online !== undefined && (
-          <View
-            className="absolute bottom-0 right-0 rounded-full border-2 border-white"
-            style={{
-              width: 12,
-              height: 12,
-              backgroundColor: online
-                ? colors["crossed-green"]["700"]
-                : colors["crossed-gray"]["300"],
-            }}
+    <View style={{ flex: 1 }}>
+      <TouchableOpacity
+        disabled={!onPress}
+        onPress={onPress}
+        activeOpacity={0.7}
+        style={{ flexDirection: "row", alignItems: "center" }}
+      >
+        <View>
+          <Avatar
+            size={44}
+            name={username || "?"}
+            source={avatars[avatar as keyof typeof avatars]}
+            imageStyle={{ backgroundColor: "white" }}
           />
-        )}
-      </View>
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontFamily: "jost600", fontSize: 15, color: "#111827" }}
-        >
-          {username}
-        </Text>
-        {rating != null ? (
-          <RankBadge rating={rating} />
-        ) : (
-          !!subtitle && (
-            <Text className="font-[jost400] text-xs text-crossed-gray-400">
-              {subtitle}
-            </Text>
-          )
-        )}
-      </View>
-    </TouchableOpacity>
+          {online !== undefined && (
+            <View
+              className="absolute bottom-0 right-0 rounded-full border-2 border-white"
+              style={{
+                width: 12,
+                height: 12,
+                backgroundColor: online
+                  ? colors["crossed-green"]["700"]
+                  : colors["crossed-gray"]["300"],
+              }}
+            />
+          )}
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text
+            numberOfLines={1}
+            style={{ fontFamily: "jost600", fontSize: 15, color: "#111827" }}
+          >
+            {username}
+          </Text>
+          {rating != null ? (
+            <RankBadge rating={rating} />
+          ) : (
+            !!subtitle && (
+              <Text className="font-[jost400] text-xs text-crossed-gray-400">
+                {subtitle}
+              </Text>
+            )
+          )}
+        </View>
+      </TouchableOpacity>
+    </View>
     {right}
   </View>
 );
