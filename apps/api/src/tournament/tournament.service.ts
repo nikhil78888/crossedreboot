@@ -7,7 +7,7 @@ const durationForSize = (size: number | null | undefined, base: number) =>
   size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
 
 const TOURNAMENT_SIZE = 8;
-const SUDOKU_DURATION_SECONDS = 600;
+const SUDOKU_DURATION_SECONDS = 900;
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
 

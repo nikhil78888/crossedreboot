@@ -13,6 +13,7 @@ import {
   useFriends,
 } from "../hooks/use-friends";
 import { useGameGate } from "../hooks/use-subscription";
+import { RankBadge } from "../components/RankBadge";
 
 export default function Friends() {
   const router = useRouter();
@@ -140,7 +141,7 @@ export default function Friends() {
               username={f.username}
               avatar={f.avatar}
               online={f.online}
-              subtitle={f.online ? "online" : "offline"}
+              rating={f.eloRating}
               onPress={() =>
                 router.push(
                   `/friend-profile?id=${f.id}&username=${encodeURIComponent(
@@ -233,6 +234,7 @@ const Row = ({
   online,
   right,
   onPress,
+  rating,
 }: {
   username: string;
   avatar?: string | null;
@@ -240,13 +242,16 @@ const Row = ({
   online?: boolean;
   right?: ReactNode;
   onPress?: () => void;
+  rating?: number;
 }) => (
-  <View className="flex-row items-center py-2">
+  // Inline flex styles (not nativewind classes on the gesture-handler
+  // touchable) so the name reliably gets its width and shows.
+  <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}>
     <TouchableOpacity
       disabled={!onPress}
       onPress={onPress}
       activeOpacity={0.7}
-      className="flex-1 flex-row items-center"
+      style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
     >
       <View>
         <Avatar
@@ -268,14 +273,21 @@ const Row = ({
           />
         )}
       </View>
-      <View className="flex-1 ml-3">
-        <Text className="font-[jost600] text-[15px]" numberOfLines={1}>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontFamily: "jost600", fontSize: 15, color: "#111827" }}
+        >
           {username}
         </Text>
-        {!!subtitle && (
-          <Text className="font-[jost400] text-xs text-crossed-gray-400">
-            {subtitle}
-          </Text>
+        {rating != null ? (
+          <RankBadge rating={rating} />
+        ) : (
+          !!subtitle && (
+            <Text className="font-[jost400] text-xs text-crossed-gray-400">
+              {subtitle}
+            </Text>
+          )
         )}
       </View>
     </TouchableOpacity>

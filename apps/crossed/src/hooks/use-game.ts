@@ -13,8 +13,8 @@ import { Crossword, Json } from "types-and-validators";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
 
-// Sudoku is a longer solve than a mini crossword: 10 minutes.
-export const SUDOKU_DURATION_SECONDS = 600;
+// Sudoku is a longer solve than a mini crossword: 15 minutes.
+export const SUDOKU_DURATION_SECONDS = 900;
 
 // A solution grid is letters (crossword) or 1-9 ints (sudoku); null = blank.
 type SolutionGrid = (string | number | null)[][];

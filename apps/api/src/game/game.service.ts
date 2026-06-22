@@ -7,8 +7,8 @@ import { onTournamentGameFinished } from "../tournament/tournament.service";
 export const durationForSize = (size: number | null | undefined, base: number) =>
   size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
 
-// Sudoku is a longer solve than a mini crossword: 10 minutes.
-export const SUDOKU_DURATION_SECONDS = 600;
+// Sudoku is a longer solve than a mini crossword: 15 minutes.
+export const SUDOKU_DURATION_SECONDS = 900;
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
 

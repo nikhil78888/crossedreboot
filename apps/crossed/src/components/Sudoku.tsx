@@ -37,6 +37,10 @@ export const SudokuGrid = ({
 
   const isGameFinished = game?.playState === "COMPLETED";
   const [gameState, setGameState] = useState<GameState | null>(null);
+  // Pencil marks (candidate notes). Local-only — a personal aid, not synced or
+  // scored. Keyed by "row,col" -> sorted list of candidate digits.
+  const [notesMode, setNotesMode] = useState(false);
+  const [notes, setNotes] = useState<Record<string, number[]>>({});
 
   // --- Bot opponent: fills its grid toward the solution over time ----------
   useEffect(() => {
@@ -216,6 +220,49 @@ export const SudokuGrid = ({
     );
   };
 
+  const cellKey = (x: number, y: number) => `${x},${y}`;
+
+  // Number pad press: in Notes mode toggle a pencil mark; otherwise place the
+  // value (and clear that cell's notes).
+  const handleNumber = (n: number) => {
+    if (disabled) return;
+    const { x, y } = currentCell;
+    if (isGiven(x, y)) return;
+    if (notesMode) {
+      setNotes((prev) => {
+        const k = cellKey(x, y);
+        const cur = prev[k] ?? [];
+        const next = cur.includes(n)
+          ? cur.filter((v) => v !== n)
+          : [...cur, n].sort((a, b) => a - b);
+        return { ...prev, [k]: next };
+      });
+    } else {
+      setCellValue(n);
+      setNotes((prev) => {
+        const k = cellKey(x, y);
+        if (!prev[k]) return prev;
+        const copy = { ...prev };
+        delete copy[k];
+        return copy;
+      });
+    }
+  };
+
+  const handleErase = () => {
+    if (disabled) return;
+    const { x, y } = currentCell;
+    if (isGiven(x, y)) return;
+    setCellValue(EMPTY);
+    setNotes((prev) => {
+      const k = cellKey(x, y);
+      if (!prev[k]) return prev;
+      const copy = { ...prev };
+      delete copy[k];
+      return copy;
+    });
+  };
+
   const cellPx = boardSize / 9;
   const fontSize = cellPx * 0.5;
 
@@ -281,21 +328,54 @@ export const SudokuGrid = ({
                         borderColor: "#9ca3af",
                       }}
                     >
-                      <Text
-                        style={{
-                          fontSize,
-                          fontWeight: given ? "700" : "500",
-                          color: isSelected
-                            ? "#ffffff"
-                            : wrong
-                            ? "#b91c1c"
-                            : given
-                            ? "#111827"
-                            : "#2563eb",
-                        }}
-                      >
-                        {value === EMPTY ? "" : String(value)}
-                      </Text>
+                      {value !== EMPTY ? (
+                        <Text
+                          style={{
+                            fontSize,
+                            fontWeight: given ? "700" : "500",
+                            color: isSelected
+                              ? "#ffffff"
+                              : wrong
+                              ? "#b91c1c"
+                              : given
+                              ? "#111827"
+                              : "#2563eb",
+                          }}
+                        >
+                          {String(value)}
+                        </Text>
+                      ) : notes[cellKey(r, c)]?.length ? (
+                        // Pencil marks: a 3x3 of candidate digits.
+                        <View
+                          style={{
+                            width: cellPx,
+                            height: cellPx,
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                            <View
+                              key={n}
+                              style={{
+                                width: cellPx / 3,
+                                height: cellPx / 3,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: cellPx * 0.2,
+                                  color: isSelected ? "#dbeafe" : "#6b7280",
+                                }}
+                              >
+                                {notes[cellKey(r, c)].includes(n) ? n : ""}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
                     </TouchableOpacity>
                   );
                 })}
@@ -311,23 +391,23 @@ export const SudokuGrid = ({
                   <TouchableOpacity
                     key={`pad-${n}`}
                     activeOpacity={0.7}
-                    onPress={() => setCellValue(n)}
+                    onPress={() => handleNumber(n)}
                     style={{
                       width: boardSize / 9 - 4,
                       height: boardSize / 9 + 8,
                       alignItems: "center",
                       justifyContent: "center",
                       borderRadius: 8,
-                      backgroundColor: "#eff6ff",
+                      backgroundColor: notesMode ? "#f5f3ff" : "#eff6ff",
                       borderWidth: 1,
-                      borderColor: "#bfdbfe",
+                      borderColor: notesMode ? "#ddd6fe" : "#bfdbfe",
                     }}
                   >
                     <Text
                       style={{
                         fontSize: fontSize * 0.95,
                         fontWeight: "600",
-                        color: "#1d4ed8",
+                        color: notesMode ? "#7c3aed" : "#1d4ed8",
                       }}
                     >
                       {n}
@@ -335,15 +415,34 @@ export const SudokuGrid = ({
                   </TouchableOpacity>
                 ))}
               </View>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setCellValue(EMPTY)}
-                className="mt-3 items-center justify-center rounded-lg bg-crossed-gray-100 py-3"
-              >
-                <Text className="font-[jost600] text-base text-crossed-gray-400">
-                  Erase
-                </Text>
-              </TouchableOpacity>
+              <View className="mt-3 flex-row" style={{ gap: 10 }}>
+                {/* Notes (pencil) toggle */}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setNotesMode((v) => !v)}
+                  className="flex-1 flex-row items-center justify-center rounded-lg py-3"
+                  style={{
+                    backgroundColor: notesMode ? "#7c3aed" : "#f3f4f6",
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>✏️</Text>
+                  <Text
+                    className="ml-2 font-[jost600] text-base"
+                    style={{ color: notesMode ? "#ffffff" : "#6b7280" }}
+                  >
+                    Notes {notesMode ? "ON" : "OFF"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleErase}
+                  className="flex-1 items-center justify-center rounded-lg bg-crossed-gray-100 py-3"
+                >
+                  <Text className="font-[jost600] text-base text-crossed-gray-400">
+                    Erase
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
