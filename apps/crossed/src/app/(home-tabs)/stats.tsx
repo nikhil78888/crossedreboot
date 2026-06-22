@@ -89,10 +89,16 @@ export default function Stats() {
       >
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="font-[rubik700] text-[56px] leading-none text-white">
+            <Text
+              className="font-[rubik700] text-[56px] leading-none"
+              style={{ color: "#ffffff" }}
+            >
               {rating != null ? Math.round(rating) : "—"}
             </Text>
-            <Text className="mt-1 font-[jost600] text-[18px] text-white/90">
+            <Text
+              className="mt-1 font-[jost600] text-[18px]"
+              style={{ color: "rgba(255,255,255,0.92)" }}
+            >
               {variant === "SUDOKU" ? "Sudoku Rating" : "Crossword Rating"}
             </Text>
           </View>

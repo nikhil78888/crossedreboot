@@ -127,15 +127,14 @@ export const NewGameButtons = () => {
       </TouchableOpacity>
 
       {/* With Friend / Solo cards */}
-      <View className="mt-3 flex-row" style={{ gap: 12 }}>
+      <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => {
             trackEvent(events.START_FRIENDLY_GAME_CLICK);
             playFriendly();
           }}
-          className="flex-1 rounded-2xl p-4"
-          style={{ backgroundColor: "#ede9fe" }}
+          style={{ flex: 1, borderRadius: 16, padding: 16, backgroundColor: "#ede9fe" }}
         >
           <Image
             source={images.play_friendly}
@@ -155,8 +154,7 @@ export const NewGameButtons = () => {
             trackEvent(events.START_SOLO_GAME_CLICK);
             playSolo();
           }}
-          className="flex-1 rounded-2xl p-4"
-          style={{ backgroundColor: "#dcfce7" }}
+          style={{ flex: 1, borderRadius: 16, padding: 16, backgroundColor: "#dcfce7" }}
         >
           <Image
             source={images.play_solo}
@@ -180,11 +178,18 @@ export const NewGameButtons = () => {
           playTournament();
         }}
         disabled={joiningTournament}
-        className="mt-3 flex-row items-center rounded-2xl px-5 py-4"
-        style={{ backgroundColor: colors["crossed-yellow"]["300"] }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: 12,
+          borderRadius: 16,
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          backgroundColor: colors["crossed-yellow"]["300"],
+        }}
       >
         <Text style={{ fontSize: 30 }}>🏆</Text>
-        <View className="ml-3 flex-1">
+        <View style={{ flex: 1, marginLeft: 12 }}>
           <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
             Tournament
           </Text>

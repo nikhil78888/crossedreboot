@@ -11,13 +11,19 @@ const TABS: { key: GameVariant; label: string }[] = [
 
 // Full-width Crosswords / Sudoku segmented control. Reads the app-wide variant
 // context so home, leaderboard, and stats stay in sync.
+// NOTE: flex uses inline styles, not nativewind className — `flex-1` via
+// className does not apply on react-native-gesture-handler's TouchableOpacity.
 export const VariantTabs = () => {
   const { variant, setVariant } = useVariant();
   const blue = colors["crossed-blue"]["450"];
   return (
     <View
-      className="flex-row rounded-full p-1"
-      style={{ backgroundColor: colors["crossed-gray"]["100"] }}
+      style={{
+        flexDirection: "row",
+        borderRadius: 9999,
+        padding: 4,
+        backgroundColor: colors["crossed-gray"]["100"],
+      }}
     >
       {TABS.map((t) => {
         const active = variant === t.key;
@@ -26,8 +32,11 @@ export const VariantTabs = () => {
             key={t.key}
             activeOpacity={0.8}
             onPress={() => setVariant(t.key)}
-            className="flex-1 items-center rounded-full"
             style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 9999,
               paddingVertical: 11,
               backgroundColor: active ? blue : "transparent",
               shadowColor: "#000",

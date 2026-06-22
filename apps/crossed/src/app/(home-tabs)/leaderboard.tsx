@@ -93,8 +93,13 @@ export default function Leaderboard() {
             <VariantTabs />
             {/* Global / Friends scope */}
             <View
-              className="mt-3 flex-row rounded-full p-1"
-              style={{ backgroundColor: colors["crossed-gray"]["100"] }}
+              style={{
+                flexDirection: "row",
+                marginTop: 12,
+                borderRadius: 9999,
+                padding: 4,
+                backgroundColor: colors["crossed-gray"]["100"],
+              }}
             >
               {(
                 [
@@ -108,8 +113,12 @@ export default function Leaderboard() {
                     key={s.key}
                     activeOpacity={0.8}
                     onPress={() => setScope(s.key)}
-                    className="flex-1 items-center rounded-full py-2"
                     style={{
+                      flex: 1,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 9999,
+                      paddingVertical: 9,
                       backgroundColor: active
                         ? colors["crossed-blue"]["450"]
                         : "transparent",
