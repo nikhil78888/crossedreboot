@@ -137,6 +137,8 @@ export interface Database {
           winnerId: string | null
           rematchGamesId: string | null
           invitedProfileId: string | null
+          gameVariant: string
+          sudokusId: string | null
         }
         Insert: {
           createdAt?: string
@@ -150,6 +152,8 @@ export interface Database {
           winnerId?: string | null
           rematchGamesId?: string | null
           invitedProfileId?: string | null
+          gameVariant?: string
+          sudokusId?: string | null
         }
         Update: {
           createdAt?: string
@@ -163,6 +167,8 @@ export interface Database {
           winnerId?: string | null
           rematchGamesId?: string | null
           invitedProfileId?: string | null
+          gameVariant?: string
+          sudokusId?: string | null
         }
         Relationships: [
           {
@@ -194,6 +200,33 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+      sudokus: {
+        Row: {
+          id: string
+          puzzle: Json
+          solution: Json
+          difficulty: string
+          isPublished: boolean
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          puzzle: Json
+          solution: Json
+          difficulty?: string
+          isPublished?: boolean
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          puzzle?: Json
+          solution?: Json
+          difficulty?: string
+          isPublished?: boolean
+          createdAt?: string
+        }
+        Relationships: []
       }
       friendships: {
         Row: {
@@ -552,6 +585,33 @@ export interface Database {
           solution: string[] | null
           source: Database["public"]["Enums"]["CrosswordSource"]
           usedWords: string[] | null
+        }[]
+      }
+      get_available_sudoku: {
+        Args: {
+          profileid: string
+        }
+        Returns: {
+          id: string
+          puzzle: Json
+          solution: Json
+          difficulty: string
+          isPublished: boolean
+          createdAt: string
+        }[]
+      }
+      get_available_ranked_sudoku: {
+        Args: {
+          player_one_id: string
+          player_two_id: string
+        }
+        Returns: {
+          id: string
+          puzzle: Json
+          solution: Json
+          difficulty: string
+          isPublished: boolean
+          createdAt: string
         }[]
       }
     }
