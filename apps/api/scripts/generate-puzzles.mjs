@@ -423,6 +423,7 @@ function buildPuzzle(pattern, grid, dict) {
   };
 
   const clues = { Across: [], Down: [] };
+  const used = new Set(); // distinct answer words, for per-user repeat spacing
   // across words
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
@@ -430,6 +431,7 @@ function buildPuzzle(pattern, grid, dict) {
         let word = "";
         let cc = c;
         while (cc < SIZE && pattern[r][cc]) word += grid[r][cc++];
+        used.add(word.toUpperCase());
         clues.Across.push({ number: String(numberAt[`${r},${c}`]), clue: clueOf(word) });
       }
     }
@@ -440,13 +442,14 @@ function buildPuzzle(pattern, grid, dict) {
         let word = "";
         let rr = r;
         while (rr < SIZE && pattern[rr][c]) word += grid[rr++][c];
+        used.add(word.toUpperCase());
         clues.Down.push({ number: String(numberAt[`${r},${c}`]), clue: clueOf(word) });
       }
     }
   }
   // a "great" puzzle must have a clue for every word
   const allClued = [...clues.Across, ...clues.Down].every((x) => x.clue);
-  return { puzzle, solution, clues, allClued };
+  return { puzzle, solution, clues, allClued, usedWords: [...used] };
 }
 
 async function insertPuzzle(p) {
@@ -458,6 +461,7 @@ async function insertPuzzle(p) {
       puzzle: p.puzzle,
       solution: p.solution,
       clues: p.clues,
+      usedWords: p.usedWords,
       source: "wizium",
       difficulty: 2,
       isPublished: true,

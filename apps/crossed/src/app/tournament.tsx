@@ -4,7 +4,7 @@ import {
   useRouter,
 } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Avatar } from "react-native-ui-lib";
 import { useTournament, TournamentMatch } from "../hooks/use-tournament";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -18,6 +18,13 @@ const ROUND_LABELS: Record<number, string> = {
   2: "Semifinals",
   3: "Final",
 };
+
+// Games we've already auto-entered from a tournament. MODULE-LEVEL (not a ref):
+// router.replace('/tournament') after a finished match remounts this screen, so
+// a per-component ref would reset and the screen would bounce back into the
+// just-completed game — "Maximum update depth exceeded". A module-level set
+// survives remounts, so each game is entered at most once per session.
+const ENTERED_TOURNAMENT_GAMES = new Set<string>();
 
 export default function Tournament() {
   const router = useRouter();
@@ -40,14 +47,13 @@ export default function Tournament() {
   // When my live match has a game ready, drop into it — but only ONCE per game.
   // Otherwise, when a finished game's match briefly still reads "PLAYING", this
   // screen and the game screen bounce back and forth (max-update-depth crash).
-  const enteredGames = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (
       myActiveGameId &&
       navigation.isFocused() &&
-      !enteredGames.current.has(myActiveGameId)
+      !ENTERED_TOURNAMENT_GAMES.has(myActiveGameId)
     ) {
-      enteredGames.current.add(myActiveGameId);
+      ENTERED_TOURNAMENT_GAMES.add(myActiveGameId);
       router.replace(
         `/game?gameId=${myActiveGameId}&tournamentId=${tournamentId}`
       );
@@ -85,11 +91,21 @@ export default function Tournament() {
             ? "Invite friends, then start whenever you're ready — empty seats become bots."
             : "Empty seats fill with bots near your skill if the field isn't full."}
         </Text>
-        <View className="mt-6 flex-row flex-wrap justify-center">
+        <View
+          style={{
+            marginTop: 24,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
           {Array.from({ length: size }).map((_, i) => {
             const seated = players.filter((p) => !p.isBot)[i];
             return (
-              <View key={i} className="m-2 items-center" style={{ width: 70 }}>
+              <View
+                key={i}
+                style={{ width: 70, margin: 8, alignItems: "center" }}
+              >
                 <View
                   className="rounded-full items-center justify-center"
                   style={{

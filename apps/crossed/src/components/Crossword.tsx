@@ -256,7 +256,7 @@ export const CrosswordGrid = ({
     // update game state if showResults
     if (showResults && game && crossword) {
       const solutionToDisplay = showResults.playerId
-        ? game.gameState?.[showResults.playerId].solution
+        ? game.gameState?.[showResults.playerId]?.solution ?? crossword.solution
         : crossword.solution;
       setGameState({
         direction: "Across",

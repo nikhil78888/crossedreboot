@@ -17,7 +17,7 @@ export default function SelectDifficulty() {
   const { variant } = useVariant();
   const { createSoloGame, createFriendlyGame } = useGame({ gameId: undefined });
   const { joinLobby } = useOnlineStatus();
-  const { joinTournament, createPrivateTournament } = useTournament({
+  const { createPrivateTournament } = useTournament({
     tournamentId: undefined,
   });
   const { checkCanPlay } = useGameGate();
@@ -49,8 +49,11 @@ export default function SelectDifficulty() {
           `/ranked-lobby?variant=${variant}&difficulty=${difficulty}`
         );
       } else if (mode === "TOURNAMENT") {
-        const id = await joinTournament({ variant, difficulty });
-        if (id) router.replace(`/tournament?tournamentId=${id}`);
+        // Enqueue + wait in the lobby; a single-leader matcher batches players
+        // into clean 8-person brackets (handles big simultaneous bursts).
+        router.replace(
+          `/tournament-lobby?variant=${variant}&difficulty=${difficulty}`
+        );
       } else if (mode === "PRIVATE_TOURNAMENT") {
         const id = await createPrivateTournament(variant, difficulty);
         if (id) router.replace(`/tournament?tournamentId=${id}`);

@@ -7,7 +7,7 @@ import { resolveCluesForDifficulty } from "../game/clue-resolver";
 const durationForSize = (size: number | null | undefined, base: number) =>
   size && size >= 9 ? 420 : size && size >= 7 ? 300 : base;
 
-const TOURNAMENT_SIZE = 8;
+export const TOURNAMENT_SIZE = 8;
 const SUDOKU_DURATION_SECONDS = 900;
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
@@ -93,45 +93,49 @@ export const joinTournament = async (
     .eq("difficulty", difficulty)
     .eq("isPrivate", false)
     .order("createdAt", { ascending: true });
-  let target = null as null | { id: string; size: number };
+  // Try to atomically claim a seat in the oldest filling tournament with room.
+  // The seat-claim RPC row-locks the tournament so concurrent joiners can't
+  // overfill past `size`; fall back to creating a fresh tournament.
+  let joinedId: string | null = null;
+  let becameFull = false;
   for (const t of filling ?? []) {
-    const { data: ps } = await supabase
-      .from("tournamentPlayers")
-      .select("id")
-      .eq("tournamentsId", t.id);
-    if ((ps?.length ?? 0) < (t.size ?? TOURNAMENT_SIZE)) {
-      target = t;
+    const { data: result } = await supabase.rpc("claim_tournament_seat", {
+      p_tournament: t.id,
+      p_profile: profileId,
+      p_is_bot: false,
+    });
+    if (result === "seated" || result === "seated_full") {
+      joinedId = t.id;
+      becameFull = result === "seated_full";
       break;
     }
+    // "full" / "no_tournament" -> try the next candidate
   }
-  if (!target) {
+  if (!joinedId) {
     const { data: created } = await supabase
       .from("tournaments")
-      .insert({
-        status: "FILLING",
-        size: TOURNAMENT_SIZE,
-        gameVariant,
-        difficulty,
-      })
+      .insert({ status: "FILLING", size: TOURNAMENT_SIZE, gameVariant, difficulty })
       .select("*")
       .single();
-    target = created;
+    if (!created) throw new Error("could not create tournament");
+    const { data: result } = await supabase.rpc("claim_tournament_seat", {
+      p_tournament: created.id,
+      p_profile: profileId,
+      p_is_bot: false,
+    });
+    if (result !== "seated" && result !== "seated_full") {
+      throw new Error("could not seat in new tournament");
+    }
+    joinedId = created.id;
+    becameFull = result === "seated_full";
   }
-  if (!target) throw new Error("could not create tournament");
 
-  await supabase
-    .from("tournamentPlayers")
-    .insert({ tournamentsId: target.id, profilesId: profileId, isBot: false });
-
-  // Start immediately if a full field of humans showed up.
-  const { data: count } = await supabase
-    .from("tournamentPlayers")
-    .select("id")
-    .eq("tournamentsId", target.id);
-  if ((count?.length ?? 0) >= (target.size ?? TOURNAMENT_SIZE)) {
-    await startTournament(target.id);
+  // A full field of humans -> start now (startTournament claims the start
+  // atomically, so a concurrent join can't double-start it).
+  if (becameFull) {
+    await startTournament(joinedId);
   }
-  return target.id;
+  return joinedId;
 };
 
 // --- Private (friends-only) tournaments ------------------------------------
@@ -205,28 +209,21 @@ export const acceptTournamentInvite = async (
     .single();
   if (!t || t.status !== "FILLING") throw new Error("tournament not joinable");
 
-  const { data: seated } = await supabase
-    .from("tournamentPlayers")
-    .select("id")
-    .eq("tournamentsId", tournamentId);
-  if ((seated?.length ?? 0) >= (t.size ?? TOURNAMENT_SIZE)) {
+  // Atomic, row-locked seat claim prevents overfilling past `size`.
+  const { data: result } = await supabase.rpc("claim_tournament_seat", {
+    p_tournament: tournamentId,
+    p_profile: profileId,
+    p_is_bot: false,
+  });
+  if (result !== "seated" && result !== "seated_full") {
     throw new Error("tournament is full");
   }
-
   await supabase
     .from("tournamentInvites")
     .update({ status: "ACCEPTED" })
     .eq("id", inv.id);
-  await supabase.from("tournamentPlayers").upsert(
-    { tournamentsId: tournamentId, profilesId: profileId, isBot: false },
-    { onConflict: "tournamentsId,profilesId", ignoreDuplicates: true }
-  );
 
-  const { data: count } = await supabase
-    .from("tournamentPlayers")
-    .select("id")
-    .eq("tournamentsId", tournamentId);
-  if ((count?.length ?? 0) >= (t.size ?? TOURNAMENT_SIZE)) {
+  if (result === "seated_full") {
     await startTournament(tournamentId);
   }
   return tournamentId;
@@ -290,12 +287,18 @@ export const startTournamentByCreator = async (
 
 // Fill empty seats with bots, seed the bracket, and kick off round 1.
 export const startTournament = async (tournamentId: string) => {
+  // Atomically claim FILLING -> IN_PROGRESS so concurrent callers (auto-start,
+  // the sweeper, multiple replicas) can never double-start the bracket.
+  const { data: won } = await supabase.rpc("claim_tournament_start", {
+    p_tournament: tournamentId,
+  });
+  if (!won) return;
   const { data: t } = await supabase
     .from("tournaments")
     .select("*")
     .eq("id", tournamentId)
     .single();
-  if (!t || t.status !== "FILLING") return;
+  if (!t) return;
 
   const size = t.size ?? TOURNAMENT_SIZE;
   const { data: existing } = await supabase
@@ -337,9 +340,10 @@ export const startTournament = async (tournamentId: string) => {
     shuffled[i].seat = i;
   }
 
+  // status is already IN_PROGRESS (claimed atomically at the top); just stamp time
   await supabase
     .from("tournaments")
-    .update({ status: "IN_PROGRESS", startedAt: new Date().toISOString() })
+    .update({ startedAt: new Date().toISOString() })
     .eq("id", tournamentId);
 
   // Round 1: seat pairs (0v1, 2v3, ...).

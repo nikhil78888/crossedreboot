@@ -4,6 +4,7 @@ import {
   GameDifficulty,
 } from "./game/game.service";
 import { supabase } from "./lib/supabase";
+import { randomUUID } from "crypto";
 
 // Acceptable rating gap as a function of how long a player has waited. Starts
 // tight (prefer a near-skill opponent) and widens over time so nobody waits
@@ -15,97 +16,136 @@ const ratingWindow = (waitMs: number) =>
 
 // Drop queue rows this old (a client that crashed without leaving the lobby).
 const STALE_MS = 90_000;
+// How many matches to create concurrently (bounds DB load during a big burst).
+const CREATE_CONCURRENCY = 25;
+// This process's id + how long it holds matchmaking leadership per acquisition.
+const REPLICA_ID = randomUUID();
+const LEASE_TTL_SECONDS = 10;
 
 let running = false;
 
-// Poll the ranked queue and pair players. DB-backed (not realtime presence),
-// because the server never reliably received presence — which left two real
-// players in the lobby unmatched, both falling back to bots.
-//
-// Convention (multiplayer standard): prefer the closest-rated opponent, only
-// pair inside a rating window that widens with wait time, and serve the
-// longest-waiting players first. Paired rows are deleted immediately so the
-// next poll can't double-match them.
+type QueuedPlayer = {
+  profilesId: string;
+  rating: number;
+  joinedAt: number;
+  gameVariant: GameVariant;
+  difficulty: GameDifficulty;
+};
+
+// Pair the queue and create matches. Runs on every replica, but only the one
+// holding the matchmaker lease actually does the work (so 1000 simultaneous
+// joins are paired by a SINGLE matcher — no cross-replica duplicate scans or
+// contention). Pairing is O(n log n): segment by variant+difficulty, sort by
+// rating, pair adjacent players inside a wait-widened rating window. Each pair
+// is claimed atomically (DELETE ... RETURNING) so it can never be double-matched.
 const tryMatch = async () => {
   if (running) return;
   running = true;
   try {
-    const { data: rows } = await supabase.from("rankedQueue").select("*");
+    // Leader election: only the lease holder matches this tick.
+    const { data: isLeader, error: leaseErr } = await supabase.rpc(
+      "acquire_matchmaker_lease",
+      { p_holder: REPLICA_ID, p_ttl_seconds: LEASE_TTL_SECONDS }
+    );
+    if (leaseErr) {
+      console.log({ leaseError: leaseErr });
+      return;
+    }
+    if (!isLeader) return;
+
     const now = Date.now();
 
-    // Sweep stale entries.
-    const stale = (rows ?? []).filter(
-      (r) => now - new Date(r.joinedAt).getTime() > STALE_MS
+    // Sweep stale entries in one batched delete.
+    await supabase
+      .from("rankedQueue")
+      .delete()
+      .lt("joinedAt", new Date(now - STALE_MS).toISOString());
+
+    const { data: rows } = await supabase.from("rankedQueue").select("*");
+    const fresh = (rows ?? []).filter(
+      (r) => now - new Date(r.joinedAt).getTime() <= STALE_MS
     );
-    for (const s of stale) {
-      await supabase.from("rankedQueue").delete().eq("profilesId", s.profilesId);
+    if (fresh.length < 2) return;
+
+    // Authoritative ratings come from profiles, never the client-supplied queue
+    // value (which a client could forge to farm easy opponents).
+    const ids = fresh.map((r) => r.profilesId);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, eloRating, eloRatingSudoku")
+      .in("id", ids);
+    const ratingOf = new Map(
+      (profs ?? []).map((p) => [p.id, p])
+    );
+
+    const players: QueuedPlayer[] = fresh.map((r) => {
+      const variant = (r.gameVariant ?? "CROSSWORD") as GameVariant;
+      const prof = ratingOf.get(r.profilesId);
+      const rating =
+        variant === "SUDOKU"
+          ? prof?.eloRatingSudoku ?? 1000
+          : prof?.eloRating ?? 1000;
+      return {
+        profilesId: r.profilesId,
+        rating,
+        joinedAt: new Date(r.joinedAt).getTime(),
+        gameVariant: variant,
+        difficulty: (r.difficulty ?? "REGULAR") as GameDifficulty,
+      };
+    });
+
+    // Segment by variant+difficulty (a sudoku/hard seeker only meets another).
+    const segments = new Map<string, QueuedPlayer[]>();
+    for (const p of players) {
+      const key = `${p.gameVariant}|${p.difficulty}`;
+      (segments.get(key) ?? segments.set(key, []).get(key)!).push(p);
     }
 
-    const players = (rows ?? [])
-      .filter((r) => now - new Date(r.joinedAt).getTime() <= STALE_MS)
-      .map((r) => ({
-        profilesId: r.profilesId,
-        rating: r.rating ?? 1100,
-        joinedAt: new Date(r.joinedAt).getTime(),
-        gameVariant: (r.gameVariant ?? "CROSSWORD") as GameVariant,
-        difficulty: (r.difficulty ?? "REGULAR") as GameDifficulty,
-      }))
-      // longest-waiting first
-      .sort((a, b) => a.joinedAt - b.joinedAt);
-
-    const used = new Set<string>();
-    for (const p1 of players) {
-      if (used.has(p1.profilesId)) continue;
-
-      // closest-rated opponent still available — same variant AND difficulty,
-      // so a sudoku/hard seeker only matches another sudoku/hard seeker.
-      let best: (typeof players)[number] | null = null;
-      let bestGap = Infinity;
-      for (const p2 of players) {
-        if (p2.profilesId === p1.profilesId || used.has(p2.profilesId)) continue;
-        if (p2.gameVariant !== p1.gameVariant) continue;
-        if (p2.difficulty !== p1.difficulty) continue;
-        const gap = Math.abs(p1.rating - p2.rating);
-        if (gap < bestGap) {
-          bestGap = gap;
-          best = p2;
+    // Build pairs: sort each segment by rating, pair adjacent within the window.
+    const pairs: [QueuedPlayer, QueuedPlayer][] = [];
+    for (const seg of segments.values()) {
+      seg.sort((a, b) => a.rating - b.rating);
+      let i = 0;
+      while (i < seg.length - 1) {
+        const a = seg[i];
+        const b = seg[i + 1];
+        const gap = Math.abs(a.rating - b.rating);
+        const waitMs = now - Math.min(a.joinedAt, b.joinedAt);
+        if (gap <= ratingWindow(waitMs)) {
+          pairs.push([a, b]);
+          i += 2;
+        } else {
+          // leave `a` for a later tick (its window widens as it waits)
+          i += 1;
         }
       }
-      if (!best) continue;
+    }
+    if (!pairs.length) return;
 
-      const waitMs = now - Math.min(p1.joinedAt, best.joinedAt);
-      if (bestGap > ratingWindow(waitMs)) continue;
-
-      used.add(p1.profilesId);
-      used.add(best.profilesId);
-      // Atomically CLAIM both queue rows (delete + returning) before creating
-      // the match. If another poller/replica already claimed either, the delete
-      // returns fewer than 2 rows and we bail — preventing double-matching the
-      // same pair into two games.
+    // Claim + create with bounded concurrency.
+    const claimAndCreate = async ([a, b]: [QueuedPlayer, QueuedPlayer]) => {
       const { data: claimed } = await supabase
         .from("rankedQueue")
         .delete()
-        .in("profilesId", [p1.profilesId, best.profilesId])
+        .in("profilesId", [a.profilesId, b.profilesId])
         .select("profilesId");
-      if (!claimed || claimed.length < 2) {
-        continue; // someone else grabbed one of them
-      }
-      console.log(
-        `matching ${p1.profilesId} with ${best.profilesId} (${p1.gameVariant}/${p1.difficulty}, gap ${bestGap}, waited ${Math.round(
-          waitMs / 1000
-        )}s)`
-      );
+      if (!claimed || claimed.length < 2) return; // someone else grabbed one
       try {
-        await createRankedMatch(
-          p1.profilesId,
-          best.profilesId,
-          p1.gameVariant,
-          p1.difficulty
-        );
+        await createRankedMatch(a.profilesId, b.profilesId, a.gameVariant, a.difficulty);
       } catch (error) {
+        // Re-queue both so a transient failure doesn't strand them.
         console.log({ matchError: error });
+        await supabase.from("rankedQueue").upsert([
+          { profilesId: a.profilesId, rating: a.rating, gameVariant: a.gameVariant, difficulty: a.difficulty, joinedAt: new Date(a.joinedAt).toISOString() },
+          { profilesId: b.profilesId, rating: b.rating, gameVariant: b.gameVariant, difficulty: b.difficulty, joinedAt: new Date(b.joinedAt).toISOString() },
+        ]);
       }
+    };
+
+    for (let i = 0; i < pairs.length; i += CREATE_CONCURRENCY) {
+      await Promise.all(pairs.slice(i, i + CREATE_CONCURRENCY).map(claimAndCreate));
     }
+    console.log(`matchmaker paired ${pairs.length} games across ${segments.size} segments`);
   } catch (error) {
     console.log({ tryMatchError: error });
   } finally {

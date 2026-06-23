@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { SudokuGrid } from "../components/Sudoku";
@@ -45,6 +45,26 @@ export default function Game() {
   }, [opponent?.eloRating, opponentRating]);
 
   useEffect(() => {
+    // Submit/forfeit over a flaky network must never trap the user on the
+    // locked game screen: on failure, offer Retry or "Leave anyway" -> home.
+    const leaveAction = async (action: () => Promise<unknown>) => {
+      try {
+        await action();
+      } catch {
+        Alert.alert(
+          "Couldn't submit",
+          "Check your connection and try again.",
+          [
+            { text: "Retry", onPress: () => leaveAction(action) },
+            {
+              text: "Leave anyway",
+              style: "destructive",
+              onPress: () => router.replace("/home"),
+            },
+          ]
+        );
+      }
+    };
     const leaveButton = (onPress: () => void) => () =>
       (
         <Button
@@ -61,7 +81,7 @@ export default function Game() {
           headerTitle: "FRIENDLY MATCH",
           headerRight: leaveButton(() => {
             trackEvent(events.FORFEIT_MATCH_CLICK);
-            forfeitGame();
+            leaveAction(forfeitGame);
           }),
         });
         break;
@@ -70,7 +90,7 @@ export default function Game() {
           headerTitle: "SOLO GAME",
           headerRight: leaveButton(() => {
             trackEvent(events.SUBMIT_SOLO_MATCH_CLICK);
-            finishGame();
+            leaveAction(finishGame);
           }),
         });
         break;
@@ -79,7 +99,7 @@ export default function Game() {
           headerTitle: "RANKED MATCH",
           headerRight: leaveButton(() => {
             trackEvent(events.FORFEIT_MATCH_CLICK);
-            forfeitGame();
+            leaveAction(forfeitGame);
           }),
         });
         break;
@@ -88,14 +108,14 @@ export default function Game() {
           headerTitle: "TOURNAMENT",
           headerRight: leaveButton(() => {
             trackEvent(events.FORFEIT_MATCH_CLICK);
-            forfeitGame();
+            leaveAction(forfeitGame);
           }),
         });
         break;
       default:
         break;
     }
-  }, [finishGame, forfeitGame, gameType, navigation]);
+  }, [finishGame, forfeitGame, gameType, navigation, router]);
 
   const navigatedAway = useRef(false);
   useEffect(() => {

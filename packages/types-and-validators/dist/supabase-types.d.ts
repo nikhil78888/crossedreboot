@@ -256,6 +256,27 @@ export interface Database {
                 };
                 Relationships: [];
             };
+            tournamentQueue: {
+                Row: {
+                    profilesId: string;
+                    gameVariant: string;
+                    difficulty: string;
+                    joinedAt: string;
+                };
+                Insert: {
+                    profilesId: string;
+                    gameVariant?: string;
+                    difficulty?: string;
+                    joinedAt?: string;
+                };
+                Update: {
+                    profilesId?: string;
+                    gameVariant?: string;
+                    difficulty?: string;
+                    joinedAt?: string;
+                };
+                Relationships: [];
+            };
             rankedQueue: {
                 Row: {
                     profilesId: string;
@@ -650,6 +671,39 @@ export interface Database {
             };
         };
         Functions: {
+            claim_tournament_seat: {
+                Args: {
+                    p_tournament: string;
+                    p_profile: string;
+                    p_is_bot?: boolean;
+                };
+                Returns: string;
+            };
+            claim_tournament_start: {
+                Args: {
+                    p_tournament: string;
+                };
+                Returns: boolean;
+            };
+            acquire_matchmaker_lease: {
+                Args: {
+                    p_holder: string;
+                    p_ttl_seconds: number;
+                };
+                Returns: boolean;
+            };
+            acquire_lease: {
+                Args: {
+                    p_name: string;
+                    p_holder: string;
+                    p_ttl_seconds: number;
+                };
+                Returns: boolean;
+            };
+            prune_seen_clues: {
+                Args: Record<string, never>;
+                Returns: undefined;
+            };
             head_to_head: {
                 Args: {
                     viewer_id: string;

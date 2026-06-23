@@ -90,21 +90,21 @@ export default function Stats() {
         <View className="flex-row items-center justify-between">
           <View>
             <Text
-              className="font-[rubik700] text-[68px] leading-none"
-              style={{ color: "#ffffff" }}
+              className="font-[rubik700]"
+              style={{ color: "#ffffff", fontSize: 72, lineHeight: 76 }}
             >
               {rating != null ? Math.round(rating) : "—"}
             </Text>
             <Text
-              className="mt-1 font-[jost600] text-[18px]"
-              style={{ color: "rgba(255,255,255,0.92)" }}
+              className="mt-1 font-[jost600]"
+              style={{ color: "rgba(255,255,255,0.92)", fontSize: 22 }}
             >
               {variant === "SUDOKU" ? "Sudoku Rating" : "Crossword Rating"}
             </Text>
           </View>
           <View className="items-center">
             <Text style={{ fontSize: 52 }}>{rank.emoji}</Text>
-            <Text className="mt-1 font-[jost700] text-[15px] text-white">
+            <Text className="mt-1 font-[jost700] text-[17px] text-white">
               {rank.label}
             </Text>
           </View>
