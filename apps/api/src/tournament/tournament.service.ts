@@ -1,5 +1,6 @@
 import { addSeconds } from "date-fns";
 import { supabase } from "../lib/supabase";
+import { resolveCluesForDifficulty } from "../game/clue-resolver";
 
 // Time limit scales with puzzle size (kept local to avoid a circular import
 // with game.service, which depends on this module).
@@ -10,6 +11,7 @@ const TOURNAMENT_SIZE = 8;
 const SUDOKU_DURATION_SECONDS = 900;
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
+export type GameDifficulty = "REGULAR" | "HARD";
 
 type TPlayer = {
   id: string;
@@ -60,7 +62,8 @@ const markEliminated = async (tournamentId: string, profileId: string) => {
 // Re-joining returns the player's existing active tournament.
 export const joinTournament = async (
   profileId: string,
-  gameVariant: GameVariant = "CROSSWORD"
+  gameVariant: GameVariant = "CROSSWORD",
+  difficulty: GameDifficulty = "REGULAR"
 ): Promise<string> => {
   const { data: mine } = await supabase
     .from("tournamentPlayers")
@@ -74,18 +77,20 @@ export const joinTournament = async (
       .in("id", tids)
       .in("status", ["FILLING", "IN_PROGRESS"])
       .eq("gameVariant", gameVariant)
+      .eq("difficulty", difficulty)
       .order("createdAt", { ascending: false })
       .limit(1);
     if (activeT?.length) return activeT[0].id;
   }
 
-  // Find the oldest PUBLIC FILLING tournament of this variant with an open seat.
-  // Private tournaments are invite-only and never matched into here.
+  // Oldest PUBLIC FILLING tournament of this variant + difficulty with an open
+  // seat. Private tournaments are invite-only and never matched into here.
   const { data: filling } = await supabase
     .from("tournaments")
     .select("*")
     .eq("status", "FILLING")
     .eq("gameVariant", gameVariant)
+    .eq("difficulty", difficulty)
     .eq("isPrivate", false)
     .order("createdAt", { ascending: true });
   let target = null as null | { id: string; size: number };
@@ -102,7 +107,12 @@ export const joinTournament = async (
   if (!target) {
     const { data: created } = await supabase
       .from("tournaments")
-      .insert({ status: "FILLING", size: TOURNAMENT_SIZE, gameVariant })
+      .insert({
+        status: "FILLING",
+        size: TOURNAMENT_SIZE,
+        gameVariant,
+        difficulty,
+      })
       .select("*")
       .single();
     target = created;
@@ -130,7 +140,8 @@ export const joinTournament = async (
 // it never appears in public matchmaking.
 export const createPrivateTournament = async (
   creatorId: string,
-  gameVariant: GameVariant = "CROSSWORD"
+  gameVariant: GameVariant = "CROSSWORD",
+  difficulty: GameDifficulty = "REGULAR"
 ): Promise<string> => {
   const { data: t } = await supabase
     .from("tournaments")
@@ -138,6 +149,7 @@ export const createPrivateTournament = async (
       status: "FILLING",
       size: TOURNAMENT_SIZE,
       gameVariant,
+      difficulty,
       isPrivate: true,
       createdByProfileId: creatorId,
     })
@@ -353,8 +365,9 @@ export const startTournament = async (tournamentId: string) => {
     if (row) created.push({ row: row as TMatch, p1, p2 });
   }
   const variant = (t.gameVariant ?? "CROSSWORD") as GameVariant;
+  const tDiff = (t.difficulty ?? "REGULAR") as GameDifficulty;
   for (const m of created) {
-    await startMatch(tournamentId, m.row, m.p1, m.p2, variant);
+    await startMatch(tournamentId, m.row, m.p1, m.p2, variant, tDiff);
   }
   // Cascade in case an entire round resolved instantly (all-bot matches).
   await advanceTournament(tournamentId);
@@ -367,13 +380,15 @@ const startMatch = async (
   match: TMatch,
   p1?: TPlayer,
   p2?: TPlayer,
-  gameVariant: GameVariant = "CROSSWORD"
+  gameVariant: GameVariant = "CROSSWORD",
+  difficulty: GameDifficulty = "REGULAR"
 ) => {
   if (!p1 || !p2) return;
   if (p1.isBot && p2.isBot) {
     await resolveBotMatch(tournamentId, match, p1, p2);
     return;
   }
+  const isHard = difficulty === "HARD";
 
   let gameInsert:
     | {
@@ -381,9 +396,11 @@ const startMatch = async (
         sudokusId?: string;
         gameVariant: GameVariant;
         gameType: "TOURNAMENT";
+        difficulty: GameDifficulty;
         playState: "PLAYING";
         gameDurationInSeconds: number;
         startedAt: string;
+        resolvedClues?: unknown;
       }
     | null = null;
 
@@ -391,6 +408,7 @@ const startMatch = async (
     const { data: sk } = await supabase.rpc("get_available_ranked_sudoku", {
       player_one_id: p1.profilesId,
       player_two_id: p2.profilesId,
+      is_hard: isHard,
     });
     const sudoku = sk?.[0];
     if (!sudoku) {
@@ -401,6 +419,7 @@ const startMatch = async (
       sudokusId: sudoku.id,
       gameVariant: "SUDOKU",
       gameType: "TOURNAMENT",
+      difficulty,
       playState: "PLAYING",
       gameDurationInSeconds: SUDOKU_DURATION_SECONDS,
       startedAt: addSeconds(new Date(), 10).toISOString(),
@@ -415,19 +434,29 @@ const startMatch = async (
       console.log({ tournamentMatchNoCrossword: match.id });
       return;
     }
+    const resolvedClues = await resolveCluesForDifficulty(
+      {
+        puzzle: crossword.puzzle as unknown as string[][],
+        solution: crossword.solution as unknown as (string | null)[][],
+        clues: crossword.clues as never,
+      },
+      isHard
+    );
     gameInsert = {
       crosswordsId: crossword.id,
       gameVariant: "CROSSWORD",
       gameType: "TOURNAMENT",
+      difficulty,
       playState: "PLAYING",
       gameDurationInSeconds: durationForSize(crossword.size, 180),
       startedAt: addSeconds(new Date(), 10).toISOString(),
+      ...(resolvedClues ? { resolvedClues } : {}),
     };
   }
 
   const { data: game } = await supabase
     .from("games")
-    .insert(gameInsert)
+    .insert(gameInsert as never)
     .select("*")
     .single();
   if (!game) return;
@@ -558,8 +587,9 @@ export const advanceTournament = async (tournamentId: string) => {
     });
   }
   const variant = (t.gameVariant ?? "CROSSWORD") as GameVariant;
+  const tDiff = (t.difficulty ?? "REGULAR") as GameDifficulty;
   for (const m of created) {
-    await startMatch(tournamentId, m.row, m.p1, m.p2, variant);
+    await startMatch(tournamentId, m.row, m.p1, m.p2, variant, tDiff);
   }
 
   // If the whole new round resolved instantly (all bots), keep advancing.

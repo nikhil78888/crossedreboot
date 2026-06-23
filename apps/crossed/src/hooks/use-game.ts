@@ -9,9 +9,13 @@ import { useEffect } from "react";
 import { addSeconds } from "date-fns";
 import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status";
 import { resolveAndLogClues } from "../lib/clue-resolver";
-import { Crossword, Json } from "types-and-validators";
+import { Crossword, Json, GameDifficulty } from "types-and-validators";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
+export type { GameDifficulty };
+
+// Argument for the "new game" create triggers.
+type NewGameArg = { variant: GameVariant; difficulty: GameDifficulty };
 
 // Sudoku is a longer solve than a mini crossword: 15 minutes.
 export const SUDOKU_DURATION_SECONDS = 900;
@@ -102,48 +106,56 @@ export const fixType = (game: any): Game => {
 const puzzleFieldsForNewGame = async (
   variant: GameVariant,
   profileId: string,
-  crosswordBaseDuration: number
+  crosswordBaseDuration: number,
+  difficulty: GameDifficulty = "REGULAR"
 ): Promise<{
   fields: {
     crosswordsId?: string;
     sudokusId?: string;
     gameVariant: GameVariant;
     resolvedClues?: Json;
+    difficulty: GameDifficulty;
   };
   durationInSeconds: number;
 } | null> => {
+  const isHard = difficulty === "HARD";
   if (variant === "SUDOKU") {
+    // Hard = hard puzzles; Regular = easy/medium.
     const { data, error } = await supabase.rpc("get_available_sudoku", {
       profileid: profileId,
+      is_hard: isHard,
     });
     if (error) throw error;
     const id = data?.[0]?.id;
     if (!id) return null;
     return {
-      fields: { sudokusId: id, gameVariant: "SUDOKU" },
+      fields: { sudokusId: id, gameVariant: "SUDOKU", difficulty },
       durationInSeconds: SUDOKU_DURATION_SECONDS,
     };
   }
+  // Crossword: same puzzles either way; difficulty drives which CLUES are used.
   const { data, error } = await supabase.rpc("get_available_crossword", {
     profileid: profileId,
   });
   if (error) throw error;
   const cw = data?.[0];
   if (!cw?.id) return null;
-  // Never-repeat: swap each word's clue for one this player hasn't seen, and
-  // log it. Falls back to the puzzle's baked clues on any failure.
+  // Never-repeat + difficulty: pick each word an unseen clue of the requested
+  // difficulty (falls back to baked clues on any failure).
   const resolvedClues = await resolveAndLogClues(
     {
       puzzle: cw.puzzle as unknown as Crossword["puzzle"],
       solution: cw.solution as unknown as Crossword["solution"],
       clues: cw.clues as unknown as Crossword["clues"],
     },
-    profileId
+    profileId,
+    isHard
   );
   return {
     fields: {
       crosswordsId: cw.id,
       gameVariant: "CROSSWORD",
+      difficulty,
       ...(resolvedClues ? { resolvedClues: resolvedClues as unknown as Json } : {}),
     },
     durationInSeconds: durationForSize(cw.size, crosswordBaseDuration),
@@ -239,10 +251,15 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
     useSWRMutation(
       "create-solo-game",
-      async (_key, { arg }: { arg?: GameVariant } = {}) => {
+      async (_key, { arg }: { arg?: NewGameArg } = {}) => {
         if (!myProfile) return;
-        const variant = arg ?? "CROSSWORD";
-        const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 300);
+        const variant = arg?.variant ?? "CROSSWORD";
+        const picked = await puzzleFieldsForNewGame(
+          variant,
+          myProfile.id,
+          300,
+          arg?.difficulty ?? "REGULAR"
+        );
         if (!picked) return;
         const { data: game, error: createGameError } = await supabase
           .from("games")
@@ -268,10 +285,15 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createFriendlyGame, isMutating: creatingFriendlyGame } =
     useSWRMutation(
       "create-friendly-game",
-      async (_key, { arg }: { arg?: GameVariant } = {}) => {
+      async (_key, { arg }: { arg?: NewGameArg } = {}) => {
         if (!myProfile) return;
-        const variant = arg ?? "CROSSWORD";
-        const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 180);
+        const variant = arg?.variant ?? "CROSSWORD";
+        const picked = await puzzleFieldsForNewGame(
+          variant,
+          myProfile.id,
+          180,
+          arg?.difficulty ?? "REGULAR"
+        );
         if (!picked) return;
         const { data: game, error: createGameError } = await supabase
           .from("games")
@@ -320,10 +342,17 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: playAgainFriendly, isMutating: playingAgain } =
     useSWRMutation("play-again-friendly", async () => {
       if (!gameId || !myProfile) return;
-      // Rematch in the same variant as the game that just finished.
+      // Rematch in the same variant + difficulty as the game that just finished.
       const variant: GameVariant =
         game?.gameVariant === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
-      const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 180);
+      const difficulty: GameDifficulty =
+        game?.difficulty === "HARD" ? "HARD" : "REGULAR";
+      const picked = await puzzleFieldsForNewGame(
+        variant,
+        myProfile.id,
+        180,
+        difficulty
+      );
       if (!picked) return;
 
       // 1. create my candidate rematch game (waiting for opponent)
@@ -417,10 +446,15 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: createRankedBotMatch, isMutating: creatingRankedBotMatch } =
     useSWRMutation(
       "create-ranked-bot-game",
-      async (_key, { arg }: { arg?: GameVariant } = {}) => {
+      async (_key, { arg }: { arg?: NewGameArg } = {}) => {
         if (!myProfile) return;
-        const variant = arg ?? "CROSSWORD";
-        const picked = await puzzleFieldsForNewGame(variant, myProfile.id, 180);
+        const variant = arg?.variant ?? "CROSSWORD";
+        const picked = await puzzleFieldsForNewGame(
+          variant,
+          myProfile.id,
+          180,
+          arg?.difficulty ?? "REGULAR"
+        );
         if (!picked) return;
 
         // Pick a bot whose rating is closest to the player's, so the fallback

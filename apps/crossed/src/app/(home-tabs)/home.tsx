@@ -1,4 +1,7 @@
-import { ActivityIndicator, View, Text } from "react-native";
+import { ActivityIndicator, View, Text, Linking } from "react-native";
+
+// External feedback form (Typeform).
+export const FEEDBACK_URL = "https://form.typeform.com/to/DUbfDOEn";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ShareAppButton } from "../../components/ShareAppButton";
@@ -42,10 +45,10 @@ export default function Home() {
     if (navigation.isFocused()) {
       switch (gamePlayState) {
         case "PLAYING":
-          router.push(`/game?gameId=${currentGameId}`);
+          router.replace(`/game?gameId=${currentGameId}`);
           break;
         case "WAITING_FOR_OPPONENT":
-          router.push(`/invite-friend?gameId=${currentGameId}`);
+          router.replace(`/invite-friend?gameId=${currentGameId}`);
           break;
         default:
           break;
@@ -157,7 +160,7 @@ export default function Home() {
           intent={"secondary"}
           label="Feedback"
           size={"base"}
-          onPress={() => router.push("/feedback")}
+          onPress={() => Linking.openURL(FEEDBACK_URL)}
         />
       </View>
     </ScrollView>

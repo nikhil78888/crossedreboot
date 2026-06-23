@@ -72,7 +72,8 @@ const rand = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 // shown, and return the new clues object (or null to use the baked clues).
 export const resolveAndLogClues = async (
   crossword: Pick<Crossword, "puzzle" | "solution" | "clues">,
-  profileId: string
+  profileId: string,
+  isHard = false
 ): Promise<Clues | null> => {
   try {
     const slots = extractWordSlots(
@@ -81,6 +82,7 @@ export const resolveAndLogClues = async (
     );
     if (!slots.length) return null;
     const words = Array.from(new Set(slots.map((s) => s.word)));
+    const wantDiff = isHard ? "HARD" : "REGULAR";
 
     const [{ data: seenRows }, { data: bankRows }] = await Promise.all([
       supabase
@@ -88,14 +90,18 @@ export const resolveAndLogClues = async (
         .select("word, clue")
         .eq("profilesId", profileId)
         .in("word", words),
-      supabase.from("wordClues").select("word, clue").in("word", words),
+      supabase
+        .from("wordClues")
+        .select("word, clue, difficulty")
+        .in("word", words),
     ]);
 
     const seen = new Set((seenRows ?? []).map((r) => key(r.word, r.clue)));
-    const bank = new Map<string, string[]>();
+    // Per word: clues split by difficulty.
+    const bank = new Map<string, { clue: string; difficulty: string }[]>();
     for (const r of bankRows ?? []) {
       const list = bank.get(r.word) ?? [];
-      list.push(r.clue);
+      list.push({ clue: r.clue, difficulty: r.difficulty });
       bank.set(r.word, list);
     }
 
@@ -110,13 +116,21 @@ export const resolveAndLogClues = async (
     for (const direction of ["Across", "Down"] as const) {
       for (const slot of slots.filter((s) => s.direction === direction)) {
         const bakedClue = bakedClueFor(slot.number, direction);
-        // Candidate clues = bank for this word (plus the baked one as a floor).
-        const candidates = Array.from(
-          new Set([...(bank.get(slot.word) ?? []), bakedClue].filter(Boolean))
-        );
+        const pool = bank.get(slot.word) ?? [];
+        // Prefer clues matching the requested difficulty; fall back to any clue
+        // for the word, then to the puzzle's baked clue.
+        let candidates = pool
+          .filter((p) => p.difficulty === wantDiff)
+          .map((p) => p.clue);
+        if (!candidates.length) candidates = pool.map((p) => p.clue);
+        if (!candidates.length && bakedClue) candidates = [bakedClue];
+        candidates = Array.from(new Set(candidates.filter(Boolean)));
         const unseen = candidates.filter((c) => !seen.has(key(slot.word, c)));
-        // Prefer an unseen clue; if every clue's been seen, keep the baked one.
-        const chosen = unseen.length ? rand(unseen) : bakedClue || rand(candidates);
+        const chosen = unseen.length
+          ? rand(unseen)
+          : candidates.length
+          ? rand(candidates)
+          : bakedClue;
         out[direction].push({ number: slot.number, clue: chosen });
         if (chosen) {
           chosenPairs.push({ profilesId: profileId, word: slot.word, clue: chosen });

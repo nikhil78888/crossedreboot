@@ -1,87 +1,31 @@
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useRouter } from "expo-router";
-import { useGame } from "../hooks/use-game";
 import { useCallback } from "react";
 import { events, trackEvent } from "../lib/track-event";
-import { useOnlineStatus } from "../hooks/use-online-status";
-import { useTournament } from "../hooks/use-tournament";
-import { useGameGate } from "../hooks/use-subscription";
-import { useVariant } from "../hooks/use-variant";
 import { VariantTabs } from "./VariantTabs";
 import colors from "../lib/colors";
 
 export const NewGameButtons = () => {
   const router = useRouter();
-  const { joinLobby } = useOnlineStatus();
-  const { createFriendlyGame, createSoloGame } = useGame({ gameId: undefined });
-  const { joinTournament, joiningTournament, createPrivateTournament } =
-    useTournament({
-      tournamentId: undefined,
-    });
-  const { checkCanPlay } = useGameGate();
 
-  // App-wide Crosswords vs Sudoku selection — drives every mode button below and
-  // the leaderboard/stats/rank shown elsewhere.
-  const { variant } = useVariant();
-
-  // Returns true if the player may start a competitive game; otherwise sends
-  // them to the paywall and returns false.
-  const passesGate = useCallback(async () => {
-    const gate = await checkCanPlay();
-    if (!gate.allowed) {
-      router.push("/upgrade-to-pro");
-      return false;
-    }
-    return true;
-  }, [checkCanPlay, router]);
-
-  const playSolo = useCallback(async () => {
-    const gameId = await createSoloGame(variant);
-    router.push(`/game?gameId=${gameId}`);
-  }, [createSoloGame, router, variant]);
-
-  const playFriendly = useCallback(async () => {
-    if (!(await passesGate())) return;
-    const gameId = await createFriendlyGame(variant);
-    router.push(`/invite-friend?gameId=${gameId}`);
-  }, [createFriendlyGame, router, passesGate, variant]);
-
-  const playRanked = useCallback(async () => {
-    if (!(await passesGate())) return;
-    try {
-      await joinLobby(variant);
-      router.push(`/ranked-lobby?variant=${variant}`);
-    } catch (error) {
-      Alert.alert("Could not join Lobby");
-    }
-  }, [joinLobby, router, passesGate, variant]);
-
-  const playTournament = useCallback(async () => {
-    if (!(await passesGate())) return;
-    try {
-      const id = await joinTournament(variant);
-      if (id) {
-        router.push(`/tournament?tournamentId=${id}`);
-      }
-    } catch (error) {
-      Alert.alert("Could not join tournament");
-    }
-  }, [joinTournament, router, passesGate, variant]);
-
-  const playPrivateTournament = useCallback(async () => {
-    if (!(await passesGate())) return;
-    try {
-      const id = await createPrivateTournament(variant);
-      if (id) {
-        router.push(`/tournament?tournamentId=${id}`);
-      }
-    } catch (error) {
-      Alert.alert("Could not create tournament");
-    }
-  }, [createPrivateTournament, router, passesGate, variant]);
+  // Every mode first goes to the difficulty picker, which then runs the action
+  // (gate check + create/join) with the chosen Regular/Hard. Variant comes from
+  // the app-wide VariantTabs selection (read in the difficulty screen).
+  const pick = useCallback(
+    (mode: string) => router.push(`/select-difficulty?mode=${mode}`),
+    [router]
+  );
+  const playSolo = useCallback(() => pick("SOLO"), [pick]);
+  const playFriendly = useCallback(() => pick("FRIENDLY"), [pick]);
+  const playRanked = useCallback(() => pick("RANKED"), [pick]);
+  const playTournament = useCallback(() => pick("TOURNAMENT"), [pick]);
+  const playPrivateTournament = useCallback(
+    () => pick("PRIVATE_TOURNAMENT"),
+    [pick]
+  );
 
   return (
     <View>
@@ -182,7 +126,6 @@ export const NewGameButtons = () => {
           trackEvent(events.START_RANKED_GAME_CLICK);
           playTournament();
         }}
-        disabled={joiningTournament}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -199,9 +142,7 @@ export const NewGameButtons = () => {
             Tournament
           </Text>
           <Text className="font-[jost400] text-[12px] text-crossed-gray-900/70">
-            {joiningTournament
-              ? "Finding a bracket…"
-              : "8-player bracket · winner takes the crown"}
+            8-player bracket · winner takes the crown
           </Text>
         </View>
         <Text className="text-crossed-gray-900/50 text-xl">›</Text>

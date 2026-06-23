@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { ScrollView, Text, View } from "react-native";
+import { Linking, ScrollView, Text, View } from "react-native";
 import { avatars, images } from "../lib/images";
 import { useRouter } from "expo-router";
 import { calculateScore, solutionOf, puzzleOf, useGame } from "../hooks/use-game";
@@ -118,7 +118,7 @@ export const FriendlyGameResult = ({
             rounded={"full"}
             mode={"outline"}
             onPress={() => {
-              router.push(`/feedback`);
+              Linking.openURL("https://form.typeform.com/to/DUbfDOEn");
             }}
           />
         </View>
@@ -217,7 +217,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             rounded={"full"}
             mode={"outline"}
             onPress={() => {
-              router.push(`/feedback`);
+              Linking.openURL("https://form.typeform.com/to/DUbfDOEn");
             }}
           />
         </View>

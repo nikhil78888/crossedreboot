@@ -27,10 +27,13 @@ export const useOnlineStatus = () => {
   }, [myProfile]);
 
   const joinLobby = useCallback(
-    async (gameVariant: "CROSSWORD" | "SUDOKU" = "CROSSWORD") => {
+    async (
+      gameVariant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+      difficulty: "REGULAR" | "HARD" = "REGULAR"
+    ) => {
       if (!myProfile) return;
       // Queue with the rating for the variant being played, so matchmaking
-      // pairs by the right skill ladder.
+      // pairs by the right skill ladder (and difficulty).
       const rating =
         gameVariant === "SUDOKU"
           ? (myProfile as { eloRatingSudoku?: number }).eloRatingSudoku ?? 1000
@@ -41,6 +44,7 @@ export const useOnlineStatus = () => {
           rating,
           joinedAt: new Date().toISOString(),
           gameVariant,
+          difficulty,
         },
         { onConflict: "profilesId" }
       );

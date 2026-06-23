@@ -124,9 +124,20 @@ export const useTournament = ({ tournamentId }: { tournamentId?: string }) => {
   const { trigger: joinTournament, isMutating: joiningTournament } =
     useSWRMutation(
       "join-tournament",
-      async (_key, { arg }: { arg?: "CROSSWORD" | "SUDOKU" } = {}) => {
+      async (
+        _key,
+        {
+          arg,
+        }: {
+          arg?: {
+            variant?: "CROSSWORD" | "SUDOKU";
+            difficulty?: "REGULAR" | "HARD";
+          };
+        } = {}
+      ) => {
         const { data: res } = await axios.post("/api/tournaments/join", {
-          gameVariant: arg ?? "CROSSWORD",
+          gameVariant: arg?.variant ?? "CROSSWORD",
+          difficulty: arg?.difficulty ?? "REGULAR",
         });
         return res?.tournamentId as string | undefined;
       }
@@ -138,10 +149,12 @@ export const useTournament = ({ tournamentId }: { tournamentId?: string }) => {
   const isPrivate = !!tournament?.isPrivate;
 
   const createPrivateTournament = async (
-    variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD"
+    variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+    difficulty: "REGULAR" | "HARD" = "REGULAR"
   ): Promise<string | undefined> => {
     const { data } = await axios.post("/api/tournaments/create-private", {
       gameVariant: variant,
+      difficulty,
     });
     return data?.tournamentId as string | undefined;
   };

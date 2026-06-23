@@ -2,6 +2,7 @@ import { addSeconds } from "date-fns";
 import { supabase } from "../lib/supabase";
 import { Game } from "types-and-validators";
 import { onTournamentGameFinished } from "../tournament/tournament.service";
+import { resolveCluesForDifficulty } from "./clue-resolver";
 
 // Time limit scales with puzzle size (7x7/8x8 -> 5 min, 9x9 -> 7 min).
 export const durationForSize = (size: number | null | undefined, base: number) =>
@@ -11,16 +12,21 @@ export const durationForSize = (size: number | null | undefined, base: number) =
 export const SUDOKU_DURATION_SECONDS = 900;
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
+export type GameDifficulty = "REGULAR" | "HARD";
 
 export const createRankedMatch = async (
   playerOneId: string,
   playerTwoId: string,
-  gameVariant: GameVariant = "CROSSWORD"
+  gameVariant: GameVariant = "CROSSWORD",
+  difficulty: GameDifficulty = "REGULAR"
 ) => {
+  const isHard = difficulty === "HARD";
   if (gameVariant === "SUDOKU") {
+    // Hard = hard puzzles; Regular = easy/medium.
     const { data, error } = await supabase.rpc("get_available_ranked_sudoku", {
       player_one_id: playerOneId,
       player_two_id: playerTwoId,
+      is_hard: isHard,
     });
     if (error || !data?.[0]) {
       throw new Error(
@@ -33,6 +39,7 @@ export const createRankedMatch = async (
         sudokusId: data[0].id,
         gameVariant: "SUDOKU",
         gameType: "RANKED",
+        difficulty,
         playState: "PLAYING",
         gameDurationInSeconds: SUDOKU_DURATION_SECONDS,
         startedAt: addSeconds(new Date(), 10).toISOString(),
@@ -58,14 +65,28 @@ export const createRankedMatch = async (
     );
   }
 
+  // Hard crosswords use harder clues (same grid). Resolve them server-side so
+  // both players see the same difficulty-appropriate clues.
+  const cw = data[0];
+  const resolvedClues = await resolveCluesForDifficulty(
+    {
+      puzzle: cw.puzzle as unknown as string[][],
+      solution: cw.solution as unknown as (string | null)[][],
+      clues: cw.clues as never,
+    },
+    isHard
+  );
+
   const { data: game, error: createGameError } = await supabase
     .from("games")
     .insert({
-      crosswordsId: data[0].id,
+      crosswordsId: cw.id,
       gameType: "RANKED",
+      difficulty,
       playState: "PLAYING",
-      gameDurationInSeconds: durationForSize(data[0]?.size, 180),
+      gameDurationInSeconds: durationForSize(cw?.size, 180),
       startedAt: addSeconds(new Date(), 10).toISOString(),
+      ...(resolvedClues ? { resolvedClues: resolvedClues as never } : {}),
     })
     .select("*")
     .single();
@@ -104,7 +125,9 @@ export const calculateScore = ({
   // ~30 free givens inflate every sudoku score (audit C2).
   puzzle?: PuzzleGrid;
 }) => {
-  if (!solution) {
+  // Guard both grids — a missing crossword/sudoku relation would otherwise
+  // throw here and wedge the game in PLAYING (audit fix).
+  if (!solution || !correctSolution) {
     return 0;
   }
   let totalChars = 0;

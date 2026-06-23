@@ -15,9 +15,12 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 
 export default function RankedLobby() {
   const router = useRouter();
-  const { variant: variantParam } = useLocalSearchParams();
+  const { variant: variantParam, difficulty: difficultyParam } =
+    useLocalSearchParams();
   const variant: GameVariant =
     variantParam === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
+  const difficulty: "REGULAR" | "HARD" =
+    difficultyParam === "HARD" ? "HARD" : "REGULAR";
   const { myProfile } = useMyProfile();
   const { leaveLobby } = useOnlineStatus();
   const { gameId } = useRankedGame();
@@ -31,13 +34,13 @@ export default function RankedLobby() {
     const timer = setTimeout(() => {
       if (playState !== "PLAYING") {
         leaveLobby().then(() => {
-          createRankedBotMatch(variant);
+          createRankedBotMatch({ variant, difficulty });
         });
       }
     }, 15000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playState, leaveLobby, createRankedBotMatch, variant]);
+  }, [playState, leaveLobby, createRankedBotMatch, variant, difficulty]);
 
   useEffect(() => {
     if (playState === "PLAYING") {

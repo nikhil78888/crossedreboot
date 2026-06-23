@@ -135,6 +135,7 @@ export interface Database {
                     gameVariant: string;
                     sudokusId: string | null;
                     resolvedClues: Json | null;
+                    difficulty: string;
                 };
                 Insert: {
                     createdAt?: string;
@@ -151,6 +152,7 @@ export interface Database {
                     gameVariant?: string;
                     sudokusId?: string | null;
                     resolvedClues?: Json | null;
+                    difficulty?: string;
                 };
                 Update: {
                     createdAt?: string;
@@ -167,6 +169,7 @@ export interface Database {
                     gameVariant?: string;
                     sudokusId?: string | null;
                     resolvedClues?: Json | null;
+                    difficulty?: string;
                 };
                 Relationships: [
                     {
@@ -259,18 +262,21 @@ export interface Database {
                     rating: number;
                     joinedAt: string;
                     gameVariant: string;
+                    difficulty: string;
                 };
                 Insert: {
                     profilesId: string;
                     rating?: number;
                     joinedAt?: string;
                     gameVariant?: string;
+                    difficulty?: string;
                 };
                 Update: {
                     profilesId?: string;
                     rating?: number;
                     joinedAt?: string;
                     gameVariant?: string;
+                    difficulty?: string;
                 };
                 Relationships: [];
             };
@@ -286,6 +292,7 @@ export interface Database {
                     gameVariant: string;
                     isPrivate: boolean;
                     createdByProfileId: string | null;
+                    difficulty: string;
                 };
                 Insert: {
                     id?: string;
@@ -298,6 +305,7 @@ export interface Database {
                     gameVariant?: string;
                     isPrivate?: boolean;
                     createdByProfileId?: string | null;
+                    difficulty?: string;
                 };
                 Update: {
                     id?: string;
@@ -310,6 +318,7 @@ export interface Database {
                     gameVariant?: string;
                     isPrivate?: boolean;
                     createdByProfileId?: string | null;
+                    difficulty?: string;
                 };
                 Relationships: [];
             };
@@ -363,16 +372,19 @@ export interface Database {
                     id: string;
                     word: string;
                     clue: string;
+                    difficulty: string;
                 };
                 Insert: {
                     id?: string;
                     word: string;
                     clue: string;
+                    difficulty?: string;
                 };
                 Update: {
                     id?: string;
                     word?: string;
                     clue?: string;
+                    difficulty?: string;
                 };
                 Relationships: [];
             };
@@ -690,6 +702,7 @@ export interface Database {
             get_available_sudoku: {
                 Args: {
                     profileid: string;
+                    is_hard?: boolean;
                 };
                 Returns: {
                     id: string;
@@ -704,6 +717,7 @@ export interface Database {
                 Args: {
                     player_one_id: string;
                     player_two_id: string;
+                    is_hard?: boolean;
                 };
                 Returns: {
                     id: string;

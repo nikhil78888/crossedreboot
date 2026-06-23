@@ -26,6 +26,11 @@ const variantOf = (body: unknown): "CROSSWORD" | "SUDOKU" =>
     ? "SUDOKU"
     : "CROSSWORD";
 
+const difficultyOf = (body: unknown): "REGULAR" | "HARD" =>
+  (body as { difficulty?: string })?.difficulty === "HARD"
+    ? "HARD"
+    : "REGULAR";
+
 // Join (or rejoin) a public tournament. Returns the tournament id to navigate to.
 tournamentRouter.post("/join", async (req, res) => {
   const profileId = await profileIdFor(req.decodedFirebaseToken.uid);
@@ -34,7 +39,11 @@ tournamentRouter.post("/join", async (req, res) => {
     return;
   }
   try {
-    const tournamentId = await joinTournament(profileId, variantOf(req.body));
+    const tournamentId = await joinTournament(
+      profileId,
+      variantOf(req.body),
+      difficultyOf(req.body)
+    );
     res.send({ tournamentId });
   } catch (error) {
     console.log({ joinTournamentError: error });
@@ -52,7 +61,8 @@ tournamentRouter.post("/create-private", async (req, res) => {
   try {
     const tournamentId = await createPrivateTournament(
       profileId,
-      variantOf(req.body)
+      variantOf(req.body),
+      difficultyOf(req.body)
     );
     res.send({ tournamentId });
   } catch (error) {

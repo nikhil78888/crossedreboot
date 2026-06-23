@@ -1,4 +1,8 @@
-import { createRankedMatch, GameVariant } from "./game/game.service";
+import {
+  createRankedMatch,
+  GameVariant,
+  GameDifficulty,
+} from "./game/game.service";
 import { supabase } from "./lib/supabase";
 
 // Acceptable rating gap as a function of how long a player has waited. Starts
@@ -44,6 +48,7 @@ const tryMatch = async () => {
         rating: r.rating ?? 1100,
         joinedAt: new Date(r.joinedAt).getTime(),
         gameVariant: (r.gameVariant ?? "CROSSWORD") as GameVariant,
+        difficulty: (r.difficulty ?? "REGULAR") as GameDifficulty,
       }))
       // longest-waiting first
       .sort((a, b) => a.joinedAt - b.joinedAt);
@@ -52,13 +57,14 @@ const tryMatch = async () => {
     for (const p1 of players) {
       if (used.has(p1.profilesId)) continue;
 
-      // closest-rated opponent still available — and of the SAME variant, so a
-      // sudoku seeker is never paired into a crossword game.
+      // closest-rated opponent still available — same variant AND difficulty,
+      // so a sudoku/hard seeker only matches another sudoku/hard seeker.
       let best: (typeof players)[number] | null = null;
       let bestGap = Infinity;
       for (const p2 of players) {
         if (p2.profilesId === p1.profilesId || used.has(p2.profilesId)) continue;
         if (p2.gameVariant !== p1.gameVariant) continue;
+        if (p2.difficulty !== p1.difficulty) continue;
         const gap = Math.abs(p1.rating - p2.rating);
         if (gap < bestGap) {
           bestGap = gap;
@@ -72,19 +78,30 @@ const tryMatch = async () => {
 
       used.add(p1.profilesId);
       used.add(best.profilesId);
-      // Remove from the queue before creating the match so a slow create can't
-      // be double-matched on the next tick.
-      await supabase
+      // Atomically CLAIM both queue rows (delete + returning) before creating
+      // the match. If another poller/replica already claimed either, the delete
+      // returns fewer than 2 rows and we bail — preventing double-matching the
+      // same pair into two games.
+      const { data: claimed } = await supabase
         .from("rankedQueue")
         .delete()
-        .in("profilesId", [p1.profilesId, best.profilesId]);
+        .in("profilesId", [p1.profilesId, best.profilesId])
+        .select("profilesId");
+      if (!claimed || claimed.length < 2) {
+        continue; // someone else grabbed one of them
+      }
       console.log(
-        `matching ${p1.profilesId} with ${best.profilesId} (gap ${bestGap}, waited ${Math.round(
+        `matching ${p1.profilesId} with ${best.profilesId} (${p1.gameVariant}/${p1.difficulty}, gap ${bestGap}, waited ${Math.round(
           waitMs / 1000
         )}s)`
       );
       try {
-        await createRankedMatch(p1.profilesId, best.profilesId, p1.gameVariant);
+        await createRankedMatch(
+          p1.profilesId,
+          best.profilesId,
+          p1.gameVariant,
+          p1.difficulty
+        );
       } catch (error) {
         console.log({ matchError: error });
       }

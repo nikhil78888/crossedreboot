@@ -223,6 +223,10 @@ export default function IndexLayout() {
           name="tournament-invite"
           options={{ headerTitle: "Invite Friends" }}
         />
+        <Stack.Screen
+          name="select-difficulty"
+          options={{ headerTitle: "Difficulty" }}
+        />
         <Stack.Screen name="friends" options={{ headerTitle: "Friends" }} />
         <Stack.Screen
           name="friend-profile"

@@ -1,5 +1,6 @@
 import { Crossword } from "./crosswod-types";
 import { Database } from "./supabase-types";
+export type GameDifficulty = "REGULAR" | "HARD";
 export type GameRow = Database["public"]["Tables"]["games"]["Row"];
 export type SudokuRow = Database["public"]["Tables"]["sudokus"]["Row"];
 export type Sudoku = Omit<SudokuRow, "puzzle" | "solution"> & {
