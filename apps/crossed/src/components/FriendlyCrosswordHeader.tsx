@@ -83,14 +83,6 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
             />
           </View>
         </View>
-        <View>
-          <Image
-            source={images.friendly_header_rank}
-            className="h-[15.5px] w-[15px]"
-            contentFit="contain"
-          />
-          <Text className="font-[rubik600] text-[15px]">100</Text>
-        </View>
       </View>
       <View className="flex-row items-center justify-center">
         <Image

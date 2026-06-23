@@ -70,6 +70,34 @@ export const listFriends = async (myId: string) => {
     );
 };
 
+// Friends leaderboard: the caller + their accepted friends, ranked by the
+// chosen variant's rating. Shape matches the global leaderboard (eloRating
+// aliased) so the client renders it identically.
+export const friendsLeaderboard = async (
+  myId: string,
+  variant: "CROSSWORD" | "SUDOKU"
+) => {
+  const ratingCol = variant === "SUDOKU" ? "eloRatingSudoku" : "eloRating";
+  const { data: rows } = await supabase
+    .from("friendships")
+    .select("requesterId, addresseeId")
+    .eq("status", "ACCEPTED")
+    .or(`requesterId.eq.${myId},addresseeId.eq.${myId}`);
+  const ids = [
+    myId,
+    ...(rows ?? []).map((r) =>
+      r.requesterId === myId ? r.addresseeId : r.requesterId
+    ),
+  ];
+  const { data } = await supabase
+    .from("profiles")
+    .select(`id, username, country, avatar, eloRating:${ratingCol}`)
+    .in("id", ids)
+    .order(ratingCol, { ascending: false })
+    .limit(100);
+  return data ?? [];
+};
+
 export const listRequests = async (myId: string) => {
   const { data: rows } = await supabase
     .from("friendships")

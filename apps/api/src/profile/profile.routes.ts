@@ -3,7 +3,6 @@
 import express, { Router } from "express";
 import { getUsersInLobby } from "./profile.service";
 import { supabase } from "../lib/supabase";
-import { getProfileIdByUid } from "../friends/friends.service";
 
 export const profileRouter: Router = express.Router();
 
@@ -31,37 +30,9 @@ profileRouter.get("/leaderboard", async (req, res, next) => {
       req.query.variant === "SUDOKU" ? "eloRatingSudoku" : "eloRating";
     const cols = `id, username, country, avatar, eloRating:${ratingCol}`;
 
-    // Friends scope: just the caller + their accepted friends, ranked.
-    if (req.query.scope === "friends") {
-      const myId = await getProfileIdByUid(req.decodedFirebaseToken.uid);
-      if (!myId) {
-        res.send([]);
-        return;
-      }
-      const { data: rows } = await supabase
-        .from("friendships")
-        .select("requesterId, addresseeId")
-        .eq("status", "ACCEPTED")
-        .or(`requesterId.eq.${myId},addresseeId.eq.${myId}`);
-      const ids = [
-        myId,
-        ...(rows ?? []).map((r) =>
-          r.requesterId === myId ? r.addresseeId : r.requesterId
-        ),
-      ];
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(cols)
-        .in("id", ids)
-        .order(ratingCol, { ascending: false })
-        .limit(limit);
-      if (error) throw error;
-      res.send(data || []);
-      return;
-    }
-
     // Global: top humans worldwide. Exclude bots at the query level so the
-    // ranking is humans only and a full list is returned.
+    // ranking is humans only and a full list is returned. (Friends-scoped
+    // leaderboard lives on the authenticated /friends router.)
     const { data, error } = await supabase
       .from("profiles")
       .select(cols)

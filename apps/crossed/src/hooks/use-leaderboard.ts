@@ -19,11 +19,12 @@ export const useLeaderboard = (
   const { data, isLoading, error, mutate } = useSWR(
     ["leaderboard", variant, scope],
     async () => {
-      const res = await axios.get<LeaderboardEntry[]>(
-        `/api/profiles/leaderboard?limit=100&variant=${variant}${
-          scope === "FRIENDS" ? "&scope=friends" : ""
-        }`
-      );
+      // Friends board is authenticated (needs the caller); global is public.
+      const url =
+        scope === "FRIENDS"
+          ? `/api/friends/leaderboard?variant=${variant}`
+          : `/api/profiles/leaderboard?limit=100&variant=${variant}`;
+      const res = await axios.get<LeaderboardEntry[]>(url);
       return res.data;
     },
     { revalidateOnFocus: true }

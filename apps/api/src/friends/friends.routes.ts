@@ -2,6 +2,7 @@ import express, { Router, Request, Response } from "express";
 import {
   getProfileIdByUid,
   listFriends,
+  friendsLeaderboard,
   listRequests,
   searchUsers,
   recentOpponents,
@@ -37,6 +38,14 @@ friendsRouter.get(
   "/",
   withMyId(async (myId, _req, res) => {
     res.send(await listFriends(myId));
+  })
+);
+
+friendsRouter.get(
+  "/leaderboard",
+  withMyId(async (myId, req, res) => {
+    const variant = req.query.variant === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
+    res.send(await friendsLeaderboard(myId, variant));
   })
 );
 

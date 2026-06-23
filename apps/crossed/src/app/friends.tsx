@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import { Avatar } from "react-native-ui-lib";
@@ -155,7 +155,20 @@ export default function Friends() {
                 <View className="flex-row items-center">
                   <SmallButton label="Play" onPress={() => onPlay(f.id)} />
                   <TouchableOpacity
-                    onPress={() => removeFriend(f.id)}
+                    onPress={() =>
+                      Alert.alert(
+                        "Remove friend?",
+                        `Remove ${f.username} from your friends?`,
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Remove",
+                            style: "destructive",
+                            onPress: () => removeFriend(f.id),
+                          },
+                        ]
+                      )
+                    }
                     className="ml-2 px-2 py-1"
                   >
                     <Text className="text-crossed-gray-400 text-lg">⋯</Text>

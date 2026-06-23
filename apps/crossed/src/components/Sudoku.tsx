@@ -358,8 +358,10 @@ export const SudokuGrid = ({
                             <View
                               key={n}
                               style={{
-                                width: cellPx / 3,
-                                height: cellPx / 3,
+                                // Percentages avoid sub-pixel rounding that
+                                // pushed 7/8/9 onto a clipped 4th row.
+                                width: "33.33%",
+                                height: "33.33%",
                                 alignItems: "center",
                                 justifyContent: "center",
                               }}

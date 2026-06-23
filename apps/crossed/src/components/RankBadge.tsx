@@ -41,8 +41,11 @@ export const RankBadge = ({
 
   return (
     <View className="flex-row items-center">
-      <Text style={{ fontSize: 15 }}>{rank.emoji}</Text>
-      <Text className="ml-1 font-[jost600] text-xs" style={{ color: rank.color }}>
+      <Text style={{ fontSize: 16 }}>{rank.emoji}</Text>
+      <Text
+        className="ml-1 font-[jost600] text-[13px]"
+        style={{ color: rank.color }}
+      >
         {rank.label}
       </Text>
     </View>

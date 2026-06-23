@@ -65,7 +65,7 @@ export default function Leaderboard() {
         />
         <View className="ml-3 flex-1">
           <Text
-            className="font-[jost700] text-[15px] text-crossed-gray-900"
+            className="font-[jost700] text-[16px] text-crossed-gray-900"
             numberOfLines={1}
           >
             {item.username}
@@ -73,7 +73,7 @@ export default function Leaderboard() {
           </Text>
           <RankBadge rating={item.eloRating} />
         </View>
-        <Text className="ml-2 font-[jost700] text-base text-crossed-gray-900">
+        <Text className="ml-2 font-[jost700] text-[19px] text-crossed-gray-900">
           {Math.round(item.eloRating)}
         </Text>
       </View>
