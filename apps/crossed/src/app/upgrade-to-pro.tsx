@@ -128,30 +128,97 @@ export default function UpgradeToPro() {
             )}
           </View>
         ) : (
-          packages.map((pkg) => (
-            <TouchableOpacity
-              key={pkg.identifier}
-              disabled={busy}
-              onPress={() => onBuy(pkg)}
-              className="mb-3 rounded-2xl px-5 py-4 flex-row items-center justify-between"
-              style={{ backgroundColor: colors["crossed-yellow"]["300"] }}
-            >
-              <View className="flex-1 pr-3">
-                <Text className="font-[jost700] text-[17px]">
-                  {pkg.product.title?.replace(/\s*\(.*\)\s*$/, "") ||
-                    pkg.packageType}
-                </Text>
-                {!!pkg.product.description && (
-                  <Text className="font-[jost400] text-xs text-crossed-gray-900/70">
-                    {pkg.product.description}
+          packages.map((pkg) => {
+            const isAnnual = pkg.packageType === "ANNUAL";
+            const blue = colors["crossed-blue"]["450"];
+            const title =
+              pkg.product.title?.replace(/\s*\(.*\)\s*$/, "") ||
+              (isAnnual ? "Yearly" : "Monthly");
+            return (
+              <TouchableOpacity
+                key={pkg.identifier}
+                disabled={busy}
+                activeOpacity={0.85}
+                onPress={() => onBuy(pkg)}
+                style={{
+                  marginBottom: 14,
+                  borderRadius: 16,
+                  paddingVertical: 18,
+                  paddingHorizontal: 18,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: isAnnual ? blue : "#ffffff",
+                  borderWidth: 2,
+                  borderColor: blue,
+                  shadowColor: "#000",
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 4,
+                  opacity: busy ? 0.6 : 1,
+                }}
+              >
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      style={{
+                        fontFamily: "jost700",
+                        fontSize: 18,
+                        color: isAnnual ? "#ffffff" : blue,
+                      }}
+                    >
+                      {title}
+                    </Text>
+                    {isAnnual && (
+                      <View
+                        style={{
+                          marginLeft: 8,
+                          backgroundColor: colors["crossed-yellow"]["300"],
+                          borderRadius: 999,
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                        }}
+                      >
+                        <Text style={{ fontFamily: "jost700", fontSize: 10, color: "#1f2937" }}>
+                          BEST VALUE
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    style={{
+                      marginTop: 3,
+                      fontFamily: "jost400",
+                      fontSize: 13,
+                      color: isAnnual ? "rgba(255,255,255,0.85)" : "#6b7280",
+                    }}
+                  >
+                    {pkg.product.priceString}
+                    {isAnnual ? " billed yearly" : " billed monthly"}
                   </Text>
-                )}
-              </View>
-              <Text className="font-[jost700] text-[18px]">
-                {pkg.product.priceString}
-              </Text>
-            </TouchableOpacity>
-          ))
+                </View>
+                <View
+                  style={{
+                    backgroundColor: isAnnual ? "#ffffff" : blue,
+                    borderRadius: 999,
+                    paddingVertical: 9,
+                    paddingHorizontal: 18,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "jost700",
+                      fontSize: 15,
+                      color: isAnnual ? blue : "#ffffff",
+                    }}
+                  >
+                    Subscribe
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
       </View>
 
