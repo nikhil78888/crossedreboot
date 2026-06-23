@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import produce from "immer";
@@ -161,23 +161,35 @@ export const SudokuGrid = ({
   }, [game, showResults, sudoku]);
 
   // --- Auto-finish + persist progress --------------------------------------
+  // Debounce progress writes (win write stays immediate so scoring reads it).
+  const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (progressTimer.current) clearTimeout(progressTimer.current);
+    },
+    []
+  );
   useEffect(() => {
-    if (game && gameState && myProfile && !isGameFinished && !showResults) {
-      const solved =
-        JSON.stringify(gameState.solution) === JSON.stringify(sudoku?.solution);
-      if (solved) {
-        finishGame();
+    if (!(game && gameState && myProfile && !isGameFinished && !showResults))
+      return;
+    const merged = game.gameState
+      ? { ...game.gameState, [myProfile.id]: gameState }
+      : { [myProfile.id]: gameState };
+    const write = () =>
+      supabase.from("games").update({ gameState: merged }).eq("id", gameId).then();
+    const solved =
+      JSON.stringify(gameState.solution) === JSON.stringify(sudoku?.solution);
+    if (solved) {
+      if (progressTimer.current) {
+        clearTimeout(progressTimer.current);
+        progressTimer.current = null;
       }
-      supabase
-        .from("games")
-        .update({
-          gameState: game.gameState
-            ? { ...game.gameState, [myProfile.id]: gameState }
-            : { [myProfile.id]: gameState },
-        })
-        .eq("id", gameId)
-        .then();
+      write();
+      finishGame();
+      return;
     }
+    if (progressTimer.current) clearTimeout(progressTimer.current);
+    progressTimer.current = setTimeout(write, 800);
   }, [
     finishGame,
     game,

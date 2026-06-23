@@ -69,6 +69,15 @@ export const CrosswordGrid = ({
 
   const isGameFinished = game?.playState === "COMPLETED";
   const [gameState, setGameState] = useState<GameState | null>(null);
+  // Debounce progress writes so we don't write the full game row on every
+  // keystroke (realtime/write amplification). The WIN write is never debounced.
+  const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (progressTimer.current) clearTimeout(progressTimer.current);
+    },
+    []
+  );
 
   // Record the (word, clue) pairs this player was shown, so they're never
   // served the same pair again — even in a game they didn't create. Once.
@@ -263,31 +272,30 @@ export const CrosswordGrid = ({
   }, [crossword, game, showResults]);
 
   useEffect(() => {
-    if (game && gameState && myProfile && !isGameFinished) {
-      // Check for a win immediately (synchronously) so finishing isn't gated on
-      // the progress-write round-trip — that caused the delay on winning.
-      const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
-      const isCorrectSolution =
-        !hasEmptyCell &&
-        JSON.stringify(gameState.solution) ===
-          JSON.stringify(game.crossword?.solution);
-      if (isCorrectSolution) {
-        finishGame();
+    if (!(game && gameState && myProfile && !isGameFinished)) return;
+    const merged = game.gameState
+      ? { ...game.gameState, [myProfile.id]: gameState }
+      : { [myProfile.id]: gameState };
+    const write = () =>
+      supabase.from("games").update({ gameState: merged }).eq("id", gameId).then();
+    // Win check is immediate (synchronous) so finishing isn't gated on a write.
+    const hasEmptyCell = gameState.solution.find((row) => row.includes(""));
+    const isCorrectSolution =
+      !hasEmptyCell &&
+      JSON.stringify(gameState.solution) ===
+        JSON.stringify(game.crossword?.solution);
+    if (isCorrectSolution) {
+      if (progressTimer.current) {
+        clearTimeout(progressTimer.current);
+        progressTimer.current = null;
       }
-      // Persist progress (so the opponent sees the bar). Fire-and-forget.
-      supabase
-        .from("games")
-        .update({
-          gameState: game.gameState
-            ? {
-                ...game.gameState,
-                [myProfile.id]: gameState,
-              }
-            : { [myProfile.id]: gameState },
-        })
-        .eq("id", gameId)
-        .then();
+      write(); // write the winning state NOW (scoring reads it)
+      finishGame();
+      return;
     }
+    // Otherwise debounce the progress write (drives the opponent's bar).
+    if (progressTimer.current) clearTimeout(progressTimer.current);
+    progressTimer.current = setTimeout(write, 800);
   }, [finishGame, game, gameId, gameState, isGameFinished, myProfile]);
 
   if (!game || !gameState || !crossword) {

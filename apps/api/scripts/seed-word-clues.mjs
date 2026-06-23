@@ -6,6 +6,7 @@
 import fs from "fs";
 import path from "path";
 import CURATED from "./curated-words.mjs";
+import CURATED_HARD from "./curated-words-hard.mjs";
 
 const envText = fs.readFileSync(path.join(process.cwd(), ".env"), "utf8");
 const env = Object.fromEntries(
@@ -27,21 +28,25 @@ const headers = {
 
 const DRY = process.argv.includes("--dry-run");
 
-// Flatten the curated bank to unique (word, clue) pairs.
+// Flatten a bank to unique (word, clue) rows tagged with a difficulty.
 const pairs = [];
 const seen = new Set();
-for (const len of Object.keys(CURATED)) {
-  for (const [word, value] of Object.entries(CURATED[len])) {
-    const clues = Array.isArray(value) ? value : [value];
-    for (const clue of clues) {
-      const k = `${word}|||${clue}`;
-      if (clue && !seen.has(k)) {
-        seen.add(k);
-        pairs.push({ word, clue });
+const addBank = (bank, difficulty) => {
+  for (const len of Object.keys(bank)) {
+    for (const [word, value] of Object.entries(bank[len])) {
+      const clues = Array.isArray(value) ? value : [value];
+      for (const clue of clues) {
+        const k = `${word}|||${clue}`;
+        if (clue && !seen.has(k)) {
+          seen.add(k);
+          pairs.push({ word, clue, difficulty });
+        }
       }
     }
   }
-}
+};
+addBank(CURATED, "REGULAR");
+addBank(CURATED_HARD, "HARD");
 
 console.log(`Prepared ${pairs.length} unique (word, clue) pairs.`);
 if (DRY) {
