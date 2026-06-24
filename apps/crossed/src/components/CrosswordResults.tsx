@@ -27,6 +27,7 @@ export const FriendlyGameResult = ({
   if (!myProfile || !game) {
     return null;
   }
+  const isSudoku = game.gameVariant === "SUDOKU";
   const myPoints =
     game.scores.find((s) => s.profilesId === myProfile.id)?.score || 0;
   const opponent = game.players.find((p) => p.id !== myProfile.id);
@@ -102,7 +103,7 @@ export const FriendlyGameResult = ({
           <Button
             intent={"primary"}
             size={"xl"}
-            label="View Crossword Answers"
+            label={`View ${isSudoku ? "Sudoku" : "Crossword"} Answers`}
             rounded={"full"}
             mode={"outline"}
             onPress={() => {
@@ -160,6 +161,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
   if (!myProfile || !game) {
     return null;
   }
+  const isSudoku = game.gameVariant === "SUDOKU";
   const solution = game.gameState?.[myProfile.id]?.solution;
   const correctSolution = solutionOf(game);
   const points = calculateScore({
@@ -202,7 +204,7 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
           <Button
             intent={"primary"}
             size={"xl"}
-            label="View Crossword Answers"
+            label={`View ${isSudoku ? "Sudoku" : "Crossword"} Answers`}
             rounded={"full"}
             onPress={() => {
               router.push(`/view-answers?gameId=${gameId}`);
@@ -265,6 +267,11 @@ const PlayerResultCard = ({
 }) => {
   const router = useRouter();
   const isWinner = player.id === game.winnerId;
+  const isSudoku = game.gameVariant === "SUDOKU";
+  const currentRating = isSudoku
+    ? (player as { eloRatingSudoku?: number }).eloRatingSudoku ??
+      player.eloRating
+    : player.eloRating;
   return (
     <TouchableOpacity
       onPress={() => {
@@ -288,7 +295,7 @@ const PlayerResultCard = ({
               {previousRating} →
               <Text className="font-[jost600] text-sm text-cr-gray-500">
                 {" "}
-                {player.eloRating} rating
+                {currentRating} rating
               </Text>
             </Text>
           </View>

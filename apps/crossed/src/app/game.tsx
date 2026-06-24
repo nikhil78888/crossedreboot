@@ -39,10 +39,14 @@ export default function Game() {
   const counting = gamePlayState === "PLAYING" && secondsToStart > 0;
 
   useEffect(() => {
-    if (!opponentRating && opponent?.eloRating) {
-      setOpponentRating(opponent.eloRating);
+    if (!opponentRating && opponent) {
+      const r =
+        game?.gameVariant === "SUDOKU"
+          ? (opponent as { eloRatingSudoku?: number }).eloRatingSudoku
+          : opponent.eloRating;
+      if (r) setOpponentRating(r);
     }
-  }, [opponent?.eloRating, opponentRating]);
+  }, [opponent, opponentRating, game?.gameVariant]);
 
   useEffect(() => {
     // Submit/forfeit over a flaky network must never trap the user on the
@@ -149,8 +153,12 @@ export default function Game() {
         goBack();
         return;
       }
+      const myRating =
+        game?.gameVariant === "SUDOKU"
+          ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
+          : myProfile?.eloRating;
       router.replace(
-        `/game-results?gameId=${gameId}&myRating=${myProfile?.eloRating}&opponentRating=${opponentRating}`
+        `/game-results?gameId=${gameId}&myRating=${myRating}&opponentRating=${opponentRating}`
       );
     }
   }, [

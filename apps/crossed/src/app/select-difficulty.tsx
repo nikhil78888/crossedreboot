@@ -99,7 +99,14 @@ export default function SelectDifficulty() {
   ];
 
   return (
-    <View className="flex-1 bg-white px-6 pt-6">
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#ffffff",
+        paddingHorizontal: 20,
+        paddingTop: 24,
+      }}
+    >
       <Text className="font-[jost700] text-[26px] text-crossed-gray-900">
         Choose Difficulty
       </Text>
@@ -120,6 +127,8 @@ export default function SelectDifficulty() {
             style={{
               borderRadius: 20,
               padding: 20,
+              minHeight: 104,
+              justifyContent: "center",
               backgroundColor: o.bg,
               borderWidth: 2,
               borderColor: o.bg,
@@ -134,7 +143,10 @@ export default function SelectDifficulty() {
                 >
                   {o.label}
                 </Text>
-                <Text className="mt-0.5 font-[jost400] text-[13px] text-crossed-gray-900/60">
+                <Text
+                  numberOfLines={2}
+                  className="mt-0.5 font-[jost400] text-[13px] text-crossed-gray-900/60"
+                >
                   {o.blurb}
                 </Text>
               </View>
