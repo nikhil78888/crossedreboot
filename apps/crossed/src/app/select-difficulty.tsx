@@ -7,6 +7,7 @@ import { useVariant } from "../hooks/use-variant";
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { useTournament } from "../hooks/use-tournament";
 import { useGameGate } from "../hooks/use-subscription";
+import { events, trackEvent } from "../lib/track-event";
 import colors from "../lib/colors";
 
 type Mode = "SOLO" | "FRIENDLY" | "RANKED" | "TOURNAMENT" | "PRIVATE_TOURNAMENT";
@@ -29,10 +30,12 @@ export default function SelectDifficulty() {
     if (busy) return;
     setBusy(difficulty);
     try {
+      trackEvent(events.DIFFICULTY_SELECTED, { mode, variant, difficulty });
       // Competitive modes are gated by the subscription/daily limit.
       if (mode !== "SOLO") {
         const gate = await checkCanPlay();
         if (!gate.allowed) {
+          trackEvent(events.GATE_BLOCKED, { mode, variant });
           router.replace("/upgrade-to-pro");
           return;
         }

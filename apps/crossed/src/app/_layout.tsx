@@ -1,7 +1,8 @@
 import "../../global.css";
 import "../lib/nativewind-interop";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { events, setAnalyticsUser, trackEvent } from "../lib/track-event";
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -103,6 +104,16 @@ export default function IndexLayout() {
   const { myProfile } = useMyProfile();
   useEffect(() => {
     configureRevenueCat(myProfile?.id);
+    setAnalyticsUser(myProfile?.id);
+  }, [myProfile?.id]);
+
+  // One app-open event per launch (after the profile is attributable).
+  const loggedOpen = useRef(false);
+  useEffect(() => {
+    if (myProfile?.id && !loggedOpen.current) {
+      loggedOpen.current = true;
+      trackEvent(events.APP_OPENED);
+    }
   }, [myProfile?.id]);
 
   // Check for updates

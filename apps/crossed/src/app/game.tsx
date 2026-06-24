@@ -125,6 +125,11 @@ export default function Game() {
       !navigatedAway.current
     ) {
       navigatedAway.current = true;
+      trackEvent(events.GAME_COMPLETED, {
+        gameType,
+        variant: game?.gameVariant,
+        won: !!myProfile?.id && game?.winnerId === myProfile.id,
+      });
       if (gameType === "TOURNAMENT") {
         // Head back to the bracket (look up the tournament if not passed in).
         const goBack = async () => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
@@ -6,6 +6,7 @@ import { PurchasesPackage } from "react-native-purchases";
 import { useSubscription } from "../hooks/use-subscription";
 import { Button } from "../components/Button";
 import { FREE_COMPETITIVE_PER_DAY } from "../lib/revenuecat";
+import { events, trackEvent } from "../lib/track-event";
 import colors from "../lib/colors";
 
 const PERKS = [
@@ -19,6 +20,10 @@ export default function UpgradeToPro() {
   const { isPro, offering, loading, purchase, restore, diagnostic } =
     useSubscription();
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    trackEvent(events.PAYWALL_VIEWED);
+  }, []);
 
   if (loading) {
     return (
@@ -56,14 +61,30 @@ export default function UpgradeToPro() {
   const onBuy = async (pkg: PurchasesPackage) => {
     try {
       setBusy(true);
+      trackEvent(events.SUBSCRIBE_TAPPED, {
+        packageType: pkg.packageType,
+        productId: pkg.product.identifier,
+        price: pkg.product.price,
+      });
       const ok = await purchase(pkg);
       if (ok) {
+        trackEvent(events.PURCHASE_SUCCEEDED, {
+          packageType: pkg.packageType,
+          productId: pkg.product.identifier,
+        });
         Alert.alert("You're Pro! 🎉", "Enjoy unlimited games.");
         router.back();
       }
     } catch (e) {
       const err = e as { userCancelled?: boolean };
-      if (!err.userCancelled) {
+      if (err.userCancelled) {
+        trackEvent(events.PURCHASE_CANCELLED, { packageType: pkg.packageType });
+      } else {
+        const msg = e instanceof Error ? e.message : String(e);
+        trackEvent(events.PURCHASE_FAILED, {
+          packageType: pkg.packageType,
+          message: msg,
+        });
         Alert.alert(
           "Purchase failed",
           "Something went wrong — please try again."
@@ -78,6 +99,7 @@ export default function UpgradeToPro() {
     try {
       setBusy(true);
       const ok = await restore();
+      trackEvent(events.RESTORE_RESULT, { restored: ok });
       Alert.alert(
         ok ? "Restored 🎉" : "Nothing to restore",
         ok

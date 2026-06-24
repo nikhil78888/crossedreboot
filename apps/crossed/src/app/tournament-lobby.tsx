@@ -6,6 +6,7 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 import { useTournamentQueue } from "../hooks/use-tournament-queue";
 import { useTournamentAssignment } from "../hooks/use-tournament-assignment";
 import { useMyProfile } from "../hooks/use-my-profile";
+import { events, trackEvent } from "../lib/track-event";
 
 /*
 The tournament lobby: enqueue into tournamentQueue, then wait while the backend
@@ -33,6 +34,7 @@ export default function TournamentLobby() {
     if (joined.current || !myProfile) return;
     joined.current = true;
     joinTournamentQueue(variant, difficulty);
+    trackEvent(events.TOURNAMENT_ENQUEUED, { variant, difficulty });
   }, [joinTournamentQueue, variant, difficulty, myProfile]);
 
   // When the matcher seats us, leave the queue and drop into the bracket.
@@ -40,6 +42,7 @@ export default function TournamentLobby() {
   useEffect(() => {
     if (tournamentId && !entered.current) {
       entered.current = true;
+      trackEvent(events.TOURNAMENT_MATCHED, { variant, difficulty });
       leaveTournamentQueue();
       router.replace(`/tournament?tournamentId=${tournamentId}`);
     }

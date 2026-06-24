@@ -261,6 +261,33 @@ export interface Database {
         }
         Relationships: []
       }
+      analyticsEvents: {
+        Row: {
+          id: string
+          name: string
+          profilesId: string | null
+          properties: Json | null
+          platform: string | null
+          createdAt: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          profilesId?: string | null
+          properties?: Json | null
+          platform?: string | null
+          createdAt?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          profilesId?: string | null
+          properties?: Json | null
+          platform?: string | null
+          createdAt?: string
+        }
+        Relationships: []
+      }
       tournamentQueue: {
         Row: {
           profilesId: string
