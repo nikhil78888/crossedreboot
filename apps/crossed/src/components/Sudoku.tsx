@@ -88,9 +88,20 @@ export const SudokuGrid = ({
     const avgDelay =
       cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
     // bursty, human-like cadence (re-randomized after each fill)
+    // Front-load the bot: ~30% quicker fills out of the gate, easing to normal
+    // pace over the first quarter of the match, so the player feels early
+    // pressure to keep up.
+    const elapsedFrac = Math.min(
+      1,
+      Math.max(
+        0,
+        (game.gameDurationInSeconds - secondsLeft) / game.gameDurationInSeconds
+      )
+    );
+    const earlyBoost = 0.7 + 0.3 * Math.min(1, elapsedFrac / 0.25);
     const nextDelayMs = Math.max(
       300,
-      avgDelay * (0.3 + Math.random() * 1.2) * 1000
+      avgDelay * (0.3 + Math.random() * 1.2) * 1000 * earlyBoost
     );
 
     if (cellsToFill > 0 && secondsLeft > 0) {
