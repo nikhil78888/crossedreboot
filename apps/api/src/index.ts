@@ -2,11 +2,13 @@ import { createServer } from "./server";
 import { watchLobby } from "./watch-lobby";
 import { watchTournaments } from "./watch-tournaments";
 import { watchTournamentQueue } from "./watch-tournament-queue";
+import { watchStaleGames } from "./watch-stale-games";
 import { supabase } from "./lib/supabase";
 
 watchLobby();
 watchTournaments();
 watchTournamentQueue();
+watchStaleGames();
 
 // Retention: prune old seenClues rows daily so the table stays bounded and the
 // per-user recency query (word-spacing) stays fast. The DELETE is idempotent,

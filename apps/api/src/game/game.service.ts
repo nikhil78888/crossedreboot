@@ -444,3 +444,29 @@ export const finalizeGame = async (
 
   return winnerId;
 };
+
+// RANKED/FRIENDLY games still PLAYING past their time limit — no client was open
+// at the deadline to end them (both players left, or a bot match where the lone
+// human closed the app). The sweeper finalizes these via finalizeGame, exactly
+// as the on-screen timer would have. Mirrors getExpiredTournamentGameIds.
+// SOLO is intentionally excluded: it has no shared clock (startedAt is null) and
+// is self-paced, so it must never be auto-finalized.
+export const getExpiredHeadToHeadGameIds = async (
+  graceMs = 15000
+): Promise<string[]> => {
+  const { data: games } = await supabase
+    .from("games")
+    .select("id, startedAt, gameDurationInSeconds")
+    .in("gameType", ["RANKED", "FRIENDLY"])
+    .eq("playState", "PLAYING");
+  return (games ?? [])
+    .filter(
+      (g) =>
+        g.startedAt &&
+        new Date(g.startedAt).getTime() +
+          g.gameDurationInSeconds * 1000 +
+          graceMs <
+          Date.now()
+    )
+    .map((g) => g.id);
+};

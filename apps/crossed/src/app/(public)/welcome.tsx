@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Dimensions, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "../../components/Button";
 import { mobileConfig } from "../../mobile-config";
@@ -11,10 +11,22 @@ export default function Welcome() {
       <View className="mt-24">
         <Logo />
       </View>
-      <View className="mt-12 bg-crossed-yellow-300 h-[52px] w-[267px] relative">
-        <Text className="absolute font-[besleyMedium] text-[52px] -top-[32px] left-[14px]">
-          {"Let’s play."}
-        </Text>
+      <View className="mt-12 w-full items-center px-6">
+        {/* Self-sizing single line: never wraps into the button below, and
+            shrinks to fit narrow screens / a wider fallback font. */}
+        <View
+          className="relative items-center"
+          style={{ maxWidth: Dimensions.get("window").width - 48 }}
+        >
+          <View className="absolute inset-x-0 bottom-[6px] h-[28px] bg-crossed-yellow-300" />
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            className="font-[besleyMedium] text-[52px] text-crossed-gray-900"
+          >
+            {"Let’s play."}
+          </Text>
+        </View>
       </View>
       <View className="mt-[92px] w-full px-5">
         <Button

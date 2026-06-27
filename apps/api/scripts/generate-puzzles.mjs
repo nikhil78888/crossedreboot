@@ -164,7 +164,10 @@ const isValidPattern = (g) => {
 const generatePattern = () => {
   // More black squares -> shorter words -> fillable from the curated bank, while
   // the validator still guarantees every cell is fully checked.
-  const density = SIZE <= 5 ? 0.2 : SIZE <= 7 ? 0.18 : 0.2;
+  // Bigger boards need proportionally more black squares so word runs stay
+  // short enough for the curated bank to fill. 10x10 needs notably more.
+  const density =
+    SIZE <= 5 ? 0.2 : SIZE <= 7 ? 0.18 : SIZE <= 9 ? 0.2 : 0.34;
   const target = Math.round(SIZE * SIZE * density);
   for (let attempt = 0; attempt < 8000; attempt++) {
     const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
@@ -328,7 +331,7 @@ function fillGrid(pattern, dict, index) {
   const usedWords = new Set();
   let backtracks = 0;
   const MAX_BACKTRACKS =
-    SIZE >= 8 ? 200000 : SIZE >= 7 ? 120000 : SIZE >= 6 ? 80000 : 60000;
+    SIZE >= 10 ? 3000000 : SIZE >= 8 ? 200000 : SIZE >= 7 ? 120000 : SIZE >= 6 ? 80000 : 60000;
 
   const candidates = (slot) => {
     const len = slot.cells.length;
@@ -373,7 +376,8 @@ function fillGrid(pattern, dict, index) {
     // bestCands is already sorted by score (common words first). Bias toward
     // the top so puzzles use common words, but shuffle within the top band for
     // variety across runs.
-    for (const entry of shuffle(bestCands.slice(0, 150)).slice(0, 50)) {
+    const wide = SIZE >= 10;
+    for (const entry of shuffle(bestCands.slice(0, wide ? 500 : 150)).slice(0, wide ? 140 : 50)) {
       const saved = best.cells.map(([r, c]) => grid[r][c]);
       best.cells.forEach(([r, c], i) => (grid[r][c] = entry.word[i]));
       usedWords.add(entry.word);
@@ -453,22 +457,35 @@ function buildPuzzle(pattern, grid, dict) {
 }
 
 async function insertPuzzle(p) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/crosswords`, {
-    method: "POST",
-    headers: { ...headers, Prefer: "return=minimal" },
-    body: JSON.stringify({
-      size: SIZE,
-      puzzle: p.puzzle,
-      solution: p.solution,
-      clues: p.clues,
-      usedWords: p.usedWords,
-      source: "wizium",
-      difficulty: 2,
-      isPublished: true,
-      category: "general",
-    }),
+  const body = JSON.stringify({
+    size: SIZE,
+    puzzle: p.puzzle,
+    solution: p.solution,
+    clues: p.clues,
+    usedWords: p.usedWords,
+    source: "wizium",
+    difficulty: 2,
+    isPublished: true,
+    category: "general",
   });
-  if (!res.ok) throw new Error(`insert failed ${res.status}: ${await res.text()}`);
+  // Retry transient network/5xx errors so a single blip doesn't kill a long run.
+  let lastErr;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/crosswords`, {
+        method: "POST",
+        headers: { ...headers, Prefer: "return=minimal" },
+        body,
+      });
+      if (res.ok) return;
+      if (res.status < 500) throw new Error(`insert failed ${res.status}: ${await res.text()}`);
+      lastErr = new Error(`insert ${res.status}`);
+    } catch (e) {
+      lastErr = e;
+    }
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  }
+  throw lastErr;
 }
 
 // ---- main ----
