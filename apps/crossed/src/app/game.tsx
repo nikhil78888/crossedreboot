@@ -15,7 +15,7 @@ import { supabase } from "../lib/supabase";
 export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { gameId, tournamentId, guided } = useLocalSearchParams();
+  const { gameId, tournamentId, guided, preview } = useLocalSearchParams();
   const { myProfile } = useMyProfile();
   const { game, finishGame, forfeitGame, abortGame, opponent } = useGame({
     gameId: gameId as string | undefined,
@@ -136,12 +136,11 @@ export default function Game() {
         variant: game?.gameVariant,
         won,
       });
+      // Only log real onboarding completions (placeholder username) to keep the
+      // funnel clean — demo/preview runs from an existing account are excluded.
       const isOnboardingRace = isPlaceholderUsername(myProfile?.username);
-      if (guided === "1" || isOnboardingRace) {
-        trackEvent(events.INTRO_RACE_COMPLETED, {
-          won,
-          onboarding: isOnboardingRace,
-        });
+      if (isOnboardingRace) {
+        trackEvent(events.INTRO_RACE_COMPLETED, { won });
       }
       if (gameType === "TOURNAMENT") {
         // Head back to the bracket (look up the tournament if not passed in).
@@ -163,9 +162,14 @@ export default function Game() {
         return;
       }
       // New player who hasn't named themselves yet → send them to the win +
-      // "pick a username" screen instead of the standard results.
-      if (isPlaceholderUsername(myProfile?.username)) {
-        router.replace(`/set-username?won=${won ? 1 : 0}`);
+      // "pick a username" screen instead of the standard results. preview=1 lets
+      // an existing account walk the same screen without renaming anything.
+      if (preview === "1" || isPlaceholderUsername(myProfile?.username)) {
+        router.replace(
+          `/set-username?won=${won ? 1 : 0}${
+            preview === "1" ? "&preview=1" : ""
+          }`
+        );
         return;
       }
       const myRating =

@@ -27,7 +27,10 @@ const schema = z.object({
 export default function SetUsername() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { won } = useLocalSearchParams<{ won?: string }>();
+  const { won, preview } = useLocalSearchParams<{
+    won?: string;
+    preview?: string;
+  }>();
   const { setUsername, isSettingUsername } = useAuth();
   const {
     control,
@@ -41,6 +44,11 @@ export default function SetUsername() {
   });
 
   const onSubmit = async (data: z.infer<typeof schema>) => {
+    // Preview mode (existing account walking the flow): don't actually rename.
+    if (preview === "1") {
+      router.replace("/home");
+      return;
+    }
     try {
       await setUsername({ username: data.username });
       trackEvent(events.INTRO_USERNAME_SAVED);
@@ -64,6 +72,11 @@ export default function SetUsername() {
       <Text className="mt-3 text-center font-[jost400] text-[15px] text-crossed-gray-500">
         Pick a username to save your rating and climb the leaderboard.
       </Text>
+      {preview === "1" && (
+        <Text className="mt-2 text-center font-[jost600] text-xs text-crossed-blue-450">
+          Preview — your account won’t be changed.
+        </Text>
+      )}
       <View className="mt-8">
         <Controller
           control={control}

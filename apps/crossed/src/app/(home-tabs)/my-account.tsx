@@ -23,11 +23,12 @@ export default function MyAccount() {
   });
   const router = useRouter();
 
-  // Demo trigger so an existing account can replay the new-user intro race.
+  // Preview trigger so an existing account can walk the FULL new-user flow (live
+  // race + post-win "pick a username" screen) non-destructively for testing.
   const playIntroRace = async () => {
     try {
-      const id = await createGuidedMatch({ source: "demo" });
-      if (id) router.push(`/game?gameId=${id}&guided=1`);
+      const id = await createGuidedMatch({ source: "preview" });
+      if (id) router.push(`/game?gameId=${id}&guided=1&preview=1`);
     } catch {
       Alert.alert("Couldn't start the race", "Please try again.");
     }
@@ -89,7 +90,7 @@ export default function MyAccount() {
             intent={"primary"}
             size={"lg"}
             rounded={"full"}
-            label="▶  Play intro race (demo)"
+            label="▶  Preview new-user intro"
             isLoading={creatingGuidedMatch}
             onPress={playIntroRace}
           />
