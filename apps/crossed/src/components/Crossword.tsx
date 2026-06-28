@@ -136,16 +136,6 @@ export const CrosswordGrid = ({
           // more of the grid (targetFraction) and work faster (paceFactor).
           const botRating =
             (opponent as { eloRating?: number }).eloRating || 1000;
-          // How much of the grid the bot ultimately completes. Floor raised so
-          // even weak bots' bars visibly approach the top instead of stalling
-          // around half.
-          const targetFraction = introRace
-            ? 0.85
-            : Math.min(0.99, Math.max(0.65, 0.6 + (botRating - 800) / 1200));
-          const totalBotFillableCells = Math.max(
-            1,
-            Math.floor(totalFillableCells * targetFraction)
-          );
           const botFilledCells =
             botGameState?.solution.reduce((count, row) => {
               return (
@@ -153,7 +143,6 @@ export const CrosswordGrid = ({
                 row.filter((cell) => cell !== "" && cell !== null).length
               );
             }, 0) || 0;
-          const cellsToFill = totalBotFillableCells - botFilledCells;
           const secondsLeft = differenceInSeconds(
             addSeconds(
               new Date(`${game.startedAt}Z`),
@@ -161,27 +150,76 @@ export const CrosswordGrid = ({
             ),
             new Date(new Date().toUTCString())
           );
-          // Fraction of the remaining time the bot spreads its fills over —
-          // lower = finishes sooner = more urgency. Strong bots race to the
-          // finish; weak bots still fill at a steady, beatable clip.
-          const paceFactor = introRace
-            ? 0.45
-            : Math.min(0.85, Math.max(0.35, 0.85 - (botRating - 800) / 1500));
-          const avgDelay =
-            cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
-          // bursty, human-like cadence: each gap varies 0.3x–1.8x the average,
-          // so the opponent bar fills in spurts (fast on a word, then a pause)
-          // rather than at a constant tick. The effect re-runs after each fill,
-          // so every gap is freshly randomized.
-          // Opening sprint: the bot fills its first ~25% of cells briskly
-          // (~0.6-1.6s each) so it visibly shoots ahead early and pressures the
-          // player, then settles into its normal adaptive pace. Bounded by cell
-          // count (not time) so it can't finish the grid during the sprint.
-          const sprintCells = Math.ceil(totalBotFillableCells * 0.25);
-          const inOpeningSprint = botFilledCells < sprintCells;
-          const nextDelayMs = inOpeningSprint
-            ? 600 + Math.random() * 1000
-            : Math.max(300, avgDelay * (0.3 + Math.random() * 1.2) * 1000);
+          const elapsedFrac =
+            game.gameDurationInSeconds > 0
+              ? Math.min(
+                  1,
+                  Math.max(0, 1 - secondsLeft / game.gameDurationInSeconds)
+                )
+              : 0;
+
+          let totalBotFillableCells: number;
+          let nextDelayMs: number;
+          if (introRace) {
+            // Rubber-band: the opponent surges out of the gate (looks like a
+            // fast, independent rival), then quietly tracks the player's
+            // progress so the race stays close — always a hair ahead, never
+            // running away, capped at ~90% so finishing the puzzle still wins.
+            // The early lead, per-fill jitter, and the bot filling its own
+            // (different) cells keep it from looking like it mirrors the player.
+            const playerSolution = myProfile?.id
+              ? game?.gameState?.[myProfile.id]?.solution
+              : undefined;
+            const playerFilled = playerSolution
+              ? playerSolution.reduce(
+                  (count, row) =>
+                    count +
+                    row.filter((cell) => cell !== "" && cell !== null).length,
+                  0
+                )
+              : 0;
+            const playerFrac = totalFillableCells
+              ? playerFilled / totalFillableCells
+              : 0;
+            // Lead shrinks from ~18% of the grid early to ~5% later.
+            const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+            // Early floor so the bot gets moving before the player does.
+            const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+            const targetFrac = Math.min(
+              0.9,
+              Math.max(earlyFloor, playerFrac + lead)
+            );
+            totalBotFillableCells = Math.max(
+              1,
+              Math.floor(totalFillableCells * targetFrac)
+            );
+            // Smooth, brisk catch-up — not instant (that would look robotic).
+            nextDelayMs = 450 + Math.random() * 700;
+          } else {
+            // Rating-based: stronger bots complete more of the grid, faster.
+            const targetFraction = Math.min(
+              0.99,
+              Math.max(0.65, 0.6 + (botRating - 800) / 1200)
+            );
+            totalBotFillableCells = Math.max(
+              1,
+              Math.floor(totalFillableCells * targetFraction)
+            );
+            const paceFactor = Math.min(
+              0.85,
+              Math.max(0.35, 0.85 - (botRating - 800) / 1500)
+            );
+            const remaining = totalBotFillableCells - botFilledCells;
+            const avgDelay =
+              remaining > 0 ? (secondsLeft * paceFactor) / remaining : 0;
+            // Opening sprint, then bursty/human cadence (re-randomized per fill).
+            const sprintCells = Math.ceil(totalBotFillableCells * 0.25);
+            const inOpeningSprint = botFilledCells < sprintCells;
+            nextDelayMs = inOpeningSprint
+              ? 600 + Math.random() * 1000
+              : Math.max(300, avgDelay * (0.3 + Math.random() * 1.2) * 1000);
+          }
+          const cellsToFill = totalBotFillableCells - botFilledCells;
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {
               const solution = botGameState?.solution;
