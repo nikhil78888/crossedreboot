@@ -8,11 +8,13 @@ import { Button } from "../components/Button";
 import { FormTextInput } from "../components/FormTextInput";
 import { images } from "../lib/images";
 import { useAuth } from "../hooks/use-auth";
+import { useGame } from "../hooks/use-game";
 import { events, trackEvent } from "../lib/track-event";
 
-// Shown right after a new player's intro race, while their account still has the
-// auto-assigned placeholder username. Converts them by saving a real username
-// (and rides the win celebration). They can skip and keep the placeholder.
+// Post-intro win screen. Leads with "Play again" (works before naming, to keep
+// the loop going) and the win margin for excitement; saving a username is the
+// secondary action. Shown while the account still has a placeholder username, or
+// in preview mode (existing account, non-destructive).
 const schema = z.object({
   username: z
     .string({ required_error: "Please pick a username" })
@@ -27,11 +29,15 @@ const schema = z.object({
 export default function SetUsername() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { won, preview } = useLocalSearchParams<{
+  const { won, margin, preview } = useLocalSearchParams<{
     won?: string;
+    margin?: string;
     preview?: string;
   }>();
   const { setUsername, isSettingUsername } = useAuth();
+  const { createGuidedMatch, creatingGuidedMatch } = useGame({
+    gameId: undefined,
+  });
   const {
     control,
     handleSubmit,
@@ -43,8 +49,34 @@ export default function SetUsername() {
     mode: "onChange",
   });
 
+  const didWin = won !== "0";
+  const marginN = parseInt(margin ?? "0", 10) || 0;
+  const headline = didWin ? "🎉 You won!" : "Good race!";
+  const subline = didWin
+    ? marginN > 0
+      ? marginN <= 6
+        ? `Photo finish — you edged it by ${marginN} square${
+            marginN === 1 ? "" : "s"
+          }! 🔥`
+        : `You beat your rival by ${marginN} squares!`
+      : "You took it right at the buzzer!"
+    : "So close — go again and take this one.";
+
+  const playAgain = async () => {
+    try {
+      const id = await createGuidedMatch({
+        source: preview === "1" ? "preview" : "onboarding",
+      });
+      if (id)
+        router.replace(
+          `/game?gameId=${id}&guided=1${preview === "1" ? "&preview=1" : ""}`
+        );
+    } catch {
+      // stay on the screen if it fails
+    }
+  };
+
   const onSubmit = async (data: z.infer<typeof schema>) => {
-    // Preview mode (existing account walking the flow): don't actually rename.
     if (preview === "1") {
       router.replace("/home");
       return;
@@ -65,19 +97,46 @@ export default function SetUsername() {
   };
 
   return (
-    <View className="flex-1 bg-white px-6" style={{ paddingTop: top + 48 }}>
-      <Text className="text-center font-[jost700] text-[30px] text-crossed-gray-900">
-        {won === "0" ? "Nice first race!" : "🎉 You won your first race!"}
+    <View className="flex-1 bg-white px-6" style={{ paddingTop: top + 44 }}>
+      <Text
+        className="text-center font-[jost700] text-crossed-gray-900"
+        style={{ fontSize: 40 }}
+      >
+        {headline}
       </Text>
-      <Text className="mt-3 text-center font-[jost400] text-[15px] text-crossed-gray-500">
-        Pick a username to save your rating and climb the leaderboard.
+      <Text
+        className="mt-3 text-center font-[jost600] text-crossed-gray-700"
+        style={{ fontSize: 19, lineHeight: 26 }}
+      >
+        {subline}
+      </Text>
+
+      <View className="mt-8">
+        <Button
+          intent="primary"
+          size="xl"
+          rounded="full"
+          label="Play again"
+          isLoading={creatingGuidedMatch}
+          onPress={playAgain}
+        />
+      </View>
+
+      <Text
+        className="mt-9 text-center font-[jost600] text-crossed-gray-500"
+        style={{ fontSize: 16 }}
+      >
+        Pick a username to save your rating
       </Text>
       {preview === "1" && (
-        <Text className="mt-2 text-center font-[jost600] text-xs text-crossed-blue-450">
+        <Text
+          className="mt-1 text-center font-[jost600] text-crossed-blue-450"
+          style={{ fontSize: 13 }}
+        >
           Preview — your account won’t be changed.
         </Text>
       )}
-      <View className="mt-8">
+      <View className="mt-3">
         <Controller
           control={control}
           render={({
@@ -101,17 +160,18 @@ export default function SetUsername() {
             {errors.root.message}
           </Text>
         )}
-        <View className="mt-6">
+        <View className="mt-4">
           <Button
             intent="primary"
-            size="xl"
+            size="lg"
             rounded="full"
+            mode="outline"
             label="Save & continue"
             isLoading={isSettingUsername}
             onPress={handleSubmit(onSubmit)}
           />
         </View>
-        <View className="mt-3 items-center">
+        <View className="mt-2 items-center">
           <Button
             intent="primary"
             mode="text"

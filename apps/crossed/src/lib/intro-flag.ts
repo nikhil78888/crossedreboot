@@ -15,6 +15,10 @@ export const consumePendingIntro = () => {
   return v;
 };
 
+// Read without clearing — lets /home render a spinner (not the dashboard) from
+// the very first frame, so the intro doesn't flash the dashboard before the race.
+export const peekPendingIntro = () => pendingIntro;
+
 // A username we auto-assign so a new player can start before naming themselves.
 // They rename on the post-race screen. This prefix is also the signal that a
 // player is still unnamed (drives the "pick a username" prompt).

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
-import { useGame } from "../hooks/use-game";
+import { useGame, solutionOf } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { SudokuGrid } from "../components/Sudoku";
 import { ConnectionBanner } from "../components/ConnectionBanner";
@@ -131,6 +131,40 @@ export default function Game() {
     ) {
       navigatedAway.current = true;
       const won = !!myProfile?.id && game?.winnerId === myProfile.id;
+      // Win margin in correct squares (player vs opponent) for an exciting,
+      // "you barely won!" line on the result screen.
+      const sol = game
+        ? (solutionOf(game) as unknown as (string | number | null)[][])
+        : undefined;
+      const correctCount = (s?: (string | number | null)[][]) => {
+        if (!s || !sol) return 0;
+        let n = 0;
+        for (let r = 0; r < s.length; r++) {
+          const row = s[r] || [];
+          for (let c = 0; c < row.length; c++) {
+            const cell = row[c];
+            if (
+              cell != null &&
+              cell !== "" &&
+              cell !== "#" &&
+              cell === sol[r]?.[c]
+            )
+              n++;
+          }
+        }
+        return n;
+      };
+      const myCells = correctCount(
+        (myProfile?.id
+          ? game?.gameState?.[myProfile.id]?.solution
+          : undefined) as unknown as (string | number | null)[][] | undefined
+      );
+      const botCells = correctCount(
+        (opponent ? game?.gameState?.[opponent.id]?.solution : undefined) as
+          | unknown
+          | undefined as (string | number | null)[][] | undefined
+      );
+      const margin = Math.max(0, myCells - botCells);
       trackEvent(events.GAME_COMPLETED, {
         gameType,
         variant: game?.gameVariant,
@@ -166,7 +200,7 @@ export default function Game() {
       // an existing account walk the same screen without renaming anything.
       if (preview === "1" || isPlaceholderUsername(myProfile?.username)) {
         router.replace(
-          `/set-username?won=${won ? 1 : 0}${
+          `/set-username?won=${won ? 1 : 0}&margin=${margin}${
             preview === "1" ? "&preview=1" : ""
           }`
         );
@@ -235,25 +269,40 @@ export default function Game() {
     return (
       <View className="flex-1 items-center justify-center bg-white px-8">
         {isRace && (
-          <Text className="mb-2 text-center font-[jost700] text-[22px] text-crossed-gray-900">
+          <Text
+            className="mb-3 text-center font-[jost700] text-crossed-gray-900"
+            style={{ fontSize: 30 }}
+          >
             🏁 Live Crossword Race
           </Text>
         )}
         {!!opponent && (
-          <Text className="mb-1 text-center font-[jost600] text-base text-crossed-gray-700">
+          <Text
+            className="mb-2 text-center font-[jost600] text-crossed-gray-700"
+            style={{ fontSize: 22 }}
+          >
             You vs {opponent.username}
           </Text>
         )}
         {isRace && (
-          <Text className="mb-6 text-center font-[jost400] text-sm text-crossed-gray-400">
+          <Text
+            className="mb-8 text-center font-[jost400] text-crossed-gray-500"
+            style={{ fontSize: 17, lineHeight: 24 }}
+          >
             A real opponent is solving the same grid — first to finish wins. Go
             fast!
           </Text>
         )}
-        <Text className="font-[jost600] text-lg text-crossed-gray-400">
+        <Text
+          className="font-[jost600] text-crossed-gray-400"
+          style={{ fontSize: 22 }}
+        >
           Starting in
         </Text>
-        <Text className="mt-2 font-[jost700] text-[72px] text-crossed-blue-450">
+        <Text
+          className="mt-2 font-[jost700] text-crossed-blue-450"
+          style={{ fontSize: 84 }}
+        >
           {secondsToStart}
         </Text>
       </View>

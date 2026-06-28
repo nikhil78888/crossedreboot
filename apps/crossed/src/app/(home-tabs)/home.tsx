@@ -3,11 +3,11 @@ import { ActivityIndicator, View, Text, Linking } from "react-native";
 // External feedback form (Typeform).
 export const FEEDBACK_URL = "https://form.typeform.com/to/DUbfDOEn";
 import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShareAppButton } from "../../components/ShareAppButton";
 import { useCurrentGame } from "../../hooks/use-current-game";
 import { useGame } from "../../hooks/use-game";
-import { consumePendingIntro } from "../../lib/intro-flag";
+import { consumePendingIntro, peekPendingIntro } from "../../lib/intro-flag";
 import { Button } from "../../components/Button";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
@@ -60,22 +60,27 @@ export default function Home() {
   // New-user intro race: the welcome "Play" button created a silent account and
   // set the one-shot flag; once this user's profile loads, launch the guided
   // first race. Ref + flag both guard against re-launching.
+  // Start in the launching state if the intro is pending, so the first frame is
+  // a spinner — never the dashboard — avoiding a flash before the race.
   const introLaunched = useRef(false);
+  const [launchingIntro, setLaunchingIntro] = useState(peekPendingIntro());
   useEffect(() => {
     if (myProfile?.id && !introLaunched.current && consumePendingIntro()) {
       introLaunched.current = true;
+      setLaunchingIntro(true);
       (async () => {
         try {
           const id = await createGuidedMatch({ source: "onboarding" });
           if (id) router.replace(`/game?gameId=${id}&guided=1`);
+          else setLaunchingIntro(false);
         } catch {
-          // fall through — they just land on home and can play normally
+          setLaunchingIntro(false); // fall through to the normal dashboard
         }
       })();
     }
   }, [myProfile?.id, createGuidedMatch, router]);
 
-  if (loadingCurrentGameId || (currentGameId && !game)) {
+  if (launchingIntro || loadingCurrentGameId || (currentGameId && !game)) {
     return (
       <View className="flex-1 items-center justify-center px-4 bg-white">
         <ActivityIndicator />
