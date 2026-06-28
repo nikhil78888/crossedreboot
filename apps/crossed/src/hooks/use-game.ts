@@ -503,42 +503,73 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     useSWRMutation(
       "create-guided-match",
       async (_key, { arg }: { arg?: { source?: string } } = {}) => {
-      if (!myProfile) return;
-      const picked = await puzzleFieldsForNewGame(
-        "CROSSWORD",
-        myProfile.id,
-        180,
-        "REGULAR"
-      );
-      if (!picked) return;
-      const { data: bots } = await supabase
-        .from("random_bot_profiles")
-        .select();
-      const bot = (bots || [])
-        .slice()
-        .sort((a, b) => (a.eloRating ?? 1100) - (b.eloRating ?? 1100))[0];
-      if (!bot?.id) return;
-      const { data: game, error: createGameError } = await supabase
-        .from("games")
-        .insert({
-          ...picked.fields,
-          gameType: "RANKED",
-          playState: "PLAYING",
-          startedAt: addSeconds(new Date(), 6).toISOString(),
-          gameDurationInSeconds: picked.durationInSeconds,
-        })
-        .select("*")
-        .single();
-      if (createGameError) throw createGameError;
-      await supabase.from("gamePlayers").insert([
-        { gamesId: game.id, profilesId: myProfile.id },
-        { gamesId: game.id, profilesId: bot.id },
-      ]);
-      trackEvent(events.INTRO_RACE_STARTED, {
-        source: arg?.source ?? "onboarding",
-        gameId: game.id,
-      });
-      return game.id;
+        if (!myProfile) return;
+        // Pin the intro to an easy 5x5 for a quick, winnable first race: pull
+        // from the normal (RLS-safe) picker, retrying for a 5x5, else fall back.
+        let cw:
+          | {
+              id: string;
+              size: number;
+              puzzle: unknown;
+              solution: unknown;
+              clues: unknown;
+            }
+          | undefined;
+        for (let i = 0; i < 6; i++) {
+          const { data } = await supabase.rpc("get_available_crossword", {
+            profileid: myProfile.id,
+          });
+          const c = data?.[0];
+          if (!c?.id) continue;
+          if (!cw) cw = c; // fallback to whatever we first got
+          if (c.size === 5) {
+            cw = c;
+            break;
+          }
+        }
+        if (!cw?.id) return;
+        const resolvedClues = await resolveAndLogClues(
+          {
+            puzzle: cw.puzzle as unknown as Crossword["puzzle"],
+            solution: cw.solution as unknown as Crossword["solution"],
+            clues: cw.clues as unknown as Crossword["clues"],
+          },
+          myProfile.id,
+          false
+        );
+        const { data: bots } = await supabase
+          .from("random_bot_profiles")
+          .select();
+        const bot = (bots || [])
+          .slice()
+          .sort((a, b) => (a.eloRating ?? 1100) - (b.eloRating ?? 1100))[0];
+        if (!bot?.id) return;
+        const { data: game, error: createGameError } = await supabase
+          .from("games")
+          .insert({
+            crosswordsId: cw.id,
+            gameVariant: "CROSSWORD",
+            difficulty: "REGULAR",
+            ...(resolvedClues
+              ? { resolvedClues: resolvedClues as unknown as Json }
+              : {}),
+            gameType: "RANKED",
+            playState: "PLAYING",
+            startedAt: addSeconds(new Date(), 6).toISOString(),
+            gameDurationInSeconds: durationForSize(cw.size, 180),
+          })
+          .select("*")
+          .single();
+        if (createGameError) throw createGameError;
+        await supabase.from("gamePlayers").insert([
+          { gamesId: game.id, profilesId: myProfile.id },
+          { gamesId: game.id, profilesId: bot.id },
+        ]);
+        trackEvent(events.INTRO_RACE_STARTED, {
+          source: arg?.source ?? "onboarding",
+          gameId: game.id,
+        });
+        return game.id;
       }
     );
 

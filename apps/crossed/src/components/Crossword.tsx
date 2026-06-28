@@ -13,6 +13,8 @@ import { Crossword, GameState } from "types-and-validators";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { addSeconds, differenceInSeconds } from "date-fns";
 import { logSeenClues } from "../lib/clue-resolver";
+import { useLocalSearchParams } from "expo-router";
+import { isPlaceholderUsername } from "../lib/intro-flag";
 
 type CrosswordContextType = {
   crossword: Crossword;
@@ -45,6 +47,11 @@ export const CrosswordGrid = ({
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
+  const { guided } = useLocalSearchParams();
+  // Guided intro race: opponent climbs high + fast for a close, exciting bar,
+  // still capped below 100% so finishing the puzzle wins.
+  const introRace =
+    guided === "1" || isPlaceholderUsername(myProfile?.username);
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
@@ -132,10 +139,9 @@ export const CrosswordGrid = ({
           // How much of the grid the bot ultimately completes. Floor raised so
           // even weak bots' bars visibly approach the top instead of stalling
           // around half.
-          const targetFraction = Math.min(
-            0.99,
-            Math.max(0.65, 0.6 + (botRating - 800) / 1200)
-          );
+          const targetFraction = introRace
+            ? 0.85
+            : Math.min(0.99, Math.max(0.65, 0.6 + (botRating - 800) / 1200));
           const totalBotFillableCells = Math.max(
             1,
             Math.floor(totalFillableCells * targetFraction)
@@ -158,10 +164,9 @@ export const CrosswordGrid = ({
           // Fraction of the remaining time the bot spreads its fills over —
           // lower = finishes sooner = more urgency. Strong bots race to the
           // finish; weak bots still fill at a steady, beatable clip.
-          const paceFactor = Math.min(
-            0.85,
-            Math.max(0.35, 0.85 - (botRating - 800) / 1500)
-          );
+          const paceFactor = introRace
+            ? 0.45
+            : Math.min(0.85, Math.max(0.35, 0.85 - (botRating - 800) / 1500));
           const avgDelay =
             cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
           // bursty, human-like cadence: each gap varies 0.3x–1.8x the average,
