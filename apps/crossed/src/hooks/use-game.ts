@@ -494,6 +494,46 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       }
     );
 
+  // Guided "first race" intro match: a real ranked game vs the WEAKEST bot, on a
+  // regular crossword. The bot-fill caps the opponent around ~68% of the grid, so
+  // any player who finishes the puzzle wins at the line — a beatable nail-biter
+  // that lets new players feel the live head-to-head core on game one.
+  const { trigger: createGuidedMatch, isMutating: creatingGuidedMatch } =
+    useSWRMutation("create-guided-match", async () => {
+      if (!myProfile) return;
+      const picked = await puzzleFieldsForNewGame(
+        "CROSSWORD",
+        myProfile.id,
+        180,
+        "REGULAR"
+      );
+      if (!picked) return;
+      const { data: bots } = await supabase
+        .from("random_bot_profiles")
+        .select();
+      const bot = (bots || [])
+        .slice()
+        .sort((a, b) => (a.eloRating ?? 1100) - (b.eloRating ?? 1100))[0];
+      if (!bot?.id) return;
+      const { data: game, error: createGameError } = await supabase
+        .from("games")
+        .insert({
+          ...picked.fields,
+          gameType: "RANKED",
+          playState: "PLAYING",
+          startedAt: addSeconds(new Date(), 6).toISOString(),
+          gameDurationInSeconds: picked.durationInSeconds,
+        })
+        .select("*")
+        .single();
+      if (createGameError) throw createGameError;
+      await supabase.from("gamePlayers").insert([
+        { gamesId: game.id, profilesId: myProfile.id },
+        { gamesId: game.id, profilesId: bot.id },
+      ]);
+      return game.id;
+    });
+
   let opponentProgress = 0;
   let opponentUsername = "";
   let opponent;
@@ -535,6 +575,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     forfeitingGame,
     createRankedBotMatch,
     creatingRankedBotMatch,
+    createGuidedMatch,
+    creatingGuidedMatch,
     playAgainFriendly,
     playingAgain,
   };

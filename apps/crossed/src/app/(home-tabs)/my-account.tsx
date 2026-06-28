@@ -1,5 +1,6 @@
 import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
+import { useGame } from "../../hooks/use-game";
 import { Button } from "../../components/Button";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { RankBadge } from "../../components/RankBadge";
@@ -17,7 +18,20 @@ import { Image, ImageSource } from "expo-image";
 export default function MyAccount() {
   const { user, logout } = useAuth();
   const { myProfile } = useMyProfile();
+  const { createGuidedMatch, creatingGuidedMatch } = useGame({
+    gameId: undefined,
+  });
   const router = useRouter();
+
+  // Demo trigger so an existing account can replay the new-user intro race.
+  const playIntroRace = async () => {
+    try {
+      const id = await createGuidedMatch();
+      if (id) router.push(`/game?gameId=${id}&guided=1`);
+    } catch {
+      Alert.alert("Couldn't start the race", "Please try again.");
+    }
+  };
   const handleSoftInput = useCallback(() => {
     AvoidSoftInput.setShouldMimicIOSBehavior(true);
     AvoidSoftInput.setEnabled(true);
@@ -69,6 +83,16 @@ export default function MyAccount() {
         </Text>
         <View className="mt-4">
           <RankBadge rating={myProfile?.eloRating} size="lg" />
+        </View>
+        <View className="mt-5 w-full px-1">
+          <Button
+            intent={"primary"}
+            size={"lg"}
+            rounded={"full"}
+            label="▶  Play intro race (demo)"
+            isLoading={creatingGuidedMatch}
+            onPress={playIntroRace}
+          />
         </View>
       </View>
       {user.isAnonymous ? (

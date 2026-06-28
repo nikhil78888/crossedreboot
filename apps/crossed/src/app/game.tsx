@@ -14,7 +14,7 @@ import { supabase } from "../lib/supabase";
 export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { gameId, tournamentId } = useLocalSearchParams();
+  const { gameId, tournamentId, guided } = useLocalSearchParams();
   const { myProfile } = useMyProfile();
   const { game, finishGame, forfeitGame, abortGame, opponent } = useGame({
     gameId: gameId as string | undefined,
@@ -211,19 +211,32 @@ export default function Game() {
 
   // Pre-game countdown so both players start together.
   if (counting) {
+    const isRace =
+      guided === "1" || gameType === "RANKED" || gameType === "TOURNAMENT";
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center bg-white px-8">
+        {isRace && (
+          <Text className="mb-2 text-center font-[jost700] text-[22px] text-crossed-gray-900">
+            🏁 Live Crossword Race
+          </Text>
+        )}
+        {!!opponent && (
+          <Text className="mb-1 text-center font-[jost600] text-base text-crossed-gray-700">
+            You vs {opponent.username}
+          </Text>
+        )}
+        {isRace && (
+          <Text className="mb-6 text-center font-[jost400] text-sm text-crossed-gray-400">
+            A real opponent is solving the same grid — first to finish wins. Go
+            fast!
+          </Text>
+        )}
         <Text className="font-[jost600] text-lg text-crossed-gray-400">
-          Match starting in
+          Starting in
         </Text>
         <Text className="mt-2 font-[jost700] text-[72px] text-crossed-blue-450">
           {secondsToStart}
         </Text>
-        {!!opponent && (
-          <Text className="mt-2 font-[jost600] text-base">
-            vs {opponent.username}
-          </Text>
-        )}
       </View>
     );
   }
