@@ -10,6 +10,7 @@ import { events, trackEvent } from "../lib/track-event";
 import { isPlaceholderUsername } from "../lib/intro-flag";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { WaitingSpinner } from "../components/WaitingSpinner";
+import { UrgencyPulse } from "../components/UrgencyPulse";
 import { supabase } from "../lib/supabase";
 
 export default function Game() {
@@ -17,9 +18,10 @@ export default function Game() {
   const navigation = useNavigation();
   const { gameId, tournamentId, guided, preview } = useLocalSearchParams();
   const { myProfile } = useMyProfile();
-  const { game, finishGame, forfeitGame, abortGame, opponent } = useGame({
-    gameId: gameId as string | undefined,
-  });
+  const { game, finishGame, forfeitGame, abortGame, opponent, opponentProgress } =
+    useGame({
+      gameId: gameId as string | undefined,
+    });
   const [opponentRating, setOpponentRating] = useState(0);
 
   const gamePlayState = game?.playState;
@@ -317,6 +319,7 @@ export default function Game() {
       ) : (
         <CrosswordGrid gameId={gameId as string} />
       )}
+      <UrgencyPulse progress={opponentProgress} />
     </View>
   );
 }

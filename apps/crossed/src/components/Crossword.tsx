@@ -13,8 +13,6 @@ import { Crossword, GameState } from "types-and-validators";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { addSeconds, differenceInSeconds } from "date-fns";
 import { logSeenClues } from "../lib/clue-resolver";
-import { useLocalSearchParams } from "expo-router";
-import { isPlaceholderUsername } from "../lib/intro-flag";
 
 type CrosswordContextType = {
   crossword: Crossword;
@@ -47,11 +45,6 @@ export const CrosswordGrid = ({
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
-  const { guided } = useLocalSearchParams();
-  // Guided intro race: opponent climbs high + fast for a close, exciting bar,
-  // still capped below 100% so finishing the puzzle wins.
-  const introRace =
-    guided === "1" || isPlaceholderUsername(myProfile?.username);
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
@@ -132,10 +125,6 @@ export const CrosswordGrid = ({
           const totalFillableCells = crossword.solution.reduce((count, row) => {
             return (count = count + row.filter((cell) => !!cell).length);
           }, 0);
-          // Bot behaviour scales with its rating: higher-rated bots complete
-          // more of the grid (targetFraction) and work faster (paceFactor).
-          const botRating =
-            (opponent as { eloRating?: number }).eloRating || 1000;
           const botFilledCells =
             botGameState?.solution.reduce((count, row) => {
               return (
@@ -158,67 +147,40 @@ export const CrosswordGrid = ({
                 )
               : 0;
 
-          let totalBotFillableCells: number;
-          let nextDelayMs: number;
-          if (introRace) {
-            // Rubber-band: the opponent surges out of the gate (looks like a
-            // fast, independent rival), then quietly tracks the player's
-            // progress so the race stays close — always a hair ahead, never
-            // running away, capped at ~90% so finishing the puzzle still wins.
-            // The early lead, per-fill jitter, and the bot filling its own
-            // (different) cells keep it from looking like it mirrors the player.
-            const playerSolution = myProfile?.id
-              ? game?.gameState?.[myProfile.id]?.solution
-              : undefined;
-            const playerFilled = playerSolution
-              ? playerSolution.reduce(
-                  (count, row) =>
-                    count +
-                    row.filter((cell) => cell !== "" && cell !== null).length,
-                  0
-                )
-              : 0;
-            const playerFrac = totalFillableCells
-              ? playerFilled / totalFillableCells
-              : 0;
-            // Lead shrinks from ~18% of the grid early to ~5% later.
-            const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
-            // Early floor so the bot gets moving before the player does.
-            const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-            const targetFrac = Math.min(
-              0.9,
-              Math.max(earlyFloor, playerFrac + lead)
-            );
-            totalBotFillableCells = Math.max(
-              1,
-              Math.floor(totalFillableCells * targetFrac)
-            );
-            // Smooth, brisk catch-up — not instant (that would look robotic).
-            nextDelayMs = 450 + Math.random() * 700;
-          } else {
-            // Rating-based: stronger bots complete more of the grid, faster.
-            const targetFraction = Math.min(
-              0.99,
-              Math.max(0.65, 0.6 + (botRating - 800) / 1200)
-            );
-            totalBotFillableCells = Math.max(
-              1,
-              Math.floor(totalFillableCells * targetFraction)
-            );
-            const paceFactor = Math.min(
-              0.85,
-              Math.max(0.35, 0.85 - (botRating - 800) / 1500)
-            );
-            const remaining = totalBotFillableCells - botFilledCells;
-            const avgDelay =
-              remaining > 0 ? (secondsLeft * paceFactor) / remaining : 0;
-            // Opening sprint, then bursty/human cadence (re-randomized per fill).
-            const sprintCells = Math.ceil(totalBotFillableCells * 0.25);
-            const inOpeningSprint = botFilledCells < sprintCells;
-            nextDelayMs = inOpeningSprint
-              ? 600 + Math.random() * 1000
-              : Math.max(300, avgDelay * (0.3 + Math.random() * 1.2) * 1000);
-          }
+          // Rubber-band (every bot game): the opponent surges out of the gate
+          // (looks like a fast, independent rival), then quietly tracks the
+          // player's progress so the race stays close — always a hair ahead,
+          // never running away, capped at ~90% so finishing wins. Early lead +
+          // per-fill jitter + the bot filling its own cells keep it from
+          // looking like it mirrors the player.
+          const playerSolution = myProfile?.id
+            ? game?.gameState?.[myProfile.id]?.solution
+            : undefined;
+          const playerFilled = playerSolution
+            ? playerSolution.reduce(
+                (count, row) =>
+                  count +
+                  row.filter((cell) => cell !== "" && cell !== null).length,
+                0
+              )
+            : 0;
+          const playerFrac = totalFillableCells
+            ? playerFilled / totalFillableCells
+            : 0;
+          // Lead shrinks from ~18% of the grid early to ~5% later.
+          const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+          // Early floor so the bot gets moving before the player does.
+          const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+          const targetFrac = Math.min(
+            0.9,
+            Math.max(earlyFloor, playerFrac + lead)
+          );
+          const totalBotFillableCells = Math.max(
+            1,
+            Math.floor(totalFillableCells * targetFrac)
+          );
+          // Smooth, brisk catch-up — not instant (that would look robotic).
+          const nextDelayMs = 450 + Math.random() * 700;
           const cellsToFill = totalBotFillableCells - botFilledCells;
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {
@@ -494,24 +456,33 @@ export const CrosswordGrid = ({
     if (isGameFinished) {
       return;
     }
+    // A cell only has a clue in a direction if it belongs to a 2+ cell word that
+    // way. Skip lone boxes (no clue in this direction) so cycling lands on the
+    // next real clue instead of stalling on a single square.
+    const inAcrossWord = (x: number, y: number) =>
+      solution[x]?.[y] != null &&
+      (solution[x]?.[y - 1] != null || solution[x]?.[y + 1] != null);
+    const inDownWord = (x: number, y: number) =>
+      solution[x]?.[y] != null &&
+      (solution[x - 1]?.[y] != null || solution[x + 1]?.[y] != null);
     if (direction === "Across") {
-      // find non black cell in current row
+      // next clued cell in the current row
       const emptyRowCellIndex = solution[cell.x].findIndex(
-        (c, col) => c !== null && col > cell.y
+        (c, col) => c !== null && col > cell.y && inAcrossWord(cell.x, col)
       );
       if (emptyRowCellIndex >= 0) {
         setCurrentCell({ x: cell.x, y: emptyRowCellIndex });
         setDirection(direction);
         return;
       }
-      // find non black cell in following rows
+      // next clued cell in following rows
       for (let i = cell.x + 1; i < crossword.size; i += 1) {
         const row = i;
-        const emptyRowCellIndex = solution[row].findIndex(
-          (cell) => cell !== null
+        const idx = solution[row].findIndex(
+          (c, col) => c !== null && inAcrossWord(row, col)
         );
-        if (emptyRowCellIndex >= 0) {
-          setCurrentCell({ x: row, y: emptyRowCellIndex });
+        if (idx >= 0) {
+          setCurrentCell({ x: row, y: idx });
           setDirection(direction);
           return;
         }
@@ -525,37 +496,33 @@ export const CrosswordGrid = ({
       }
     }
     if (direction === "Down") {
-      // find non black in current col
+      // next clued cell in the current column
       const currentCol = cell.y;
-      const solutionCellsInCurrentCol = solution.map((row) => row[currentCol]);
-      const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
-        (c, index) => c !== null && index > cell.x
+      const colCells = solution.map((row) => row[currentCol]);
+      const idx = colCells.findIndex(
+        (c, index) =>
+          c !== null && index > cell.x && inDownWord(index, currentCol)
       );
-      if (emptyRowIndexInCurrentCol >= 0) {
-        setCurrentCell({ x: emptyRowIndexInCurrentCol, y: currentCol });
+      if (idx >= 0) {
+        setCurrentCell({ x: idx, y: currentCol });
         setDirection(direction);
         return;
       }
-
-      // find non black cells in following columns
+      // next clued cell in following columns
       const nextCol = currentCol + 1;
       if (nextCol <= crossword.size - 1) {
         for (let i = nextCol; i < crossword.size; i += 1) {
-          const currentCol = i;
-          const solutionCellsInCurrentCol = solution.map(
-            (row) => row[currentCol]
+          const colCells2 = solution.map((row) => row[i]);
+          const idx2 = colCells2.findIndex(
+            (c, index) => c !== null && inDownWord(index, i)
           );
-          const emptyRowIndexInCurrentCol = solutionCellsInCurrentCol.findIndex(
-            (c) => c !== null
-          );
-          if (emptyRowIndexInCurrentCol >= 0) {
-            setCurrentCell({ x: emptyRowIndexInCurrentCol, y: i });
+          if (idx2 >= 0) {
+            setCurrentCell({ x: idx2, y: i });
             setDirection(direction);
             return;
           }
         }
       }
-      // change direction and start from first cell
       if (allowLoop) {
         gotoNextCell({
           cell: { x: 0, y: -1 },
