@@ -26,7 +26,9 @@ export const UrgencyPulse = ({ progress }: { progress: number }) => {
     return () => cancelAnimation(pulse);
   }, [active, pct, pulse]);
 
-  const style = useAnimatedStyle(() => ({ opacity: pulse.value * 0.55 }));
+  // A full-screen red wash that breathes — kept low-opacity so the grid stays
+  // readable. Floors at a faint tint so it never flickers to fully clear.
+  const style = useAnimatedStyle(() => ({ opacity: 0.05 + pulse.value * 0.18 }));
 
   if (!active) return null;
   return (
@@ -39,8 +41,7 @@ export const UrgencyPulse = ({ progress }: { progress: number }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          borderWidth: 6,
-          borderColor: "#ef4444",
+          backgroundColor: "#ef4444",
         },
         style,
       ]}
