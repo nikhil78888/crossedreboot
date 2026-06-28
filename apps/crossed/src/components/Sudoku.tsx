@@ -67,36 +67,34 @@ export const SudokuGrid = ({
     if (isGameFinished) return;
 
     const totalCells = 81;
-    const botRating = (opponent as { eloRating?: number }).eloRating || 1000;
-    // How much of the grid the bot completes (floor raised so bars don't stall).
-    const targetFraction = Math.min(
-      0.99,
-      Math.max(0.65, 0.6 + (botRating - 800) / 1200)
-    );
-    const targetFilled = Math.max(1, Math.floor(totalCells * targetFraction));
-    const botFilled = countFilled(botGameState.solution as Cell[][]);
-    const cellsToFill = targetFilled - botFilled;
     const secondsLeft = differenceInSeconds(
       addSeconds(new Date(`${game.startedAt}Z`), game.gameDurationInSeconds),
       new Date(new Date().toUTCString())
     );
-    // Lower = finishes sooner = more urgency, scaled by bot strength.
-    const paceFactor = Math.min(
-      0.85,
-      Math.max(0.35, 0.85 - (botRating - 800) / 1500)
-    );
-    const avgDelay =
-      cellsToFill > 0 ? (secondsLeft * paceFactor) / cellsToFill : 0;
-    // bursty, human-like cadence (re-randomized after each fill).
-    // Opening sprint: the bot fills its first ~25% of cells briskly (~0.6-1.6s
-    // each) so it visibly shoots ahead early and pressures the player, then
-    // settles into its normal adaptive pace. Bounded by cell count (not time)
-    // so it can't finish during the sprint.
-    const sprintCells = Math.ceil(targetFilled * 0.25);
-    const inOpeningSprint = botFilled < sprintCells;
-    const nextDelayMs = inOpeningSprint
-      ? 600 + Math.random() * 1000
-      : Math.max(300, avgDelay * (0.3 + Math.random() * 1.2) * 1000);
+    const elapsedFrac =
+      game.gameDurationInSeconds > 0
+        ? Math.min(1, Math.max(0, 1 - secondsLeft / game.gameDurationInSeconds))
+        : 0;
+    // Rubber-band (matches crossword): track the player's own progress (givens
+    // excluded) and stay a hair ahead, capped at ~90% of the fillable cells so
+    // finishing still wins. Early lead + jitter keep it from looking like a copy.
+    const givens = countFilled(initialGrid(sudoku.puzzle));
+    const fillable = Math.max(1, totalCells - givens);
+    const botFilled = countFilled(botGameState.solution as Cell[][]);
+    const playerSolution = myProfile?.id
+      ? (game.gameState?.[myProfile.id]?.solution as Cell[][] | undefined)
+      : undefined;
+    const playerOwn = playerSolution
+      ? Math.max(0, countFilled(playerSolution) - givens)
+      : 0;
+    const playerFrac = playerOwn / fillable;
+    const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+    const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+    const targetOwnFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+    const targetFilled = givens + Math.floor(fillable * targetOwnFrac);
+    const cellsToFill = targetFilled - botFilled;
+    // Smooth, brisk catch-up — not instant (that would look robotic).
+    const nextDelayMs = 450 + Math.random() * 700;
 
     if (cellsToFill > 0 && secondsLeft > 0) {
       const interval = setInterval(() => {
