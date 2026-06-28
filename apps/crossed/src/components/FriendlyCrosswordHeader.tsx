@@ -2,11 +2,16 @@ import { Image } from "expo-image";
 import { Text, View } from "react-native";
 import { avatars, images } from "../lib/images";
 import { Avatar } from "react-native-ui-lib";
-import { useGame } from "../hooks/use-game";
+import {
+  calculateScore,
+  puzzleOf,
+  solutionOf,
+  useGame,
+} from "../hooks/use-game";
 import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 import { useMyProfile } from "../hooks/use-my-profile";
-import colors from "../lib/colors";
+import { RaceBar } from "./RaceBar";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { myProfile } = useMyProfile();
@@ -15,6 +20,17 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   });
   const opponent = game?.players.find((p) => p.id !== myProfile?.id);
   const [timeInGame, setTimeInGame] = useState("");
+
+  // The player's own live progress, so the header shows the actual head-to-head
+  // race (was previously only the opponent's bar).
+  const myProgress =
+    myProfile && game
+      ? calculateScore({
+          correctSolution: solutionOf(game),
+          solution: game.gameState?.[myProfile.id]?.solution,
+          puzzle: puzzleOf(game),
+        })
+      : 0;
 
   useEffect(() => {
     // if game duration is over, end the game, else update time in game
@@ -61,38 +77,47 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
 
   return (
     <View>
-      <View className="w-full flex-row items-center">
-        <Avatar
-          size={40}
-          name={opponentUsername || ""}
-          imageStyle={{ backgroundColor: "white" }}
-          source={avatars[opponent?.avatar as keyof typeof avatars]}
-        />
-        <View className="flex-1 mx-2">
-          <Text className="font-[jost600] text-[15px]">{opponentUsername}</Text>
-          <View
-            style={{ height: 10 }}
-            className="rounded-full bg-crossed-gray-100 overflow-hidden"
-          >
-            <View
-              style={{
-                width: `${Math.max(0, Math.min(100, opponentProgress || 0))}%`,
-                height: "100%",
-                backgroundColor: colors["crossed-red"]["400"],
-              }}
-            />
-          </View>
-        </View>
-      </View>
-      <View className="flex-row items-center justify-center">
+      {/* Timer */}
+      <View className="mb-3 flex-row items-center justify-center">
         <Image
           source={images.clock}
           className="h-[17.7px] w-[20.1px]"
           contentFit="contain"
         />
-        <Text className="font-[jost600] text-[18px] text-crossed-blue-450">
+        <Text className="ml-1.5 font-[jost700] text-[19px] text-crossed-blue-450">
           {timeInGame || "00:00"}
         </Text>
+      </View>
+
+      {/* Opponent — the threat */}
+      <View className="w-full flex-row items-center">
+        <Avatar
+          size={34}
+          name={opponentUsername || ""}
+          imageStyle={{ backgroundColor: "white" }}
+          source={avatars[opponent?.avatar as keyof typeof avatars]}
+        />
+        <View className="ml-2.5 flex-1">
+          <Text
+            className="mb-1 font-[jost600] text-[12px] text-crossed-gray-500"
+            numberOfLines={1}
+          >
+            {opponentUsername || "Opponent"}
+          </Text>
+          <RaceBar progress={opponentProgress} />
+        </View>
+      </View>
+
+      {/* You */}
+      <View className="mt-2.5 w-full flex-row items-center">
+        <View style={{ width: 34 }} className="items-center">
+          <Text className="font-[jost700] text-[12px] text-crossed-blue-450">
+            YOU
+          </Text>
+        </View>
+        <View className="ml-2.5 flex-1">
+          <RaceBar progress={myProgress} hot />
+        </View>
       </View>
     </View>
   );

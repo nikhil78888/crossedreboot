@@ -21,6 +21,9 @@ type NewGameArg = { variant: GameVariant; difficulty: GameDifficulty };
 // Sudoku is a longer solve than a mini crossword: 15 minutes.
 export const SUDOKU_DURATION_SECONDS = 900;
 
+// Last bot used for an intro race, so "Play again" faces a different opponent.
+let lastIntroBotId: string | undefined;
+
 // A solution grid is letters (crossword) or 1-9 ints (sudoku); null = blank.
 type SolutionGrid = (string | number | null)[][];
 
@@ -540,10 +543,15 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         const { data: bots } = await supabase
           .from("random_bot_profiles")
           .select();
-        const bot = (bots || [])
-          .slice()
-          .sort((a, b) => (a.eloRating ?? 1100) - (b.eloRating ?? 1100))[0];
+        // Random opponent each race (variety) avoiding an immediate repeat —
+        // difficulty is set by the rubber-band, not the bot's rating.
+        const pool = (bots || []).filter(
+          (b) => b.id && b.id !== lastIntroBotId
+        );
+        const choices = pool.length ? pool : bots || [];
+        const bot = choices[Math.floor(Math.random() * choices.length)];
         if (!bot?.id) return;
+        lastIntroBotId = bot.id;
         const { data: game, error: createGameError } = await supabase
           .from("games")
           .insert({

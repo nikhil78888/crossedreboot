@@ -198,20 +198,20 @@ export default function Game() {
       // New player who hasn't named themselves yet → send them to the win +
       // "pick a username" screen instead of the standard results. preview=1 lets
       // an existing account walk the same screen without renaming anything.
-      if (preview === "1" || isPlaceholderUsername(myProfile?.username)) {
-        router.replace(
-          `/set-username?won=${won ? 1 : 0}&margin=${margin}${
-            preview === "1" ? "&preview=1" : ""
-          }`
-        );
-        return;
-      }
-      const myRating =
+      const beforeRating =
         game?.gameVariant === "SUDOKU"
           ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
           : myProfile?.eloRating;
+      if (preview === "1" || isPlaceholderUsername(myProfile?.username)) {
+        router.replace(
+          `/set-username?won=${won ? 1 : 0}&margin=${margin}&before=${
+            beforeRating ?? ""
+          }${preview === "1" ? "&preview=1" : ""}`
+        );
+        return;
+      }
       router.replace(
-        `/game-results?gameId=${gameId}&myRating=${myRating}&opponentRating=${opponentRating}`
+        `/game-results?gameId=${gameId}&myRating=${beforeRating}&opponentRating=${opponentRating}`
       );
     }
   }, [

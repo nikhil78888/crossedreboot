@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,6 +10,7 @@ import { FormTextInput } from "../components/FormTextInput";
 import { images } from "../lib/images";
 import { useAuth } from "../hooks/use-auth";
 import { useGame } from "../hooks/use-game";
+import { useMyProfile } from "../hooks/use-my-profile";
 import { events, trackEvent } from "../lib/track-event";
 
 // Post-intro win screen. Leads with "Play again" (works before naming, to keep
@@ -29,15 +31,28 @@ const schema = z.object({
 export default function SetUsername() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { won, margin, preview } = useLocalSearchParams<{
+  const { won, margin, preview, before } = useLocalSearchParams<{
     won?: string;
     margin?: string;
     preview?: string;
+    before?: string;
   }>();
   const { setUsername, isSettingUsername } = useAuth();
   const { createGuidedMatch, creatingGuidedMatch } = useGame({
     gameId: undefined,
   });
+  const { myProfile, refreshMyProfile } = useMyProfile();
+  // Pull the post-game rating so we can show the movement (before -> after).
+  useEffect(() => {
+    refreshMyProfile();
+  }, [refreshMyProfile]);
+  const beforeRating = parseInt(before ?? "", 10);
+  const afterRating = myProfile?.eloRating;
+  const showRating =
+    Number.isFinite(beforeRating) &&
+    typeof afterRating === "number" &&
+    afterRating > 0;
+  const delta = showRating ? Math.round((afterRating as number) - beforeRating) : 0;
   const {
     control,
     handleSubmit,
@@ -110,6 +125,25 @@ export default function SetUsername() {
       >
         {subline}
       </Text>
+
+      {showRating && (
+        <View className="mt-5 items-center">
+          <Text className="font-[jost600] text-[12px] tracking-widest text-crossed-gray-400">
+            RATING
+          </Text>
+          <Text
+            className="mt-1 font-[jost700] text-crossed-gray-900"
+            style={{ fontSize: 24 }}
+          >
+            {beforeRating} → {Math.round(afterRating as number)}
+            {delta > 0 ? (
+              <Text style={{ color: "#16a34a", fontSize: 24 }}>
+                {"  "}+{delta}
+              </Text>
+            ) : null}
+          </Text>
+        </View>
+      )}
 
       <View className="mt-8">
         <Button
