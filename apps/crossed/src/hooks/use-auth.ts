@@ -3,6 +3,7 @@ import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import axios from "axios";
 import { setSupabaseToken, supabase } from "../lib/supabase";
+import { makePlaceholderUsername } from "../lib/intro-flag";
 
 /* 
 The useAuth hook manages authentication functions.
@@ -81,6 +82,50 @@ export const useAuth = () => {
         console.error(error);
         throw error;
       }
+    }
+  );
+
+  // Play-first onboarding: create a silent anonymous account with a placeholder
+  // username so a new player can jump straight into the intro race. They pick a
+  // real username afterward via setUsername. Mirrors setDisplayName's steps.
+  const {
+    trigger: startAnonymously,
+    isMutating: isStartingAnonymously,
+    error: startAnonymouslyError,
+  } = useSWRMutation("start-anonymously", async () => {
+    const placeholder = makePlaceholderUsername();
+    const credentials = await auth().signInAnonymously();
+    const { user } = credentials;
+    await user.updateProfile({ displayName: placeholder });
+    const firebaseIdToken = await user.getIdToken();
+    axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
+    const response = await axios.get(`/api/auth/supabase-token`);
+    setSupabaseToken(response.data.supabaseToken);
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ userId: user.uid, username: placeholder });
+    if (error) throw error;
+    await refreshUser();
+  });
+
+  // Rename the already-signed-in (anonymous) account's username — used on the
+  // post-intro screen to convert a placeholder into the player's chosen name.
+  const {
+    trigger: setUsername,
+    isMutating: isSettingUsername,
+    error: setUsernameError,
+  } = useSWRMutation(
+    "set-username",
+    async (_key, { arg }: { arg: { username: string } }) => {
+      const current = auth().currentUser;
+      if (!current) throw new Error("not signed in");
+      await current.updateProfile({ displayName: arg.username });
+      const { error } = await supabase
+        .from("profiles")
+        .update({ username: arg.username })
+        .eq("userId", current.uid);
+      if (error) throw error;
+      await refreshUser();
     }
   );
 
@@ -186,6 +231,12 @@ export const useAuth = () => {
     setDisplayName,
     isSettingDisplayName,
     setDisplayNameError,
+    startAnonymously,
+    isStartingAnonymously,
+    startAnonymouslyError,
+    setUsername,
+    isSettingUsername,
+    setUsernameError,
     linkAccount,
     isLinkingAccount,
     linkAccountError,

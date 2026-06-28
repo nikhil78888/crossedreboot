@@ -3,9 +3,28 @@ import { useRouter } from "expo-router";
 import { Button } from "../../components/Button";
 import { mobileConfig } from "../../mobile-config";
 import { Logo } from "../../components/Logo";
+import { useAuth } from "../../hooks/use-auth";
+import { setPendingIntro } from "../../lib/intro-flag";
+import { events, trackEvent } from "../../lib/track-event";
 
 export default function Welcome() {
   const router = useRouter();
+  const { startAnonymously, isStartingAnonymously } = useAuth();
+
+  // Play-first onboarding: create a silent anonymous account, then the root auth
+  // guard sends the new player to /home, which launches the guided intro race.
+  // They pick a username afterward (on the post-race screen).
+  const onPlay = async () => {
+    try {
+      trackEvent(events.PLAY_TAPPED);
+      setPendingIntro(true);
+      await startAnonymously();
+    } catch {
+      setPendingIntro(false);
+      Alert.alert("Couldn't start", "Please try again.");
+    }
+  };
+
   return (
     <View className="flex-1 items-center bg-crossed-gray-50">
       <View className="mt-24">
@@ -33,13 +52,12 @@ export default function Welcome() {
           intent="primary"
           size="lg"
           rounded={"full"}
-          onPress={() => {
-            router.push("/choose-username");
-          }}
+          isLoading={isStartingAnonymously}
+          onPress={onPlay}
           onLongPress={() => {
             Alert.alert(JSON.stringify(mobileConfig));
           }}
-          label="GET STARTED"
+          label="PLAY"
         />
         <View className="w-full my-9 flex-row space-x-12 px-4">
           <View

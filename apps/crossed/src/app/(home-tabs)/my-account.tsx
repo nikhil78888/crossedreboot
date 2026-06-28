@@ -26,7 +26,7 @@ export default function MyAccount() {
   // Demo trigger so an existing account can replay the new-user intro race.
   const playIntroRace = async () => {
     try {
-      const id = await createGuidedMatch();
+      const id = await createGuidedMatch({ source: "demo" });
       if (id) router.push(`/game?gameId=${id}&guided=1`);
     } catch {
       Alert.alert("Couldn't start the race", "Please try again.");

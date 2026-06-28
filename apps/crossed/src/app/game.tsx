@@ -7,6 +7,7 @@ import { ConnectionBanner } from "../components/ConnectionBanner";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { events, trackEvent } from "../lib/track-event";
+import { isPlaceholderUsername } from "../lib/intro-flag";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { WaitingSpinner } from "../components/WaitingSpinner";
 import { supabase } from "../lib/supabase";
@@ -129,11 +130,19 @@ export default function Game() {
       !navigatedAway.current
     ) {
       navigatedAway.current = true;
+      const won = !!myProfile?.id && game?.winnerId === myProfile.id;
       trackEvent(events.GAME_COMPLETED, {
         gameType,
         variant: game?.gameVariant,
-        won: !!myProfile?.id && game?.winnerId === myProfile.id,
+        won,
       });
+      const isOnboardingRace = isPlaceholderUsername(myProfile?.username);
+      if (guided === "1" || isOnboardingRace) {
+        trackEvent(events.INTRO_RACE_COMPLETED, {
+          won,
+          onboarding: isOnboardingRace,
+        });
+      }
       if (gameType === "TOURNAMENT") {
         // Head back to the bracket (look up the tournament if not passed in).
         const goBack = async () => {
@@ -151,6 +160,12 @@ export default function Game() {
           );
         };
         goBack();
+        return;
+      }
+      // New player who hasn't named themselves yet → send them to the win +
+      // "pick a username" screen instead of the standard results.
+      if (isPlaceholderUsername(myProfile?.username)) {
+        router.replace(`/set-username?won=${won ? 1 : 0}`);
         return;
       }
       const myRating =

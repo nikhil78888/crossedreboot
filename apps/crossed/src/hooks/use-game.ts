@@ -10,6 +10,7 @@ import { addSeconds } from "date-fns";
 import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status";
 import { resolveAndLogClues } from "../lib/clue-resolver";
 import { Crossword, Json, GameDifficulty } from "types-and-validators";
+import { events, trackEvent } from "../lib/track-event";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
 export type { GameDifficulty };
@@ -499,7 +500,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   // any player who finishes the puzzle wins at the line — a beatable nail-biter
   // that lets new players feel the live head-to-head core on game one.
   const { trigger: createGuidedMatch, isMutating: creatingGuidedMatch } =
-    useSWRMutation("create-guided-match", async () => {
+    useSWRMutation(
+      "create-guided-match",
+      async (_key, { arg }: { arg?: { source?: string } } = {}) => {
       if (!myProfile) return;
       const picked = await puzzleFieldsForNewGame(
         "CROSSWORD",
@@ -531,8 +534,13 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         { gamesId: game.id, profilesId: myProfile.id },
         { gamesId: game.id, profilesId: bot.id },
       ]);
+      trackEvent(events.INTRO_RACE_STARTED, {
+        source: arg?.source ?? "onboarding",
+        gameId: game.id,
+      });
       return game.id;
-    });
+      }
+    );
 
   let opponentProgress = 0;
   let opponentUsername = "";

@@ -203,6 +203,7 @@ export default function IndexLayout() {
           name="notifications"
           options={{ headerTitle: "Notifications" }}
         />
+        <Stack.Screen name="set-username" options={{ headerShown: false }} />
         <Stack.Screen
           name="feedback"
           options={{
