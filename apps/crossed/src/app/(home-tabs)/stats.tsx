@@ -19,7 +19,7 @@ export const fmtSolve = (s: number | null) =>
 type Activity = {
   id: string;
   opponent: string;
-  result: "WON" | "LOST" | "TIE";
+  result: "WON" | "LOST" | "TIE" | null; // null = solo (no opponent)
   createdAt: string;
   solveSeconds: number | null;
   challenge?: boolean;
@@ -32,27 +32,20 @@ const useRecentActivity = (
   const { data } = useSWR(
     profileId ? ["recent-activity", profileId, variant] : null,
     async (): Promise<Activity[]> => {
-      // Pull ranked games AND challenge ghost-races (FRIENDLY with a __challenge
-      // marker); over-fetch then filter out plain friendly/intro matches.
+      // Every completed game for this variant the player took part in — solo,
+      // races, challenges, ranked — so all game types show up in stats.
       const { data: games } = await supabase
         .from("games")
         .select(
           "id, winnerId, createdAt, gameState, gameType, profiles!gamePlayers!inner(id)"
         )
-        .in("gameType", ["RANKED", "FRIENDLY"])
         .eq("gameVariant", variant)
         .eq("playState", "COMPLETED")
         .filter("profiles.id", "eq", profileId)
         .order("createdAt", { ascending: false })
-        .limit(30);
-      const relevant = (games ?? [])
-        .filter((g) => {
-          const ch = (g.gameState as { __challenge?: unknown } | null)
-            ?.__challenge;
-          return g.gameType === "RANKED" || !!ch;
-        })
-        .slice(0, 6);
-      const ids = relevant.map((g) => g.id);
+        .limit(6);
+      const list = games ?? [];
+      const ids = list.map((g) => g.id);
       if (!ids.length) return [];
       const { data: opps } = await supabase
         .from("gamePlayers")
@@ -65,7 +58,7 @@ const useRecentActivity = (
           (o.profiles as { username?: string } | null)?.username ?? "Opponent",
         ])
       );
-      return relevant.map((g) => {
+      return list.map((g) => {
         const ch = (
           g.gameState as
             | { __challenge?: { name?: string | null; seconds?: number | null } }
@@ -75,14 +68,18 @@ const useRecentActivity = (
           (g.gameState as Record<string, { solvedInSeconds?: number }> | null)?.[
             profileId as string
           ]?.solvedInSeconds ?? null;
-        // Challenge result is time-based (beat their solve); ranked is winnerId.
+        // Solo = no opponent; challenge = time-based vs the challenger; otherwise
+        // vs the opponent decided by winnerId.
         let opponent: string;
-        let result: "WON" | "LOST" | "TIE";
+        let result: "WON" | "LOST" | "TIE" | null;
         if (ch) {
           opponent = ch.name || "Challenger";
           const theirs = ch.seconds ?? 0;
           result =
             mySolve != null && theirs > 0 && mySolve < theirs ? "WON" : "LOST";
+        } else if (g.gameType === "SOLO") {
+          opponent = "Solo";
+          result = null;
         } else {
           opponent = oppMap.get(g.id) ?? "Opponent";
           result =
@@ -202,37 +199,41 @@ export default function Stats() {
                 className="flex-1 font-[jost600] text-[15px] text-crossed-gray-900"
                 numberOfLines={1}
               >
-                {a.challenge ? "⚡ " : ""}vs {a.opponent}
+                {a.result === null
+                  ? a.opponent
+                  : `${a.challenge ? "⚡ " : ""}vs ${a.opponent}`}
               </Text>
-              <View
-                className="rounded-full px-2.5 py-0.5"
-                style={{
-                  backgroundColor:
-                    a.result === "WON"
-                      ? "#dcfce7"
-                      : a.result === "LOST"
-                      ? "#fee2e2"
-                      : colors["crossed-gray"]["100"],
-                }}
-              >
-                <Text
-                  className="font-[jost700] text-[12px]"
+              {a.result !== null && (
+                <View
+                  className="rounded-full px-2.5 py-0.5"
                   style={{
-                    color:
+                    backgroundColor:
                       a.result === "WON"
-                        ? "#16a34a"
+                        ? "#dcfce7"
                         : a.result === "LOST"
-                        ? "#dc2626"
-                        : "#6b7280",
+                        ? "#fee2e2"
+                        : colors["crossed-gray"]["100"],
                   }}
                 >
-                  {a.result === "WON"
-                    ? "Won"
-                    : a.result === "LOST"
-                    ? "Lost"
-                    : "Tie"}
-                </Text>
-              </View>
+                  <Text
+                    className="font-[jost700] text-[12px]"
+                    style={{
+                      color:
+                        a.result === "WON"
+                          ? "#16a34a"
+                          : a.result === "LOST"
+                          ? "#dc2626"
+                          : "#6b7280",
+                    }}
+                  >
+                    {a.result === "WON"
+                      ? "Won"
+                      : a.result === "LOST"
+                      ? "Lost"
+                      : "Tie"}
+                  </Text>
+                </View>
+              )}
               <View className="ml-3 w-16 items-end">
                 <Text className="font-[jost700] text-[13px] text-crossed-gray-900">
                   {fmtSolve(a.solveSeconds)}

@@ -33,8 +33,8 @@ export const TRIVIA_CATEGORIES = [
 const BANK: TriviaQuestion[] = [
   // ---- General ----
   { id: "g1", category: "General", difficulty: "easy", q: "How many days are in a leap year?", choices: ["365", "366", "364", "360"], answer: 1 },
-  { id: "g2", category: "General", difficulty: "easy", q: "What color do you get mixing blue and yellow?", choices: ["Green", "Purple", "Orange", "Brown"], answer: 0 },
-  { id: "g3", category: "General", difficulty: "medium", q: "How many sides does a hexagon have?", choices: ["5", "6", "7", "8"], answer: 1 },
+  { id: "g2", category: "General", difficulty: "medium", q: "What number does the Roman numeral 'L' represent?", choices: ["10", "50", "100", "500"], answer: 1 },
+  { id: "g3", category: "General", difficulty: "easy", q: "How many sides does a hexagon have?", choices: ["5", "6", "7", "8"], answer: 1 },
   { id: "g4", category: "General", difficulty: "medium", q: "What is the most spoken native language in the world?", choices: ["English", "Hindi", "Mandarin Chinese", "Spanish"], answer: 2 },
   { id: "g5", category: "General", difficulty: "hard", q: "What is the only number spelled with letters in alphabetical order (in English)?", choices: ["Six", "Forty", "Ten", "Two"], answer: 1 },
   { id: "g6", category: "General", difficulty: "hard", q: "Which is the only U.S. state name that ends in three vowels?", choices: ["Hawaii", "Ohio", "Iowa", "Idaho"], answer: 0 },
@@ -78,6 +78,28 @@ const BANK: TriviaQuestion[] = [
   { id: "e4", category: "Entertainment", difficulty: "medium", q: "Which band released the album 'Abbey Road'?", choices: ["The Rolling Stones", "The Beatles", "Pink Floyd", "Queen"], answer: 1 },
   { id: "e5", category: "Entertainment", difficulty: "hard", q: "What was Disney's first full-length animated film?", choices: ["Pinocchio", "Bambi", "Snow White and the Seven Dwarfs", "Fantasia"], answer: 2 },
   { id: "e6", category: "Entertainment", difficulty: "hard", q: "Who composed the Four Seasons?", choices: ["Bach", "Mozart", "Vivaldi", "Beethoven"], answer: 2 },
+
+  // --- Batch 2 (user-evaluated 2026-06-29; tiers per their calibration) ---
+  { id: "n1", category: "Science", difficulty: "easy", q: "How many planets are in our solar system?", choices: ["7", "8", "9", "10"], answer: 1 },
+  { id: "n2", category: "Science", difficulty: "medium", q: "What is the hardest natural substance on Earth?", choices: ["Diamond", "Quartz", "Titanium", "Granite"], answer: 0 },
+  { id: "n3", category: "Science", difficulty: "medium", q: "What is the most abundant gas in Earth's atmosphere?", choices: ["Oxygen", "Nitrogen", "Carbon dioxide", "Argon"], answer: 1 },
+  { id: "n4", category: "Science", difficulty: "medium", q: "Which part of a plant carries out most photosynthesis?", choices: ["Roots", "Leaves", "Stem", "Flowers"], answer: 1 },
+  { id: "n5", category: "Geography", difficulty: "easy", q: "Which continent is the Sahara Desert in?", choices: ["Asia", "Africa", "Australia", "South America"], answer: 1 },
+  { id: "n6", category: "Geography", difficulty: "medium", q: "What is the capital of Australia?", choices: ["Sydney", "Melbourne", "Canberra", "Perth"], answer: 2 },
+  { id: "n7", category: "Geography", difficulty: "easy", q: "The Great Barrier Reef lies off the coast of which country?", choices: ["Brazil", "Australia", "Mexico", "Thailand"], answer: 1 },
+  { id: "n8", category: "Geography", difficulty: "hard", q: "What is the longest international border between two countries?", choices: ["Russia–China", "USA–Canada", "Argentina–Chile", "Kazakhstan–Russia"], answer: 1 },
+  { id: "n9", category: "History", difficulty: "easy", q: "In which country did the Olympic Games originate?", choices: ["Italy", "Greece", "Egypt", "China"], answer: 1 },
+  { id: "n10", category: "History", difficulty: "medium", q: "Who was the primary author of the U.S. Declaration of Independence?", choices: ["George Washington", "Benjamin Franklin", "Thomas Jefferson", "John Adams"], answer: 2 },
+  { id: "n11", category: "History", difficulty: "hard", q: "In what year did the Berlin Wall fall?", choices: ["1987", "1989", "1991", "1985"], answer: 1 },
+  { id: "n12", category: "Sports", difficulty: "easy", q: "How many points is a free throw worth in basketball?", choices: ["1", "2", "3", "4"], answer: 0 },
+  { id: "n13", category: "Sports", difficulty: "easy", q: "In golf, what is one stroke under par called?", choices: ["Eagle", "Birdie", "Bogey", "Albatross"], answer: 1 },
+  { id: "n14", category: "Sports", difficulty: "hard", q: "A marathon is approximately how many miles?", choices: ["24.2", "26.2", "28.2", "30.0"], answer: 1 },
+  { id: "n15", category: "Entertainment", difficulty: "easy", q: "What is the name of Harry Potter's pet owl?", choices: ["Hedwig", "Errol", "Crookshanks", "Scabbers"], answer: 0 },
+  { id: "n16", category: "Entertainment", difficulty: "medium", q: "Who directed the 1975 film 'Jaws'?", choices: ["Steven Spielberg", "George Lucas", "Martin Scorsese", "Francis Ford Coppola"], answer: 0 },
+  { id: "n17", category: "Entertainment", difficulty: "hard", q: "Who composed the opera 'The Magic Flute'?", choices: ["Mozart", "Wagner", "Verdi", "Puccini"], answer: 0 },
+  { id: "n18", category: "General", difficulty: "easy", q: "What is the currency of Japan?", choices: ["Yuan", "Won", "Yen", "Ringgit"], answer: 2 },
+  { id: "n19", category: "General", difficulty: "easy", q: "How many colors are traditionally in a rainbow?", choices: ["5", "6", "7", "8"], answer: 2 },
+  { id: "n20", category: "General", difficulty: "hard", q: "What does \"HTTP\" stand for?", choices: ["HyperText Transmission Process", "HyperText Transfer Protocol", "High Transfer Text Protocol", "Hyperlink Text Transfer Path"], answer: 1 },
 ];
 
 const makeRng = (seed: number) => {

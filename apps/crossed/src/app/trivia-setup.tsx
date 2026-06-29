@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
@@ -18,6 +18,9 @@ const LEVELS: { key: Difficulty; label: string }[] = [
 export default function TriviaSetup() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
+  // mode=race → a live bot race; otherwise a plain solo game.
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isRace = mode === "race";
   const { createSoloGame, creatingSoloGame, createBotRace, creatingBotRace } =
     useGame({ gameId: undefined });
   const [category, setCategory] = useState<string>("Any");
@@ -63,7 +66,7 @@ export default function TriviaSetup() {
         className="font-[jost700] text-crossed-gray-900"
         style={{ fontSize: 28 }}
       >
-        Trivia
+        {isRace ? "Trivia Race" : "Trivia"}
       </Text>
 
       <Text className="mt-6 font-[jost700] text-[15px] text-crossed-gray-900">
@@ -130,18 +133,9 @@ export default function TriviaSetup() {
           intent="primary"
           size="xl"
           rounded="full"
-          label="⚡ Race a bot"
-          isLoading={creatingBotRace}
-          onPress={race}
-        />
-      </View>
-      <View className="mt-3 items-center">
-        <Button
-          intent="primary"
-          mode="text"
-          label="Play solo"
-          isLoading={creatingSoloGame}
-          onPress={start}
+          label={isRace ? "⚡ Race a bot" : "Play"}
+          isLoading={isRace ? creatingBotRace : creatingSoloGame}
+          onPress={isRace ? race : start}
         />
       </View>
     </View>

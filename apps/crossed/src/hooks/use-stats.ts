@@ -3,7 +3,7 @@ import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 import { startOfDay } from "date-fns";
 
-export const useStats = (variant: string = "CROSSWORD") => {
+export const useStats = (variant = "CROSSWORD") => {
   const { myProfile } = useMyProfile();
 
   const { data: stats, mutate: refreshStats } = useSWR(
@@ -17,7 +17,6 @@ export const useStats = (variant: string = "CROSSWORD") => {
               count: "exact",
               head: true,
             })
-            .eq("gameType", "RANKED")
             .eq("gameVariant", variant)
             .eq("playState", "COMPLETED")
             .filter("profiles.id", "eq", myProfile.id);
@@ -50,7 +49,6 @@ export const useStats = (variant: string = "CROSSWORD") => {
             count: "exact",
             head: true,
           })
-          .eq("gameType", "RANKED")
           .eq("gameVariant", variant)
           .eq("winnerId", myProfile.id);
 

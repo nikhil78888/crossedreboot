@@ -28,7 +28,9 @@ export const NewGameButtons = () => {
   );
   const playFriendly = useCallback(
     () =>
-      variant === "TRIVIA" ? router.push("/trivia-setup") : pick("FRIENDLY"),
+      variant === "TRIVIA"
+        ? router.push("/trivia-setup?mode=race")
+        : pick("FRIENDLY"),
     [variant, router, pick]
   );
   const playRanked = useCallback(() => pick("RANKED"), [pick]);
