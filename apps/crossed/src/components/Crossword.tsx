@@ -6,6 +6,7 @@ import { calculateScore, puzzleOf, solutionOf, useGame } from "../hooks/use-game
 import { ghostProgressAt } from "../lib/challenge-utils";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
+import { SoloTimer } from "./SoloTimer";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -663,6 +664,9 @@ export const CrosswordGrid = ({
                     game?.gameType === "RANKED" ||
                     game?.gameType === "TOURNAMENT") && (
                     <FriendlyCrosswordHeader gameId={gameId as string} />
+                  )}
+                  {game?.gameType === "SOLO" && (
+                    <SoloTimer startAt={game?.startedAt ?? game?.createdAt} />
                   )}
                 </>
               )}

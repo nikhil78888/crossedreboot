@@ -8,6 +8,7 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { GameState } from "types-and-validators";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
+import { SoloTimer } from "./SoloTimer";
 
 // A sudoku cell value: 1-9 when filled, 0 when empty. Givens come straight from
 // the puzzle and can't be changed.
@@ -326,6 +327,9 @@ export const SudokuGrid = ({
                   game?.gameType === "RANKED" ||
                   game?.gameType === "TOURNAMENT") && (
                   <FriendlyCrosswordHeader gameId={gameId as string} />
+                )}
+                {game?.gameType === "SOLO" && (
+                  <SoloTimer startAt={game?.startedAt ?? game?.createdAt} />
                 )}
               </>
             )}
