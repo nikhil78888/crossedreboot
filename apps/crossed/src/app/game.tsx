@@ -289,7 +289,9 @@ export default function Game() {
         router.replace(
           `/variant-result?variant=${game.gameVariant}&type=${gameType}&won=${
             raceWon ? 1 : 0
-          }&you=${youSecs}&difficulty=${game.difficulty ?? "REGULAR"}`
+          }&you=${youSecs}&difficulty=${
+            game.difficulty ?? "REGULAR"
+          }&gameId=${gameId}`
         );
         return;
       }

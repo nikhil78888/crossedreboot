@@ -5,6 +5,7 @@ import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { TriviaQuiz, triviaProgress } from "../lib/trivia";
+import { ghostProgressAt, type TimelinePoint } from "../lib/challenge-utils";
 import colors from "../lib/colors";
 
 const fmtClock = (s: number) =>
@@ -120,10 +121,22 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
       }
       const elapsedSec = Math.max(0, (Date.now() - startAtMsForBot) / 1000);
       const elapsedFrac = Math.min(1, elapsedSec / duration);
-      const playerFrac = total ? Object.keys(answersRef.current).length / total : 0;
-      const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
-      const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-      const targetFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+      const ghostTl = (
+        gsRef.current as
+          | { __challenge?: { timeline?: TimelinePoint[] } }
+          | undefined
+      )?.__challenge?.timeline;
+      let targetFrac: number;
+      if (ghostTl) {
+        targetFrac = ghostProgressAt(ghostTl, elapsedSec) / 100;
+      } else {
+        const playerFrac = total
+          ? Object.keys(answersRef.current).length / total
+          : 0;
+        const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+        const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+        targetFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+      }
       const target = Math.max(0, Math.floor(total * targetFrac));
       if (target > botCount) {
         botCount = target;

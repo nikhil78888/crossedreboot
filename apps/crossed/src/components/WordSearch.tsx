@@ -10,6 +10,7 @@ import {
   matchSelection,
   wordSearchProgress,
 } from "../lib/word-search";
+import { ghostProgressAt, type TimelinePoint } from "../lib/challenge-utils";
 import colors from "../lib/colors";
 
 const fmtClock = (s: number) =>
@@ -144,10 +145,21 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
       }
       const elapsedSec = Math.max(0, (Date.now() - startAtMsForBot) / 1000);
       const elapsedFrac = Math.min(1, elapsedSec / duration);
-      const playerFrac = total ? foundRef.current.length / total : 0;
-      const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
-      const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-      const targetFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+      const ghostTl = (
+        gsRef.current as
+          | { __challenge?: { timeline?: TimelinePoint[] } }
+          | undefined
+      )?.__challenge?.timeline;
+      let targetFrac: number;
+      if (ghostTl) {
+        // Challenge ghost: replay the challenger's exact pace (may reach 100%).
+        targetFrac = ghostProgressAt(ghostTl, elapsedSec) / 100;
+      } else {
+        const playerFrac = total ? foundRef.current.length / total : 0;
+        const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+        const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+        targetFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+      }
       const target = Math.max(0, Math.floor(total * targetFrac));
       if (target > botCount) {
         botCount = target;

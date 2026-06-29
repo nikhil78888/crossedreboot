@@ -19,7 +19,11 @@ type ChallengeInsert = {
   resolvedClues: unknown;
   solveSeconds: number;
   timeline: unknown;
+  puzzle?: unknown;
 };
+
+// Variants whose solve can be re-raced as a challenge (sudoku ghost replay TODO).
+const CHALLENGEABLE = ["CROSSWORD", "WORD_SEARCH", "TRIVIA"];
 
 // Minimal structural view so we can hit the (not-yet-in-generated-types)
 // `challenges` table without `any` or a types-package rebuild.
@@ -41,12 +45,18 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
   const { myProfile } = useMyProfile();
   const [busy, setBusy] = useState(false);
 
-  if (!game || !myProfile || game.gameVariant !== "CROSSWORD") return null;
+  if (!game || !myProfile || !CHALLENGEABLE.includes(game.gameVariant))
+    return null;
   const mine = game.gameState?.[myProfile.id] as
     | { solvedInSeconds?: number; timeline?: unknown }
     | undefined;
   const solveSeconds = mine?.solvedInSeconds;
   if (solveSeconds == null) return null; // only offer once they've actually solved it
+  // Inline puzzle to replay (word search / trivia); crossword uses crosswordsId.
+  const gs = game.gameState as
+    | { __wordsearch?: unknown; __trivia?: unknown }
+    | undefined;
+  const inlinePuzzle = gs?.__wordsearch ?? gs?.__trivia ?? null;
 
   const onChallenge = async () => {
     try {
@@ -62,6 +72,9 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
           resolvedClues: game.resolvedClues ?? null,
           solveSeconds,
           timeline: mine?.timeline ?? null,
+          // Only send puzzle for inline variants (the column may not exist until
+          // the migration runs; crossword challenges must keep working without it).
+          ...(inlinePuzzle ? { puzzle: inlinePuzzle } : {}),
         })
         .select("id")
         .single();

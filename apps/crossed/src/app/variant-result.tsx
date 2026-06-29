@@ -2,6 +2,7 @@ import { Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
+import { ChallengeButton } from "../components/ChallengeButton";
 import { useGame, type GameVariant } from "../hooks/use-game";
 import type { GameDifficulty } from "types-and-validators";
 import { fmtSolve } from "./(home-tabs)/stats";
@@ -16,14 +17,16 @@ const LABEL: Record<string, string> = {
 export default function VariantResult() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { variant, type, won, you, them, difficulty } = useLocalSearchParams<{
-    variant?: string;
-    type?: string;
-    won?: string;
-    you?: string;
-    them?: string;
-    difficulty?: string;
-  }>();
+  const { variant, type, won, you, them, difficulty, gameId } =
+    useLocalSearchParams<{
+      variant?: string;
+      type?: string;
+      won?: string;
+      you?: string;
+      them?: string;
+      difficulty?: string;
+      gameId?: string;
+    }>();
   const { createSoloGame, creatingSoloGame } = useGame({ gameId: undefined });
 
   const isSolo = type === "SOLO";
@@ -66,7 +69,13 @@ export default function VariantResult() {
         {subline}
       </Text>
 
-      <View className="mt-10">
+      {!!gameId && (
+        <View className="mt-9">
+          <ChallengeButton gameId={gameId} />
+        </View>
+      )}
+
+      <View className="mt-4">
         <Button
           intent="primary"
           size="xl"

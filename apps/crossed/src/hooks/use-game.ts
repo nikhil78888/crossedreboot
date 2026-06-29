@@ -683,34 +683,53 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       async (_key, { arg }: { arg: { challengeId: string } }) => {
         if (!myProfile) return;
         const ch = await loadChallenge(arg.challengeId);
-        if (!ch?.crosswordsId) return;
+        if (!ch) return;
+        const variant = ch.gameVariant || "CROSSWORD";
+        const isInline = variant === "WORD_SEARCH" || variant === "TRIVIA";
+        // Crossword references a puzzle by id; word search / trivia carry it inline.
+        if (!isInline && !ch.crosswordsId) return;
+        if (isInline && !ch.puzzle) return;
+
         const { data: bots } = await supabase
           .from("random_bot_profiles")
           .select();
         const bot = (bots || [])[0];
         if (!bot?.id) return;
+
+        const challengeMeta = {
+          id: ch.id,
+          challengerId: ch.challengerId,
+          timeline: ch.timeline,
+          seconds: ch.solveSeconds,
+          name: ch.challengerName,
+        };
+        const inlineKey =
+          variant === "WORD_SEARCH" ? "__wordsearch" : "__trivia";
+        const gameState = (
+          isInline
+            ? { [inlineKey]: ch.puzzle, __challenge: challengeMeta }
+            : { __challenge: challengeMeta }
+        ) as never;
+        const fields = isInline
+          ? { gameVariant: variant }
+          : {
+              crosswordsId: ch.crosswordsId,
+              gameVariant: "CROSSWORD",
+              ...(ch.resolvedClues
+                ? { resolvedClues: ch.resolvedClues as Json }
+                : {}),
+            };
+        const duration = variant === "TRIVIA" ? 240 : 300;
         const { data: game, error } = await supabase
           .from("games")
           .insert({
-            crosswordsId: ch.crosswordsId,
-            gameVariant: "CROSSWORD",
+            ...fields,
             difficulty: (ch.difficulty as GameDifficulty) ?? "REGULAR",
-            ...(ch.resolvedClues
-              ? { resolvedClues: ch.resolvedClues as Json }
-              : {}),
             gameType: "FRIENDLY",
             playState: "PLAYING",
             startedAt: addSeconds(new Date(), 6).toISOString(),
-            gameDurationInSeconds: 300,
-            gameState: {
-              __challenge: {
-                id: ch.id,
-                challengerId: ch.challengerId,
-                timeline: ch.timeline,
-                seconds: ch.solveSeconds,
-                name: ch.challengerName,
-              },
-            } as never,
+            gameDurationInSeconds: duration,
+            gameState,
           })
           .select("*")
           .single();

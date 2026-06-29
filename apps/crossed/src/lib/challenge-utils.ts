@@ -12,6 +12,8 @@ export type ChallengeRow = {
   resolvedClues: unknown;
   solveSeconds: number | null;
   timeline: TimelinePoint[] | null;
+  // Inline puzzle for word search / trivia (the crossword path uses crosswordsId).
+  puzzle: unknown;
   createdAt: string;
 };
 
