@@ -4,6 +4,7 @@ import { useGame, solutionOf } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { SudokuGrid } from "../components/Sudoku";
 import { WordSearchGrid } from "../components/WordSearch";
+import { TriviaGame } from "../components/Trivia";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
@@ -345,11 +346,14 @@ export default function Game() {
 
   const isSudoku = game?.gameVariant === "SUDOKU";
   const isWordSearch = game?.gameVariant === "WORD_SEARCH";
+  const isTrivia = game?.gameVariant === "TRIVIA";
 
   // Don't render the board until the full puzzle payload is present. Word search
-  // carries its puzzle inline in gameState (no content join).
+  // and trivia carry their puzzle inline in gameState (no content join).
   const puzzleReady = isWordSearch
     ? !!(game?.gameState as { __wordsearch?: unknown } | undefined)?.__wordsearch
+    : isTrivia
+    ? !!(game?.gameState as { __trivia?: unknown } | undefined)?.__trivia
     : isSudoku
     ? !!game?.sudoku?.puzzle && !!game?.sudoku?.solution
     : !!game?.crossword?.puzzle && !!game?.crossword?.solution;
@@ -413,6 +417,8 @@ export default function Game() {
       <ConnectionBanner />
       {isWordSearch ? (
         <WordSearchGrid gameId={gameId as string} />
+      ) : isTrivia ? (
+        <TriviaGame gameId={gameId as string} />
       ) : isSudoku ? (
         <SudokuGrid gameId={gameId as string} />
       ) : (

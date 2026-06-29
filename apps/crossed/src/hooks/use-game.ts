@@ -13,6 +13,7 @@ import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
 import { loadChallenge } from "../lib/challenge-utils";
 import { generateWordSearch } from "../lib/word-search";
+import { generateTrivia } from "../lib/trivia";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU" | "WORD_SEARCH" | "TRIVIA";
 export type { GameDifficulty };
@@ -135,6 +136,15 @@ const puzzleFieldsForNewGame = async (
       fields: { gameVariant: "WORD_SEARCH", difficulty },
       gameState: { __wordsearch: puzzle } as unknown as Json,
       durationInSeconds: isHard ? 420 : 300,
+    };
+  }
+  if (variant === "TRIVIA") {
+    const seed = Math.floor(Math.random() * 0xffffffff) || 1;
+    const quiz = generateTrivia(isHard ? "hard" : "easy", seed);
+    return {
+      fields: { gameVariant: "TRIVIA", difficulty },
+      gameState: { __trivia: quiz } as unknown as Json,
+      durationInSeconds: 240,
     };
   }
   if (variant === "SUDOKU") {

@@ -8,6 +8,7 @@ const TABS: { key: GameVariant; label: string }[] = [
   { key: "CROSSWORD", label: "Crossword" },
   { key: "SUDOKU", label: "Sudoku" },
   { key: "WORD_SEARCH", label: "Word Search" },
+  { key: "TRIVIA", label: "Trivia" },
 ];
 
 // Full-width Crosswords / Sudoku segmented control. flex:1 lives on a plain
