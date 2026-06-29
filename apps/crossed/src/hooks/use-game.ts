@@ -13,13 +13,18 @@ import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
 import { loadChallenge } from "../lib/challenge-utils";
 import { generateWordSearch } from "../lib/word-search";
-import { generateTrivia } from "../lib/trivia";
+import { generateTrivia, type Difficulty as TriviaLevel } from "../lib/trivia";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU" | "WORD_SEARCH" | "TRIVIA";
 export type { GameDifficulty };
 
 // Argument for the "new game" create triggers.
-type NewGameArg = { variant: GameVariant; difficulty: GameDifficulty };
+type NewGameArg = {
+  variant: GameVariant;
+  difficulty: GameDifficulty;
+  triviaCategory?: string;
+  triviaLevel?: TriviaLevel;
+};
 
 // Sudoku is a longer solve than a mini crossword: 15 minutes.
 export const SUDOKU_DURATION_SECONDS = 900;
@@ -114,7 +119,9 @@ const puzzleFieldsForNewGame = async (
   variant: GameVariant,
   profileId: string,
   crosswordBaseDuration: number,
-  difficulty: GameDifficulty = "REGULAR"
+  difficulty: GameDifficulty = "REGULAR",
+  triviaCategory?: string,
+  triviaLevel?: TriviaLevel
 ): Promise<{
   fields: {
     crosswordsId?: string;
@@ -140,9 +147,15 @@ const puzzleFieldsForNewGame = async (
   }
   if (variant === "TRIVIA") {
     const seed = Math.floor(Math.random() * 0xffffffff) || 1;
-    const quiz = generateTrivia(isHard ? "hard" : "easy", seed);
+    const level = triviaLevel ?? (isHard ? "hard" : "easy");
+    const quiz = generateTrivia(level, seed, triviaCategory);
     return {
-      fields: { gameVariant: "TRIVIA", difficulty },
+      // The games.difficulty column is REGULAR/HARD; the true level lives on the
+      // quiz. Map hard → HARD so duration/UX stays consistent.
+      fields: {
+        gameVariant: "TRIVIA",
+        difficulty: level === "hard" ? "HARD" : "REGULAR",
+      },
       gameState: { __trivia: quiz } as unknown as Json,
       durationInSeconds: 240,
     };
@@ -286,7 +299,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           variant,
           myProfile.id,
           300,
-          arg?.difficulty ?? "REGULAR"
+          arg?.difficulty ?? "REGULAR",
+          arg?.triviaCategory,
+          arg?.triviaLevel
         );
         if (!picked) return;
         const { data: game, error: createGameError } = await supabase

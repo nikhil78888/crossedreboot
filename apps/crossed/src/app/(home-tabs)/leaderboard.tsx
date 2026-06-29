@@ -7,6 +7,7 @@ import { useMyProfile } from "../../hooks/use-my-profile";
 import { RankBadge } from "../../components/RankBadge";
 import { VariantTabs } from "../../components/VariantTabs";
 import { useVariant } from "../../hooks/use-variant";
+import { variantLabel } from "../../lib/variant-rating";
 import { avatars } from "../../lib/images";
 import colors from "../../lib/colors";
 
@@ -141,12 +142,8 @@ export default function Leaderboard() {
             </View>
             <Text className="mt-3 font-[jost400] text-[13px] text-crossed-gray-400">
               {scope === "FRIENDS"
-                ? `Your friends · ${
-                    variant === "SUDOKU" ? "Sudoku" : "Crosswords"
-                  }`
-                : `Top ${
-                    variant === "SUDOKU" ? "Sudoku" : "Crossword"
-                  } players worldwide`}
+                ? `Your friends · ${variantLabel(variant)}`
+                : `Top ${variantLabel(variant)} players worldwide`}
             </Text>
           </View>
         }

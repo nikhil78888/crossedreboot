@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, Text, View } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
@@ -26,7 +26,8 @@ const lineBetween = (a: Cell, b: Cell): Cell[] | null => {
   const sr = Math.sign(dr);
   const sc = Math.sign(dc);
   const cells: Cell[] = [];
-  for (let i = 0; i <= steps; i++) cells.push({ r: a.r + sr * i, c: a.c + sc * i });
+  for (let i = 0; i <= steps; i++)
+    cells.push({ r: a.r + sr * i, c: a.c + sc * i });
   return cells;
 };
 
@@ -39,13 +40,13 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   )?.__wordsearch;
 
   const [found, setFound] = useState<string[]>([]);
-  const [start, setStart] = useState<Cell | null>(null);
+  const [sel, setSel] = useState<Cell[]>([]);
+  const dragStart = useRef<Cell | null>(null);
   const [now, setNow] = useState(Date.now());
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineRef = useRef<{ t: number; p: number }[]>([]);
   const finishedRef = useRef(false);
 
-  // Count-up clock from the game start (solo has no startedAt → createdAt).
   const startAtMs = useMemo(() => {
     const s = game?.startedAt ?? game?.createdAt;
     return s ? new Date(`${s}Z`).getTime() : null;
@@ -54,17 +55,18 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     const i = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(i);
   }, []);
-  const elapsed = startAtMs ? Math.max(0, Math.round((now - startAtMs) / 1000)) : 0;
+  const elapsed = startAtMs
+    ? Math.max(0, Math.round((now - startAtMs) / 1000))
+    : 0;
 
-  // Persist progress (drives the opponent's bar) + detect completion.
+  // Persist progress + detect completion.
   useEffect(() => {
     if (!puzzle || !myProfile || !game || finishedRef.current) return;
     const p = wordSearchProgress(puzzle, found);
     const last = timelineRef.current[timelineRef.current.length - 1];
     if (!last || p > last.p) timelineRef.current.push({ t: elapsed, p });
 
-    const done = found.length >= puzzle.words.length;
-    if (done) {
+    if (found.length >= puzzle.words.length) {
       finishedRef.current = true;
       if (writeTimer.current) clearTimeout(writeTimer.current);
       const mergedDone = {
@@ -98,6 +100,13 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [found]);
 
+  // Size the grid so the whole board + the full word list fit on screen.
+  const { width, height } = Dimensions.get("window");
+  const size = puzzle?.size ?? 9;
+  const cellSize = Math.floor(
+    Math.min((width - 24) / size, (height - 330) / size)
+  );
+
   if (!puzzle) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
@@ -110,26 +119,45 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   for (const pl of puzzle.placements)
     if (found.includes(pl.word))
       pl.cells.forEach((c) => foundCells.add(`${c.r},${c.c}`));
+  const selSet = new Set(sel.map((c) => `${c.r},${c.c}`));
 
-  const onCellPress = (r: number, c: number) => {
-    if (finishedRef.current) return;
-    if (!start) {
-      setStart({ r, c });
-      return;
-    }
-    const line = lineBetween(start, { r, c });
-    setStart(null);
-    if (!line) return;
-    const word = matchSelection(puzzle, line);
+  const cellAt = (x: number, y: number): Cell => ({
+    r: Math.max(0, Math.min(size - 1, Math.floor(y / cellSize))),
+    c: Math.max(0, Math.min(size - 1, Math.floor(x / cellSize))),
+  });
+
+  const commit = () => {
+    const word = sel.length > 1 ? matchSelection(puzzle, sel) : null;
     if (word && !found.includes(word)) setFound((f) => [...f, word]);
+    setSel([]);
+    dragStart.current = null;
   };
 
-  const dim = Dimensions.get("window").width - 24;
-  const cellSize = Math.floor(dim / puzzle.size);
+  // Drag a finger across the letters to trace a word. runOnJS so the selection
+  // state updates directly.
+  const pan = Gesture.Pan()
+    .runOnJS(true)
+    .onBegin((e) => {
+      if (finishedRef.current) return;
+      const cell = cellAt(e.x, e.y);
+      dragStart.current = cell;
+      setSel([cell]);
+    })
+    .onUpdate((e) => {
+      if (finishedRef.current || !dragStart.current) return;
+      const cur = cellAt(e.x, e.y);
+      const line = lineBetween(dragStart.current, cur);
+      setSel(line ?? [dragStart.current]);
+    })
+    .onEnd(commit)
+    .onFinalize(() => {
+      if (dragStart.current) commit();
+    });
+
+  const gridPx = cellSize * size;
 
   return (
     <View className="flex-1 bg-white px-3 pt-2">
-      {/* Count-up timer + progress */}
       <View className="mb-2 flex-row items-center justify-between px-1">
         <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
           {found.length}/{puzzle.words.length} found
@@ -139,56 +167,57 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
         </Text>
       </View>
 
-      {/* Grid */}
-      <View className="self-center" style={{ width: cellSize * puzzle.size }}>
-        {puzzle.grid.map((row, r) => (
-          <View key={r} className="flex-row">
-            {row.map((ch, c) => {
-              const isFound = foundCells.has(`${r},${c}`);
-              const isStart = start?.r === r && start?.c === c;
-              return (
-                <TouchableOpacity
-                  key={c}
-                  activeOpacity={0.6}
-                  onPress={() => onCellPress(r, c)}
-                  style={{
-                    width: cellSize,
-                    height: cellSize,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: 0.5,
-                    borderColor: colors["crossed-gray"]["100"],
-                    backgroundColor: isStart
-                      ? colors["crossed-blue"]["450"]
-                      : isFound
-                      ? colors["crossed-green"]["100"]
-                      : "white",
-                  }}
-                >
-                  <Text
+      <GestureDetector gesture={pan}>
+        <View className="self-center" style={{ width: gridPx, height: gridPx }}>
+          {puzzle.grid.map((row, r) => (
+            <View key={r} className="flex-row">
+              {row.map((ch, c) => {
+                const isFound = foundCells.has(`${r},${c}`);
+                const isSel = selSet.has(`${r},${c}`);
+                return (
+                  <View
+                    key={c}
                     style={{
-                      fontFamily: "jost600",
-                      fontSize: Math.max(11, cellSize * 0.42),
-                      color: isStart ? "white" : "#111827",
+                      width: cellSize,
+                      height: cellSize,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 0.5,
+                      borderColor: colors["crossed-gray"]["100"],
+                      backgroundColor: isSel
+                        ? colors["crossed-blue"]["450"]
+                        : isFound
+                        ? colors["crossed-green"]["100"]
+                        : "white",
                     }}
                   >
-                    {ch}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ))}
-      </View>
+                    <Text
+                      style={{
+                        fontFamily: "jost600",
+                        fontSize: Math.max(11, cellSize * 0.42),
+                        color: isSel ? "white" : "#111827",
+                      }}
+                    >
+                      {ch}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      </GestureDetector>
 
-      {/* Word list */}
-      <View className="mt-4 flex-row flex-wrap justify-center" style={{ gap: 8 }}>
+      <View
+        className="mt-3 flex-row flex-wrap justify-center"
+        style={{ gap: 7 }}
+      >
         {puzzle.words.map((w) => {
           const got = found.includes(w);
           return (
             <View
               key={w}
-              className="rounded-full px-3 py-1"
+              className="rounded-full px-2.5 py-1"
               style={{
                 backgroundColor: got
                   ? colors["crossed-green"]["100"]
@@ -198,7 +227,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
               <Text
                 style={{
                   fontFamily: "jost600",
-                  fontSize: 14,
+                  fontSize: 13,
                   textDecorationLine: got ? "line-through" : "none",
                   color: got ? colors["crossed-green"]["700"] : "#374151",
                 }}
@@ -209,8 +238,8 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
           );
         })}
       </View>
-      <Text className="mt-3 text-center font-[jost400] text-[12px] text-crossed-gray-400">
-        Tap the first and last letter of a word ({puzzle.theme})
+      <Text className="mt-2 text-center font-[jost400] text-[12px] text-crossed-gray-400">
+        Drag across the letters to trace a word ({puzzle.theme})
       </Text>
     </View>
   );

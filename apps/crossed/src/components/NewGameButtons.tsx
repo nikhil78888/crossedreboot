@@ -6,10 +6,12 @@ import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { events, trackEvent } from "../lib/track-event";
 import { VariantTabs } from "./VariantTabs";
+import { useVariant } from "../hooks/use-variant";
 import colors from "../lib/colors";
 
 export const NewGameButtons = () => {
   const router = useRouter();
+  const { variant } = useVariant();
 
   // Every mode first goes to the difficulty picker, which then runs the action
   // (gate check + create/join) with the chosen Regular/Hard. Variant comes from
@@ -18,7 +20,12 @@ export const NewGameButtons = () => {
     (mode: string) => router.push(`/select-difficulty?mode=${mode}`),
     [router]
   );
-  const playSolo = useCallback(() => pick("SOLO"), [pick]);
+  // Trivia has its own category + level setup instead of the Regular/Hard picker.
+  const playSolo = useCallback(
+    () =>
+      variant === "TRIVIA" ? router.push("/trivia-setup") : pick("SOLO"),
+    [variant, router, pick]
+  );
   const playFriendly = useCallback(() => pick("FRIENDLY"), [pick]);
   const playRanked = useCallback(() => pick("RANKED"), [pick]);
   const playTournament = useCallback(() => pick("TOURNAMENT"), [pick]);
