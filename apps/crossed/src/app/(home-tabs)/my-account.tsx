@@ -1,6 +1,5 @@
 import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
-import { useGame } from "../../hooks/use-game";
 import { Button } from "../../components/Button";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { RankBadge } from "../../components/RankBadge";
@@ -18,21 +17,11 @@ import { Image, ImageSource } from "expo-image";
 export default function MyAccount() {
   const { user, logout } = useAuth();
   const { myProfile } = useMyProfile();
-  const { createGuidedMatch, creatingGuidedMatch } = useGame({
-    gameId: undefined,
-  });
   const router = useRouter();
 
-  // Preview trigger so an existing account can walk the FULL new-user flow (live
-  // race + post-win "pick a username" screen) non-destructively for testing.
-  const playIntroRace = async () => {
-    try {
-      const id = await createGuidedMatch({ source: "preview" });
-      if (id) router.push(`/game?gameId=${id}&guided=1&preview=1`);
-    } catch {
-      Alert.alert("Couldn't start the race", "Please try again.");
-    }
-  };
+  // Preview the full new-user sequence (logo loading -> welcome -> race -> win),
+  // non-destructively, from an existing account.
+  const playIntroRace = () => router.push("/intro-preview");
   const handleSoftInput = useCallback(() => {
     AvoidSoftInput.setShouldMimicIOSBehavior(true);
     AvoidSoftInput.setEnabled(true);
@@ -90,8 +79,7 @@ export default function MyAccount() {
             intent={"primary"}
             size={"lg"}
             rounded={"full"}
-            label="▶  Preview new-user intro"
-            isLoading={creatingGuidedMatch}
+            label="▶  Preview new-user experience"
             onPress={playIntroRace}
           />
         </View>
