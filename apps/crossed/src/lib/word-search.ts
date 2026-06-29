@@ -44,11 +44,13 @@ const THEMES: Record<string, string[]> = {
   ],
 };
 
-// 8 directions. Hard puzzles allow diagonals + reversed words; regular keeps it
-// to across/down forward for an easier scan.
+// Regular: across, down, and both forward diagonals (a proper word search).
+// Hard adds the reversed directions on top.
 const DIRS_EASY = [
-  { dr: 0, dc: 1 },
-  { dr: 1, dc: 0 },
+  { dr: 0, dc: 1 }, // across →
+  { dr: 1, dc: 0 }, // down ↓
+  { dr: 1, dc: 1 }, // diagonal ↘
+  { dr: 1, dc: -1 }, // diagonal ↙
 ];
 const DIRS_HARD = [
   { dr: 0, dc: 1 },
