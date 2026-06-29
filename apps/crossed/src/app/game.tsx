@@ -197,6 +197,29 @@ export default function Game() {
         goBack();
         return;
       }
+      // Challenge ghost race → time-based result (did you beat their time?).
+      const challengeMeta = (
+        game?.gameState as Record<string, unknown> | undefined
+      )?.["__challenge"] as
+        | { seconds?: number | null; name?: string | null }
+        | undefined;
+      if (challengeMeta) {
+        const start = game?.startedAt ?? game?.createdAt;
+        const yourSeconds = start
+          ? Math.max(
+              0,
+              Math.round((Date.now() - new Date(`${start}Z`).getTime()) / 1000)
+            )
+          : 0;
+        const theirSeconds = challengeMeta.seconds ?? 0;
+        const beat = theirSeconds > 0 && yourSeconds < theirSeconds;
+        router.replace(
+          `/challenge-result?you=${yourSeconds}&them=${theirSeconds}&name=${encodeURIComponent(
+            challengeMeta.name ?? "your rival"
+          )}&won=${beat ? 1 : 0}`
+        );
+        return;
+      }
       // New player who hasn't named themselves yet → send them to the win +
       // "pick a username" screen instead of the standard results. preview=1 lets
       // an existing account walk the same screen without renaming anything.

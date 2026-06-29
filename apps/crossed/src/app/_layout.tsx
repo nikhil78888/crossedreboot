@@ -206,6 +206,11 @@ export default function IndexLayout() {
         <Stack.Screen name="set-username" options={{ headerShown: false }} />
         <Stack.Screen name="intro-preview" options={{ headerShown: false }} />
         <Stack.Screen name="all-games" options={{ headerTitle: "All Puzzles" }} />
+        <Stack.Screen name="challenge" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="challenge-result"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
         <Stack.Screen
           name="feedback"
           options={{

@@ -63,3 +63,28 @@ export const loadChallenge = async (
     .single();
   return data ?? null;
 };
+
+// Most recent challenge id — used by the in-app test entry (real opens come via
+// the share link / Branch).
+type LatestClient = {
+  from: (t: "challenges") => {
+    select: (c: string) => {
+      order: (
+        col: string,
+        o: { ascending: boolean }
+      ) => {
+        limit: (n: number) => Promise<{ data: { id: string }[] | null }>;
+      };
+    };
+  };
+};
+
+export const loadLatestChallengeId = async (): Promise<string | null> => {
+  const client = supabase as unknown as LatestClient;
+  const { data } = await client
+    .from("challenges")
+    .select("id")
+    .order("createdAt", { ascending: false })
+    .limit(1);
+  return data?.[0]?.id ?? null;
+};

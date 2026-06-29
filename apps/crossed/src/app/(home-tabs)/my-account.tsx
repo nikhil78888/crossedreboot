@@ -1,5 +1,6 @@
 import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
+import { loadLatestChallengeId } from "../../lib/challenge-utils";
 import { Button } from "../../components/Button";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { RankBadge } from "../../components/RankBadge";
@@ -22,6 +23,14 @@ export default function MyAccount() {
   // Preview the full new-user sequence (logo loading -> welcome -> race -> win),
   // non-destructively, from an existing account.
   const playIntroRace = () => router.push("/intro-preview");
+
+  // Dev/test: play the most recent challenge's ghost race (real opens come via
+  // the share link / Branch deep link).
+  const testChallengeRace = async () => {
+    const id = await loadLatestChallengeId();
+    if (id) router.push(`/challenge?id=${id}`);
+    else Alert.alert("No challenges yet", "Create one from a results screen first.");
+  };
   const handleSoftInput = useCallback(() => {
     AvoidSoftInput.setShouldMimicIOSBehavior(true);
     AvoidSoftInput.setEnabled(true);
@@ -81,6 +90,16 @@ export default function MyAccount() {
             rounded={"full"}
             label="▶  Preview new-user experience"
             onPress={playIntroRace}
+          />
+        </View>
+        <View className="mt-3 w-full px-1">
+          <Button
+            intent={"primary"}
+            mode={"outline"}
+            size={"lg"}
+            rounded={"full"}
+            label="⚡  Test challenge race"
+            onPress={testChallengeRace}
           />
         </View>
       </View>

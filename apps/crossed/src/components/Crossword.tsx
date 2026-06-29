@@ -3,6 +3,7 @@ import { Text, useWindowDimensions, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import produce from "immer";
 import { calculateScore, puzzleOf, solutionOf, useGame } from "../hooks/use-game";
+import { ghostProgressAt } from "../lib/challenge-utils";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import { Image } from "expo-image";
@@ -150,40 +151,57 @@ export const CrosswordGrid = ({
                 )
               : 0;
 
-          // Rubber-band (every bot game): the opponent surges out of the gate
-          // (looks like a fast, independent rival), then quietly tracks the
-          // player's progress so the race stays close — always a hair ahead,
-          // never running away, capped at ~90% so finishing wins. Early lead +
-          // per-fill jitter + the bot filling its own cells keep it from
-          // looking like it mirrors the player.
-          const playerSolution = myProfile?.id
-            ? game?.gameState?.[myProfile.id]?.solution
-            : undefined;
-          const playerFilled = playerSolution
-            ? playerSolution.reduce(
-                (count, row) =>
-                  count +
-                  row.filter((cell) => cell !== "" && cell !== null).length,
-                0
+          let totalBotFillableCells: number;
+          let nextDelayMs: number;
+          const challengeMeta = (
+            game?.gameState as Record<string, unknown> | undefined
+          )?.["__challenge"] as
+            | { timeline?: { t: number; p: number }[] }
+            | undefined;
+          if (challengeMeta?.timeline && game.startedAt) {
+            // Ghost race: replay the challenger's recorded timeline exactly.
+            const elapsedSec = Math.max(
+              0,
+              Math.round(
+                (Date.now() - new Date(`${game.startedAt}Z`).getTime()) / 1000
               )
-            : 0;
-          const playerFrac = totalFillableCells
-            ? playerFilled / totalFillableCells
-            : 0;
-          // Lead shrinks from ~18% of the grid early to ~5% later.
-          const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
-          // Early floor so the bot gets moving before the player does.
-          const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-          const targetFrac = Math.min(
-            0.9,
-            Math.max(earlyFloor, playerFrac + lead)
-          );
-          const totalBotFillableCells = Math.max(
-            1,
-            Math.floor(totalFillableCells * targetFrac)
-          );
-          // Smooth, brisk catch-up — not instant (that would look robotic).
-          const nextDelayMs = 450 + Math.random() * 700;
+            );
+            const ghostP = ghostProgressAt(challengeMeta.timeline, elapsedSec);
+            totalBotFillableCells = Math.max(
+              0,
+              Math.floor((totalFillableCells * ghostP) / 100)
+            );
+            nextDelayMs = 250;
+          } else {
+            // Rubber-band (every other bot game): surge out of the gate, then
+            // quietly track the player's progress so the race stays close —
+            // a hair ahead, capped ~90% so finishing wins.
+            const playerSolution = myProfile?.id
+              ? game?.gameState?.[myProfile.id]?.solution
+              : undefined;
+            const playerFilled = playerSolution
+              ? playerSolution.reduce(
+                  (count, row) =>
+                    count +
+                    row.filter((cell) => cell !== "" && cell !== null).length,
+                  0
+                )
+              : 0;
+            const playerFrac = totalFillableCells
+              ? playerFilled / totalFillableCells
+              : 0;
+            const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+            const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+            const targetFrac = Math.min(
+              0.9,
+              Math.max(earlyFloor, playerFrac + lead)
+            );
+            totalBotFillableCells = Math.max(
+              1,
+              Math.floor(totalFillableCells * targetFrac)
+            );
+            nextDelayMs = 450 + Math.random() * 700;
+          }
           const cellsToFill = totalBotFillableCells - botFilledCells;
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {
