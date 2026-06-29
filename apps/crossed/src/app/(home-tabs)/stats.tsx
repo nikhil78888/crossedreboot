@@ -8,6 +8,7 @@ import { useMyProfile } from "../../hooks/use-my-profile";
 import { useVariant } from "../../hooks/use-variant";
 import { VariantTabs } from "../../components/VariantTabs";
 import { getRank } from "../../lib/rank";
+import { ratingForVariant, variantLabel } from "../../lib/variant-rating";
 import { supabase } from "../../lib/supabase";
 import colors from "../../lib/colors";
 
@@ -25,7 +26,7 @@ type Activity = {
 };
 
 const useRecentActivity = (
-  variant: "CROSSWORD" | "SUDOKU",
+  variant: string,
   profileId?: string
 ) => {
   const { data } = useSWR(
@@ -105,10 +106,7 @@ export default function Stats() {
   const { variant } = useVariant();
   const { stats } = useStats(variant);
   const { myProfile } = useMyProfile();
-  const rating =
-    variant === "SUDOKU"
-      ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
-      : myProfile?.eloRating;
+  const rating = ratingForVariant(myProfile, variant);
   const rank = getRank(rating);
   const activity = useRecentActivity(variant, myProfile?.id);
   const router = useRouter();
@@ -139,7 +137,7 @@ export default function Stats() {
               className="mt-1 font-[jost600]"
               style={{ color: "rgba(255,255,255,0.92)", fontSize: 22 }}
             >
-              {variant === "SUDOKU" ? "Sudoku Rating" : "Crossword Rating"}
+              {variantLabel(variant)} Rating
             </Text>
           </View>
           <View className="items-center">
@@ -186,8 +184,8 @@ export default function Stats() {
         </Text>
         {activity.length === 0 ? (
           <Text className="mt-3 font-[jost400] text-sm text-crossed-gray-400">
-            No ranked {variant === "SUDOKU" ? "Sudoku" : "Crossword"} games or
-            challenges yet — play one to see it here.
+            No ranked {variantLabel(variant)} games or challenges yet — play one
+            to see it here.
           </Text>
         ) : (
           activity.map((a, i) => (

@@ -31,6 +31,18 @@ export default function SelectDifficulty() {
     setBusy(difficulty);
     try {
       trackEvent(events.DIFFICULTY_SELECTED, { mode, variant, difficulty });
+      // Word search / trivia are solo-only for now; competitive modes (the
+      // race vs a bot) are coming next.
+      if (
+        (variant === "WORD_SEARCH" || variant === "TRIVIA") &&
+        mode !== "SOLO"
+      ) {
+        Alert.alert(
+          "Coming soon",
+          "Competitive modes for this game type are on the way — try Solo for now."
+        );
+        return;
+      }
       // Competitive modes are gated by the subscription/daily limit.
       if (mode !== "SOLO") {
         const gate = await checkCanPlay();

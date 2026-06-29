@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { useGame, solutionOf } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { SudokuGrid } from "../components/Sudoku";
+import { WordSearchGrid } from "../components/WordSearch";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
@@ -268,6 +269,27 @@ export default function Game() {
         );
         return;
       }
+      // Word search / trivia don't use the crossword answers pipeline → a
+      // dedicated, variant-agnostic result screen (time, or win/loss for a race).
+      if (
+        game?.gameVariant === "WORD_SEARCH" ||
+        game?.gameVariant === "TRIVIA"
+      ) {
+        const me = myProfile?.id
+          ? (
+              game?.gameState as
+                | Record<string, { solvedInSeconds?: number }>
+                | undefined
+            )?.[myProfile.id]
+          : undefined;
+        const youSecs = me?.solvedInSeconds ?? 0;
+        router.replace(
+          `/variant-result?variant=${game.gameVariant}&type=${gameType}&won=${
+            won ? 1 : 0
+          }&you=${youSecs}&difficulty=${game.difficulty ?? "REGULAR"}`
+        );
+        return;
+      }
       const beforeRating =
         game?.gameVariant === "SUDOKU"
           ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
@@ -322,9 +344,13 @@ export default function Game() {
   }
 
   const isSudoku = game?.gameVariant === "SUDOKU";
+  const isWordSearch = game?.gameVariant === "WORD_SEARCH";
 
-  // Don't render the board until the full puzzle payload is present.
-  const puzzleReady = isSudoku
+  // Don't render the board until the full puzzle payload is present. Word search
+  // carries its puzzle inline in gameState (no content join).
+  const puzzleReady = isWordSearch
+    ? !!(game?.gameState as { __wordsearch?: unknown } | undefined)?.__wordsearch
+    : isSudoku
     ? !!game?.sudoku?.puzzle && !!game?.sudoku?.solution
     : !!game?.crossword?.puzzle && !!game?.crossword?.solution;
   if (!game || !puzzleReady) {
@@ -385,7 +411,9 @@ export default function Game() {
   return (
     <View className={`flex-1 bg-white`}>
       <ConnectionBanner />
-      {isSudoku ? (
+      {isWordSearch ? (
+        <WordSearchGrid gameId={gameId as string} />
+      ) : isSudoku ? (
         <SudokuGrid gameId={gameId as string} />
       ) : (
         <CrosswordGrid gameId={gameId as string} />

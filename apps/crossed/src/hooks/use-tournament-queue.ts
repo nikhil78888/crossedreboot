@@ -25,7 +25,7 @@ export const useTournamentQueue = () => {
 
   const joinTournamentQueue = useCallback(
     async (
-      gameVariant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+      gameVariant: string = "CROSSWORD",
       difficulty: "REGULAR" | "HARD" = "REGULAR"
     ) => {
       if (!myProfile) return;

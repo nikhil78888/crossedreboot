@@ -28,7 +28,7 @@ export const useOnlineStatus = () => {
 
   const joinLobby = useCallback(
     async (
-      gameVariant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+      gameVariant: string = "CROSSWORD",
       difficulty: "REGULAR" | "HARD" = "REGULAR"
     ) => {
       if (!myProfile) return;

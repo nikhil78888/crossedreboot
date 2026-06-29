@@ -3,7 +3,7 @@ import { useMyProfile } from "./use-my-profile";
 import { supabase } from "../lib/supabase";
 import { startOfDay } from "date-fns";
 
-export const useStats = (variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD") => {
+export const useStats = (variant: string = "CROSSWORD") => {
   const { myProfile } = useMyProfile();
 
   const { data: stats, mutate: refreshStats } = useSWR(

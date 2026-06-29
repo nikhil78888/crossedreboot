@@ -20,6 +20,7 @@ import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { getRank } from "../../lib/rank";
+import { ratingForVariant } from "../../lib/variant-rating";
 import { useFriends } from "../../hooks/use-friends";
 import { useVariant } from "../../hooks/use-variant";
 import {
@@ -43,10 +44,7 @@ export default function Home() {
   const { variant } = useVariant();
   const gamePlayState = game?.playState;
   // Show the rank for whichever variant is selected.
-  const variantRating =
-    variant === "SUDOKU"
-      ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
-      : myProfile?.eloRating;
+  const variantRating = ratingForVariant(myProfile, variant);
   const rank = getRank(variantRating);
 
   useEffect(() => {

@@ -130,7 +130,7 @@ export const useTournament = ({ tournamentId }: { tournamentId?: string }) => {
           arg,
         }: {
           arg?: {
-            variant?: "CROSSWORD" | "SUDOKU";
+            variant?: string;
             difficulty?: "REGULAR" | "HARD";
           };
         } = {}
@@ -149,7 +149,7 @@ export const useTournament = ({ tournamentId }: { tournamentId?: string }) => {
   const isPrivate = !!tournament?.isPrivate;
 
   const createPrivateTournament = async (
-    variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+    variant: string = "CROSSWORD",
     difficulty: "REGULAR" | "HARD" = "REGULAR"
   ): Promise<string | undefined> => {
     const { data } = await axios.post("/api/tournaments/create-private", {

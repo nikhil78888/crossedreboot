@@ -13,7 +13,7 @@ export type LeaderboardEntry = {
 // can read all profiles — anon reads are blocked by RLS). Ranked per variant:
 // crossword and sudoku have separate ladders.
 export const useLeaderboard = (
-  variant: "CROSSWORD" | "SUDOKU" = "CROSSWORD",
+  variant: string = "CROSSWORD",
   scope: "GLOBAL" | "FRIENDS" = "GLOBAL"
 ) => {
   const { data, isLoading, error, mutate } = useSWR(

@@ -12,8 +12,9 @@ import { resolveAndLogClues } from "../lib/clue-resolver";
 import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
 import { loadChallenge } from "../lib/challenge-utils";
+import { generateWordSearch } from "../lib/word-search";
 
-export type GameVariant = "CROSSWORD" | "SUDOKU";
+export type GameVariant = "CROSSWORD" | "SUDOKU" | "WORD_SEARCH" | "TRIVIA";
 export type { GameDifficulty };
 
 // Argument for the "new game" create triggers.
@@ -121,9 +122,21 @@ const puzzleFieldsForNewGame = async (
     resolvedClues?: Json;
     difficulty: GameDifficulty;
   };
+  // Word search / trivia have no content table — the puzzle is generated inline
+  // and stored in the game's gameState (shared key, like __challenge).
+  gameState?: Json;
   durationInSeconds: number;
 } | null> => {
   const isHard = difficulty === "HARD";
+  if (variant === "WORD_SEARCH") {
+    const seed = Math.floor(Math.random() * 0xffffffff) || 1;
+    const puzzle = generateWordSearch(difficulty, seed);
+    return {
+      fields: { gameVariant: "WORD_SEARCH", difficulty },
+      gameState: { __wordsearch: puzzle } as unknown as Json,
+      durationInSeconds: isHard ? 420 : 300,
+    };
+  }
   if (variant === "SUDOKU") {
     // Hard = hard puzzles; Regular = easy/medium.
     const { data, error } = await supabase.rpc("get_available_sudoku", {
@@ -270,6 +283,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           .from("games")
           .insert({
             ...picked.fields,
+            ...(picked.gameState ? { gameState: picked.gameState } : {}),
             gameType: "SOLO",
             playState: "PLAYING",
             gameDurationInSeconds: picked.durationInSeconds,

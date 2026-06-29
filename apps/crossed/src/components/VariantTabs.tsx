@@ -5,8 +5,9 @@ import { useVariant } from "../hooks/use-variant";
 import colors from "../lib/colors";
 
 const TABS: { key: GameVariant; label: string }[] = [
-  { key: "CROSSWORD", label: "Crosswords" },
+  { key: "CROSSWORD", label: "Crossword" },
   { key: "SUDOKU", label: "Sudoku" },
+  { key: "WORD_SEARCH", label: "Word Search" },
 ];
 
 // Full-width Crosswords / Sudoku segmented control. flex:1 lives on a plain
@@ -46,7 +47,9 @@ export const VariantTabs = () => {
               }}
             >
               <Text
-                className="font-[jost700] text-[15px]"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                className="font-[jost700] text-[14px]"
                 style={{
                   color: active ? "#ffffff" : colors["crossed-gray"]["400"],
                 }}
