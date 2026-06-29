@@ -4,6 +4,7 @@ import { Button } from "./Button";
 import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
+import { branch } from "../lib/branch";
 import { fmtSolve } from "../app/(home-tabs)/stats";
 
 // "Challenge a friend to beat my time." Creates a challenge from a just-finished
@@ -65,7 +66,25 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
         .select("id")
         .single();
       if (error || !data?.id) throw error ?? new Error("no id");
-      const link = `https://crossed.app/c/${data.id}`;
+      let link = `https://crossed.app/c/${data.id}`;
+      if (branch) {
+        try {
+          const buo = await branch.createBranchUniversalObject(
+            `challenge/${data.id}`,
+            {
+              title: "Beat my Crossed time!",
+              contentMetadata: { customMetadata: { challengeId: data.id } },
+            }
+          );
+          const res = await buo.generateShortUrl(
+            { feature: "challenge", channel: "share" },
+            { challengeId: data.id }
+          );
+          if (res?.url) link = res.url;
+        } catch {
+          // keep the plain fallback link
+        }
+      }
       await Share.share({
         message: `I solved this Crossed puzzle in ${fmtSolve(
           solveSeconds

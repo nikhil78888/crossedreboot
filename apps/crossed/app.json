@@ -22,7 +22,11 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "infoPlist": {}
+      "infoPlist": {},
+      "associatedDomains": [
+        "applinks:lct4a.app.link",
+        "applinks:lct4a-alternate.app.link"
+      ]
     },
     "android": {
       "package": "live.crossed.app",
@@ -35,6 +39,13 @@
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
+      [
+        "@config-plugins/react-native-branch",
+        {
+          "apiKey": "key_live_puoxzYCXEYoFVqK88AY5EnjgFDpoQEPd",
+          "iosAppDomain": "lct4a.app.link"
+        }
+      ],
       [
         "expo-build-properties",
         {

@@ -19,6 +19,21 @@ export const consumePendingIntro = () => {
 // the very first frame, so the intro doesn't flash the dashboard before the race.
 export const peekPendingIntro = () => pendingIntro;
 
+// A challenge id delivered by a Branch deep link before the user has an account
+// (new install). /home consumes it after the silent account is created and routes
+// straight to the ghost race — the challenge becomes their first experience
+// instead of the generic bot intro.
+let pendingChallengeId: string | null = null;
+export const setPendingChallenge = (id: string | null) => {
+  pendingChallengeId = id;
+};
+export const peekPendingChallenge = () => pendingChallengeId;
+export const consumePendingChallenge = () => {
+  const v = pendingChallengeId;
+  pendingChallengeId = null;
+  return v;
+};
+
 // A username we auto-assign so a new player can start before naming themselves.
 // They rename on the post-race screen. This prefix is also the signal that a
 // player is still unnamed (drives the "pick a username" prompt).

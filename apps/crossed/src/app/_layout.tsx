@@ -39,6 +39,8 @@ import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { Alert } from "react-native";
 import { useAuth } from "../hooks/use-auth";
+import { branch } from "../lib/branch";
+import { setPendingChallenge } from "../lib/intro-flag";
 import { useHeartbeat } from "../hooks/use-heartbeat";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { configureRevenueCat } from "../lib/revenuecat";
@@ -96,6 +98,24 @@ export default function IndexLayout() {
       }
     }
   }, [isReady, router, segments, user]);
+
+  // Branch deep links → open the shared challenge. Logged-in users go straight
+  // to the ghost race; logged-out (new install) stash it so /home launches it
+  // after the silent account is created. No-ops safely if Branch is absent.
+  useEffect(() => {
+    if (!branch) return;
+    const unsubscribe = branch.subscribe(({ params }) => {
+      if (!params || !params["+clicked_branch_link"]) return;
+      const challengeId =
+        typeof params.challengeId === "string" ? params.challengeId : undefined;
+      if (!challengeId) return;
+      if (user) router.push(`/challenge?id=${challengeId}`);
+      else setPendingChallenge(challengeId);
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [user, router]);
 
   // Keep online presence fresh for the friends list.
   useHeartbeat();

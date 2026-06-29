@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import { ShareAppButton } from "../../components/ShareAppButton";
 import { useCurrentGame } from "../../hooks/use-current-game";
 import { useGame } from "../../hooks/use-game";
-import { consumePendingIntro, peekPendingIntro } from "../../lib/intro-flag";
+import {
+  consumePendingIntro,
+  peekPendingIntro,
+  consumePendingChallenge,
+  peekPendingChallenge,
+} from "../../lib/intro-flag";
 import { Button } from "../../components/Button";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
@@ -63,9 +68,22 @@ export default function Home() {
   // Start in the launching state if the intro is pending, so the first frame is
   // a spinner — never the dashboard — avoiding a flash before the race.
   const introLaunched = useRef(false);
-  const [launchingIntro, setLaunchingIntro] = useState(peekPendingIntro());
+  const [launchingIntro, setLaunchingIntro] = useState(
+    peekPendingIntro() || !!peekPendingChallenge()
+  );
   useEffect(() => {
-    if (myProfile?.id && !introLaunched.current && consumePendingIntro()) {
+    if (!myProfile?.id || introLaunched.current) return;
+    // A challenge link wins: it's the new user's first experience (not the bot
+    // intro). Clear any pending generic intro so it doesn't fire afterward.
+    const challengeId = consumePendingChallenge();
+    if (challengeId) {
+      consumePendingIntro();
+      introLaunched.current = true;
+      setLaunchingIntro(true);
+      router.replace(`/challenge?id=${challengeId}`);
+      return;
+    }
+    if (consumePendingIntro()) {
       introLaunched.current = true;
       setLaunchingIntro(true);
       (async () => {
