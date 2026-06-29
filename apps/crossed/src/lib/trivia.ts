@@ -41,7 +41,6 @@ const BANK: TriviaQuestion[] = [
 
   // ---- Science ----
   { id: "s1", category: "Science", difficulty: "easy", q: "What gas do plants primarily absorb from the air?", choices: ["Oxygen", "Carbon dioxide", "Nitrogen", "Hydrogen"], answer: 1 },
-  { id: "s2", category: "Science", difficulty: "easy", q: "What planet is known as the Red Planet?", choices: ["Venus", "Jupiter", "Mars", "Mercury"], answer: 2 },
   { id: "s3", category: "Science", difficulty: "medium", q: "What is the chemical symbol for gold?", choices: ["Gd", "Au", "Ag", "Go"], answer: 1 },
   { id: "s4", category: "Science", difficulty: "medium", q: "How many bones are in the adult human body?", choices: ["206", "201", "212", "198"], answer: 0 },
   { id: "s5", category: "Science", difficulty: "hard", q: "What is the powerhouse of the cell?", choices: ["Nucleus", "Ribosome", "Mitochondria", "Golgi body"], answer: 2 },
@@ -65,15 +64,12 @@ const BANK: TriviaQuestion[] = [
 
   // ---- Sports ----
   { id: "sp1", category: "Sports", difficulty: "easy", q: "How many players are on a soccer team on the field?", choices: ["9", "10", "11", "12"], answer: 2 },
-  { id: "sp2", category: "Sports", difficulty: "easy", q: "In which sport would you perform a slam dunk?", choices: ["Tennis", "Basketball", "Golf", "Cricket"], answer: 1 },
   { id: "sp3", category: "Sports", difficulty: "medium", q: "How often are the Summer Olympic Games held?", choices: ["Every 2 years", "Every 3 years", "Every 4 years", "Every 5 years"], answer: 2 },
   { id: "sp4", category: "Sports", difficulty: "medium", q: "What sport is associated with Wimbledon?", choices: ["Golf", "Tennis", "Rowing", "Cricket"], answer: 1 },
   { id: "sp5", category: "Sports", difficulty: "hard", q: "How many points is a touchdown worth in American football (before extra point)?", choices: ["3", "6", "7", "5"], answer: 1 },
   { id: "sp6", category: "Sports", difficulty: "hard", q: "Which country has won the most FIFA World Cups?", choices: ["Germany", "Italy", "Brazil", "Argentina"], answer: 2 },
 
   // ---- Entertainment ----
-  { id: "e1", category: "Entertainment", difficulty: "easy", q: "What is the name of the toy cowboy in 'Toy Story'?", choices: ["Buzz", "Woody", "Rex", "Hamm"], answer: 1 },
-  { id: "e2", category: "Entertainment", difficulty: "easy", q: "How many strings does a standard guitar have?", choices: ["4", "5", "6", "7"], answer: 2 },
   { id: "e3", category: "Entertainment", difficulty: "medium", q: "Who painted the Mona Lisa?", choices: ["Michelangelo", "Da Vinci", "Raphael", "Donatello"], answer: 1 },
   { id: "e4", category: "Entertainment", difficulty: "medium", q: "Which band released the album 'Abbey Road'?", choices: ["The Rolling Stones", "The Beatles", "Pink Floyd", "Queen"], answer: 1 },
   { id: "e5", category: "Entertainment", difficulty: "hard", q: "What was Disney's first full-length animated film?", choices: ["Pinocchio", "Bambi", "Snow White and the Seven Dwarfs", "Fantasia"], answer: 2 },
@@ -100,6 +96,26 @@ const BANK: TriviaQuestion[] = [
   { id: "n18", category: "General", difficulty: "easy", q: "What is the currency of Japan?", choices: ["Yuan", "Won", "Yen", "Ringgit"], answer: 2 },
   { id: "n19", category: "General", difficulty: "easy", q: "How many colors are traditionally in a rainbow?", choices: ["5", "6", "7", "8"], answer: 2 },
   { id: "n20", category: "General", difficulty: "hard", q: "What does \"HTTP\" stand for?", choices: ["HyperText Transmission Process", "HyperText Transfer Protocol", "High Transfer Text Protocol", "Hyperlink Text Transfer Path"], answer: 1 },
+
+  // --- Batch 3 (harder set, user-evaluated 2026-06-29) ---
+  { id: "m1", category: "Science", difficulty: "hard", q: "What is the SI unit of electrical resistance?", choices: ["Ohm", "Watt", "Volt", "Joule"], answer: 0 },
+  { id: "m2", category: "Science", difficulty: "hard", q: "What is the atomic number of gold?", choices: ["47", "79", "29", "26"], answer: 1 },
+  { id: "m3", category: "Science", difficulty: "medium", q: "What is the most abundant element in the universe?", choices: ["Helium", "Hydrogen", "Oxygen", "Carbon"], answer: 1 },
+  { id: "m4", category: "Science", difficulty: "hard", q: "A bond formed by sharing electron pairs is called?", choices: ["Ionic", "Covalent", "Metallic", "Hydrogen"], answer: 1 },
+  { id: "m5", category: "History", difficulty: "medium", q: "In what year did the French Revolution begin?", choices: ["1776", "1789", "1804", "1715"], answer: 1 },
+  { id: "m6", category: "History", difficulty: "hard", q: "Who was the first emperor of Rome?", choices: ["Julius Caesar", "Augustus", "Nero", "Constantine"], answer: 1 },
+  { id: "m7", category: "History", difficulty: "medium", q: "Which treaty formally ended World War I?", choices: ["Treaty of Versailles", "Treaty of Paris", "Treaty of Ghent", "Treaty of Tordesillas"], answer: 0 },
+  { id: "m8", category: "History", difficulty: "hard", q: "The Hundred Years' War was fought mainly between England and which country?", choices: ["France", "Spain", "Scotland", "Germany"], answer: 0 },
+  { id: "m9", category: "Geography", difficulty: "hard", q: "What is the capital of Mongolia?", choices: ["Astana", "Ulaanbaatar", "Bishkek", "Tashkent"], answer: 1 },
+  { id: "m10", category: "Geography", difficulty: "medium", q: "What is the capital of Canada?", choices: ["Toronto", "Ottawa", "Vancouver", "Montreal"], answer: 1 },
+  { id: "m11", category: "Geography", difficulty: "medium", q: "What is the capital of New Zealand?", choices: ["Auckland", "Wellington", "Christchurch", "Hamilton"], answer: 1 },
+  { id: "m12", category: "Geography", difficulty: "hard", q: "The Strait of Gibraltar connects the Atlantic Ocean to which sea?", choices: ["Mediterranean", "Black", "Red", "Caspian"], answer: 0 },
+  { id: "m13", category: "Sports", difficulty: "easy", q: "In tennis, what term denotes a score of zero?", choices: ["Love", "Deuce", "Ace", "Fault"], answer: 0 },
+  { id: "m14", category: "Sports", difficulty: "easy", q: "How many players per side are on the ice in ice hockey (including the goalie)?", choices: ["5", "6", "7", "11"], answer: 1 },
+  { id: "m15", category: "Entertainment", difficulty: "hard", q: "Who painted 'Guernica'?", choices: ["Salvador Dali", "Pablo Picasso", "Francisco Goya", "Joan Miro"], answer: 1 },
+  { id: "m16", category: "Entertainment", difficulty: "medium", q: "Who wrote the novel '1984'?", choices: ["Aldous Huxley", "George Orwell", "Ray Bradbury", "Kurt Vonnegut"], answer: 1 },
+  { id: "m17", category: "General", difficulty: "medium", q: "The Roman numeral 'M' represents what number?", choices: ["100", "1,000", "500", "50"], answer: 1 },
+  { id: "m18", category: "General", difficulty: "medium", q: "What is the chemical formula for table salt?", choices: ["NaCl", "KCl", "NaHCO3", "CaCO3"], answer: 0 },
 ];
 
 const makeRng = (seed: number) => {
