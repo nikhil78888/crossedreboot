@@ -61,7 +61,7 @@ const BANK: TriviaQuestion[] = [
   { id: "ge3", category: "Geography", difficulty: "medium", q: "Which country has the most natural lakes?", choices: ["USA", "Russia", "Canada", "Finland"], answer: 2 },
   { id: "ge4", category: "Geography", difficulty: "medium", q: "Mount Kilimanjaro is in which country?", choices: ["Kenya", "Tanzania", "Uganda", "Ethiopia"], answer: 1 },
   { id: "ge5", category: "Geography", difficulty: "hard", q: "What is the smallest country in the world by area?", choices: ["Monaco", "Nauru", "Vatican City", "San Marino"], answer: 2 },
-  { id: "ge6", category: "Geography", difficulty: "hard", q: "Which river is the longest in the world?", choices: ["Amazon", "Nile", "Yangtze", "Mississippi"], answer: 1 },
+  { id: "ge6", category: "Geography", difficulty: "hard", q: "What is the largest hot desert on Earth?", choices: ["Gobi", "Sahara", "Kalahari", "Arabian"], answer: 1 },
 
   // ---- Sports ----
   { id: "sp1", category: "Sports", difficulty: "easy", q: "How many players are on a soccer team on the field?", choices: ["9", "10", "11", "12"], answer: 2 },
@@ -76,7 +76,7 @@ const BANK: TriviaQuestion[] = [
   { id: "e2", category: "Entertainment", difficulty: "easy", q: "How many strings does a standard guitar have?", choices: ["4", "5", "6", "7"], answer: 2 },
   { id: "e3", category: "Entertainment", difficulty: "medium", q: "Who painted the Mona Lisa?", choices: ["Michelangelo", "Da Vinci", "Raphael", "Donatello"], answer: 1 },
   { id: "e4", category: "Entertainment", difficulty: "medium", q: "Which band released the album 'Abbey Road'?", choices: ["The Rolling Stones", "The Beatles", "Pink Floyd", "Queen"], answer: 1 },
-  { id: "e5", category: "Entertainment", difficulty: "hard", q: "What was the first feature-length animated film?", choices: ["Pinocchio", "Bambi", "Snow White and the Seven Dwarfs", "Fantasia"], answer: 2 },
+  { id: "e5", category: "Entertainment", difficulty: "hard", q: "What was Disney's first full-length animated film?", choices: ["Pinocchio", "Bambi", "Snow White and the Seven Dwarfs", "Fantasia"], answer: 2 },
   { id: "e6", category: "Entertainment", difficulty: "hard", q: "Who composed the Four Seasons?", choices: ["Bach", "Mozart", "Vivaldi", "Beethoven"], answer: 2 },
 ];
 

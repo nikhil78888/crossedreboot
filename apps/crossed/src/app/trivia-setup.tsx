@@ -69,7 +69,10 @@ export default function TriviaSetup() {
       <Text className="mt-6 font-[jost700] text-[15px] text-crossed-gray-900">
         Category
       </Text>
-      <View className="mt-3 flex-row flex-wrap" style={{ gap: 8 }}>
+      <View
+        className="mt-3"
+        style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+      >
         {["Any", ...TRIVIA_CATEGORIES].map((c) => {
           const active = category === c;
           return (
@@ -91,7 +94,7 @@ export default function TriviaSetup() {
       <Text className="mt-7 font-[jost700] text-[15px] text-crossed-gray-900">
         Difficulty
       </Text>
-      <View className="mt-3 flex-row" style={{ gap: 10 }}>
+      <View className="mt-3" style={{ flexDirection: "row", gap: 10 }}>
         {LEVELS.map((l) => {
           const active = level === l.key;
           return (
