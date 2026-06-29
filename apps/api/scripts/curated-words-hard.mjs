@@ -612,7 +612,7 @@ export default {
     "ASSET": "It balances a liability",
     "ATALL": "Tacked onto 'not' for emphasis",
     "ATTIC": "Where forgotten trunks gather dust",
-    "AUDIO": "The half of a film you shut your eyes for",
+    "AUDIO": "What you still get with the screen off",
     "AUDIT": "Sit in on a class without credit",
     "AVOID": "Give a wide berth",
     "AWAKE": "Staring at the ceiling at 3 a.m.",
