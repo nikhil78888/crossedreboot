@@ -83,7 +83,7 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
       intent="primary"
       size="xl"
       rounded="full"
-      label={`⚡ Challenge a friend · beat ${fmtSolve(solveSeconds)}`}
+      label={`⚡ Challenge a friend to beat ${fmtSolve(solveSeconds)}`}
       isLoading={busy}
       onPress={onChallenge}
     />

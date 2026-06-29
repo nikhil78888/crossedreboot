@@ -279,6 +279,9 @@ const PlayerResultCard = ({
     ? (player as { eloRatingSudoku?: number }).eloRatingSudoku ??
       player.eloRating
     : player.eloRating;
+  const delta = Math.round(
+    (currentRating ?? 0) - (parseInt(previousRating, 10) || 0)
+  );
   return (
     <TouchableOpacity
       onPress={() => {
@@ -298,13 +301,27 @@ const PlayerResultCard = ({
             <Text className="font-[jost600] text-[18px]">
               {player.username}
             </Text>
-            <Text className="font-[jost600] text-sm">
-              {previousRating} →
+            <View className="mt-0.5 flex-row items-center">
               <Text className="font-[jost600] text-sm text-cr-gray-500">
-                {" "}
-                {currentRating} rating
+                {previousRating} → {currentRating}
               </Text>
-            </Text>
+              {delta !== 0 && (
+                <View
+                  className="ml-2 flex-row items-center rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: delta > 0 ? "#dcfce7" : "#fee2e2" }}
+                >
+                  <Text
+                    className="font-[jost700]"
+                    style={{
+                      color: delta > 0 ? "#16a34a" : "#dc2626",
+                      fontSize: 12,
+                    }}
+                  >
+                    {delta > 0 ? `▲ +${delta}` : `▼ ${delta}`}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
           <Image
             source={isWinner ? images.medal_winner : images.medal}

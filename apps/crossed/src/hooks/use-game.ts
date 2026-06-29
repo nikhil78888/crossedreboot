@@ -11,6 +11,7 @@ import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status"
 import { resolveAndLogClues } from "../lib/clue-resolver";
 import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
+import { loadChallenge } from "../lib/challenge-utils";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU";
 export type { GameDifficulty };
@@ -581,6 +582,53 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       }
     );
 
+  // Accept a challenge: create a (non-rated FRIENDLY) game on the challenger's
+  // puzzle vs a ghost driven by their recorded timeline (stored under
+  // gameState.__challenge for the grid + result screen to read).
+  const { trigger: acceptChallenge, isMutating: acceptingChallenge } =
+    useSWRMutation(
+      "accept-challenge",
+      async (_key, { arg }: { arg: { challengeId: string } }) => {
+        if (!myProfile) return;
+        const ch = await loadChallenge(arg.challengeId);
+        if (!ch?.crosswordsId) return;
+        const { data: bots } = await supabase
+          .from("random_bot_profiles")
+          .select();
+        const bot = (bots || [])[0];
+        if (!bot?.id) return;
+        const { data: game, error } = await supabase
+          .from("games")
+          .insert({
+            crosswordsId: ch.crosswordsId,
+            gameVariant: "CROSSWORD",
+            difficulty: (ch.difficulty as GameDifficulty) ?? "REGULAR",
+            ...(ch.resolvedClues
+              ? { resolvedClues: ch.resolvedClues as Json }
+              : {}),
+            gameType: "FRIENDLY",
+            playState: "PLAYING",
+            startedAt: addSeconds(new Date(), 6).toISOString(),
+            gameDurationInSeconds: 300,
+            gameState: {
+              __challenge: {
+                timeline: ch.timeline,
+                seconds: ch.solveSeconds,
+                name: ch.challengerName,
+              },
+            } as never,
+          })
+          .select("*")
+          .single();
+        if (error || !game) throw error ?? new Error("no game");
+        await supabase.from("gamePlayers").insert([
+          { gamesId: game.id, profilesId: myProfile.id },
+          { gamesId: game.id, profilesId: bot.id },
+        ]);
+        return game.id;
+      }
+    );
+
   let opponentProgress = 0;
   let opponentUsername = "";
   let opponent;
@@ -624,6 +672,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     creatingRankedBotMatch,
     createGuidedMatch,
     creatingGuidedMatch,
+    acceptChallenge,
+    acceptingChallenge,
     playAgainFriendly,
     playingAgain,
   };
