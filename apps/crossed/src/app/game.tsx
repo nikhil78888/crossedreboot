@@ -19,10 +19,17 @@ export default function Game() {
   const navigation = useNavigation();
   const { gameId, tournamentId, guided, preview } = useLocalSearchParams();
   const { myProfile } = useMyProfile();
-  const { game, finishGame, forfeitGame, abortGame, opponent, opponentProgress } =
-    useGame({
-      gameId: gameId as string | undefined,
-    });
+  const {
+    game,
+    finishGame,
+    forfeitGame,
+    abortGame,
+    opponent,
+    opponentProgress,
+    opponentUsername,
+  } = useGame({
+    gameId: gameId as string | undefined,
+  });
   const [opponentRating, setOpponentRating] = useState(0);
 
   const gamePlayState = game?.playState;
@@ -261,16 +268,16 @@ export default function Game() {
         );
         return;
       }
-      // New player who hasn't named themselves yet → send them to the win +
-      // "pick a username" screen instead of the standard results. preview=1 lets
-      // an existing account walk the same screen without renaming anything.
       const beforeRating =
         game?.gameVariant === "SUDOKU"
           ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
           : myProfile?.eloRating;
-      if (preview === "1" || isPlaceholderUsername(myProfile?.username)) {
+      // The guided intro game (username already set) → a celebratory "enter the
+      // app" screen instead of the standard results. preview=1 walks the same
+      // screen from an existing account without changing anything.
+      if (guided === "1" || preview === "1") {
         router.replace(
-          `/set-username?won=${won ? 1 : 0}&margin=${margin}&before=${
+          `/intro-complete?won=${won ? 1 : 0}&margin=${margin}&before=${
             beforeRating ?? ""
           }${preview === "1" ? "&preview=1" : ""}`
         );
@@ -347,7 +354,7 @@ export default function Game() {
             className="mb-2 text-center font-[jost600] text-crossed-gray-700"
             style={{ fontSize: 22 }}
           >
-            You vs {opponent.username}
+            You vs {opponentUsername || opponent.username}
           </Text>
         )}
         {isRace && (

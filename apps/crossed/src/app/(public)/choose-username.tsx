@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormTextInput } from "../../components/FormTextInput";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Logo } from "../../components/Logo";
+import { setPendingIntro } from "../../lib/intro-flag";
 
 export default function ChooseUsername() {
   const router = useRouter();
@@ -74,6 +75,9 @@ const UsernameForm = ({ onDone }: { onDone: () => void }) => {
   const onSubmit = async (data: z.infer<typeof usernameFormSchema>) => {
     try {
       await setDisplayName({ username: data.username });
+      // New player is now signed in. Flag the intro match so /home prompts it;
+      // the root auth guard redirects this (public) screen to /home.
+      setPendingIntro(true);
       onDone();
     } catch (error: any) {
       if (error.code === "23505") {

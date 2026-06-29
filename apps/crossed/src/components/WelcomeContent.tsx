@@ -38,7 +38,7 @@ export const WelcomeContent = ({
           style={{ fontSize: 15, lineHeight: 22 }}
         >
           The home of competitive crosswords & sudoku.{"\n"}
-          Tap Play to race a real opponent in your first match.
+          Create your profile, then play your first match.
         </Text>
       </View>
       <View className="mt-10 w-full px-5">
@@ -48,7 +48,7 @@ export const WelcomeContent = ({
           rounded={"full"}
           isLoading={isPlaying}
           onPress={onPlay}
-          label="PLAY"
+          label="GET STARTED"
         />
         {/* Sign-in is intentionally tiny — almost all new users just tap Play. */}
         <TouchableOpacity

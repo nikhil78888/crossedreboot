@@ -15,6 +15,7 @@ import {
 } from "../../lib/intro-flag";
 import { Button } from "../../components/Button";
 import { ChallengeResultsBanner } from "../../components/ChallengeResultsBanner";
+import { IntroGamePrompt } from "../../components/IntroGamePrompt";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
@@ -63,47 +64,60 @@ export default function Home() {
     }
   }, [currentGameId, gamePlayState, router, navigation]);
 
-  // New-user intro race: the welcome "Play" button created a silent account and
-  // set the one-shot flag; once this user's profile loads, launch the guided
-  // first race. Ref + flag both guard against re-launching.
-  // Start in the launching state if the intro is pending, so the first frame is
-  // a spinner — never the dashboard — avoiding a flash before the race.
-  const introLaunched = useRef(false);
-  const [launchingIntro, setLaunchingIntro] = useState(
-    peekPendingIntro() || !!peekPendingChallenge()
+  // New-user intro flow. A challenge deep-link (acquisition) still AUTO-launches
+  // — it's the user's very first experience. The generic intro is now
+  // username-first: we PROMPT a warm-up vs a bot and launch it on tap.
+  const challengeLaunched = useRef(false);
+  const [launchingChallenge, setLaunchingChallenge] = useState(
+    !!peekPendingChallenge()
   );
+  const [showIntroPrompt, setShowIntroPrompt] = useState(peekPendingIntro());
+  const [introLaunching, setIntroLaunching] = useState(false);
+
   useEffect(() => {
-    if (!myProfile?.id || introLaunched.current) return;
-    // A challenge link wins: it's the new user's first experience (not the bot
-    // intro). Clear any pending generic intro so it doesn't fire afterward.
+    if (!myProfile?.id || challengeLaunched.current) return;
     const challengeId = consumePendingChallenge();
     if (challengeId) {
-      consumePendingIntro();
-      introLaunched.current = true;
-      setLaunchingIntro(true);
+      consumePendingIntro(); // a challenge supersedes the generic intro
+      challengeLaunched.current = true;
+      setLaunchingChallenge(true);
+      setShowIntroPrompt(false);
       router.replace(`/challenge?id=${challengeId}`);
-      return;
     }
-    if (consumePendingIntro()) {
-      introLaunched.current = true;
-      setLaunchingIntro(true);
-      (async () => {
-        try {
-          const id = await createGuidedMatch({ source: "onboarding" });
-          if (id) router.replace(`/game?gameId=${id}&guided=1`);
-          else setLaunchingIntro(false);
-        } catch {
-          setLaunchingIntro(false); // fall through to the normal dashboard
-        }
-      })();
-    }
-  }, [myProfile?.id, createGuidedMatch, router]);
+  }, [myProfile?.id, router]);
 
-  if (launchingIntro || loadingCurrentGameId || (currentGameId && !game)) {
+  const launchIntro = async () => {
+    if (introLaunching) return;
+    setIntroLaunching(true);
+    consumePendingIntro();
+    try {
+      const id = await createGuidedMatch({ source: "onboarding" });
+      if (id) router.replace(`/game?gameId=${id}&guided=1`);
+      else {
+        setIntroLaunching(false);
+        setShowIntroPrompt(false);
+      }
+    } catch {
+      setIntroLaunching(false);
+      setShowIntroPrompt(false); // fall through to the dashboard
+    }
+  };
+
+  if (launchingChallenge || loadingCurrentGameId || (currentGameId && !game)) {
     return (
       <View className="flex-1 items-center justify-center px-4 bg-white">
         <ActivityIndicator />
       </View>
+    );
+  }
+
+  if (showIntroPrompt) {
+    return (
+      <IntroGamePrompt
+        username={myProfile?.username}
+        onPlay={launchIntro}
+        isLoading={introLaunching}
+      />
     );
   }
 

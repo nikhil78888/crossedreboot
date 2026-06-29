@@ -643,6 +643,12 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     opponent = game.players.find((profile) => profile.id !== myProfile.id);
     if (opponent) {
       opponentUsername = opponent.username;
+      // A challenge ghost race is driven by a bot internally, but the player is
+      // really racing the challenger — show THEIR name, not the bot's.
+      const challengeName = (
+        game.gameState as { __challenge?: { name?: string | null } } | undefined
+      )?.__challenge?.name;
+      if (challengeName) opponentUsername = challengeName;
       if (game.gameState?.[opponent.id]) {
         opponentProgress = calculateScore({
           correctSolution: solutionOf(game),
