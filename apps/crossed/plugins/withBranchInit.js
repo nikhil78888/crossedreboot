@@ -24,7 +24,9 @@ const OPENURL_SNIPPET = [
   "    }",
 ].join("\n");
 const CONTINUE_SNIPPET = [
-  "    if RNBranch.continueUserActivity(userActivity) { // withBranchInit",
+  // Swift imports Obj-C `continueUserActivity:` as `continue(_:)` (omit-needless-
+  // words drops "UserActivity"); `continue` is a keyword, so it needs backticks.
+  "    if RNBranch.`continue`(userActivity) { // withBranchInit",
   "      return true",
   "    }",
 ].join("\n");
