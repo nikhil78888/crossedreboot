@@ -23,8 +23,8 @@ const schema = z.object({
     .nonempty({ message: "Please pick a username" })
     .min(6, { message: "Username must be at least 6 characters" })
     .regex(
-      new RegExp(/^([a-z]+\.)*[a-z]+$/),
-      "Lowercase a-z separated by dots(.) only"
+      new RegExp(/^([a-z0-9]+\.)*[a-z0-9]+$/),
+      "Letters, numbers, and dots(.) only"
     ),
 });
 
