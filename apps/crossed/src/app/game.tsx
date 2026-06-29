@@ -11,6 +11,7 @@ import { isPlaceholderUsername } from "../lib/intro-flag";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { WaitingSpinner } from "../components/WaitingSpinner";
 import { UrgencyPulse } from "../components/UrgencyPulse";
+import { recordChallengeResult } from "../lib/challenge-utils";
 import { supabase } from "../lib/supabase";
 
 export default function Game() {
@@ -201,18 +202,58 @@ export default function Game() {
       const challengeMeta = (
         game?.gameState as Record<string, unknown> | undefined
       )?.["__challenge"] as
-        | { seconds?: number | null; name?: string | null }
+        | {
+            id?: string | null;
+            challengerId?: string | null;
+            seconds?: number | null;
+            name?: string | null;
+          }
         | undefined;
       if (challengeMeta) {
         const start = game?.startedAt ?? game?.createdAt;
-        const yourSeconds = start
-          ? Math.max(
-              0,
-              Math.round((Date.now() - new Date(`${start}Z`).getTime()) / 1000)
-            )
-          : 0;
+        // Prefer the recorded solve time (set only on a correct solution); fall
+        // back to wall-clock for the on-screen result. `solved` being null means
+        // they forfeited/timed out rather than actually finishing.
+        const solved = (
+          myProfile?.id
+            ? (game?.gameState?.[myProfile.id] as
+                | { solvedInSeconds?: number | null }
+                | undefined)
+            : undefined
+        )?.solvedInSeconds;
+        const yourSeconds =
+          solved ??
+          (start
+            ? Math.max(
+                0,
+                Math.round(
+                  (Date.now() - new Date(`${start}Z`).getTime()) / 1000
+                )
+              )
+            : 0);
         const theirSeconds = challengeMeta.seconds ?? 0;
         const beat = theirSeconds > 0 && yourSeconds < theirSeconds;
+        // Close the loop: tell the original challenger how it went. Only when the
+        // accepter actually solved it (no false "they beat you" on a quick quit),
+        // there's a challenger to notify, and it isn't your own test challenge.
+        if (
+          solved != null &&
+          challengeMeta.challengerId &&
+          myProfile?.id &&
+          challengeMeta.challengerId !== myProfile.id &&
+          theirSeconds > 0
+        ) {
+          recordChallengeResult({
+            challengeId: challengeMeta.id ?? null,
+            challengerId: challengeMeta.challengerId,
+            opponentId: myProfile.id,
+            opponentName: myProfile.username ?? null,
+            gameVariant: game?.gameVariant ?? "CROSSWORD",
+            challengerSeconds: theirSeconds,
+            opponentSeconds: yourSeconds,
+            opponentWon: beat,
+          });
+        }
         router.replace(
           `/challenge-result?you=${yourSeconds}&them=${theirSeconds}&name=${encodeURIComponent(
             challengeMeta.name ?? "your rival"

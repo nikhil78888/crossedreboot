@@ -14,6 +14,7 @@ import {
   peekPendingChallenge,
 } from "../../lib/intro-flag";
 import { Button } from "../../components/Button";
+import { ChallengeResultsBanner } from "../../components/ChallengeResultsBanner";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
@@ -153,6 +154,9 @@ export default function Home() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Feedback on challenges you sent: who accepted + who won */}
+      <ChallengeResultsBanner />
 
       {/* Incoming friendly-match invite from a friend */}
       {!!invites?.length && (

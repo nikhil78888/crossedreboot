@@ -612,6 +612,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             gameDurationInSeconds: 300,
             gameState: {
               __challenge: {
+                id: ch.id,
+                challengerId: ch.challengerId,
                 timeline: ch.timeline,
                 seconds: ch.solveSeconds,
                 name: ch.challengerName,
