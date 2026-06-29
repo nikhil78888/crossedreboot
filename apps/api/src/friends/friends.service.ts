@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { eloColumnFor } from "../rating-fields";
 
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
@@ -75,9 +76,9 @@ export const listFriends = async (myId: string) => {
 // aliased) so the client renders it identically.
 export const friendsLeaderboard = async (
   myId: string,
-  variant: "CROSSWORD" | "SUDOKU"
+  variant: string
 ) => {
-  const ratingCol = variant === "SUDOKU" ? "eloRatingSudoku" : "eloRating";
+  const ratingCol = eloColumnFor(variant);
   const { data: rows } = await supabase
     .from("friendships")
     .select("requesterId, addresseeId")

@@ -3,6 +3,7 @@
 import express, { Router } from "express";
 import { getUsersInLobby } from "./profile.service";
 import { supabase } from "../lib/supabase";
+import { eloColumnFor } from "../rating-fields";
 
 export const profileRouter: Router = express.Router();
 
@@ -26,8 +27,7 @@ profileRouter.get("/leaderboard", async (req, res, next) => {
     // Separate ladders per variant: rank by the sudoku rating when asked, else
     // the crossword rating. Alias the chosen column back to `eloRating` so the
     // client response shape is identical for both.
-    const ratingCol =
-      req.query.variant === "SUDOKU" ? "eloRatingSudoku" : "eloRating";
+    const ratingCol = eloColumnFor(req.query.variant as string | undefined);
     const cols = `id, username, country, avatar, eloRating:${ratingCol}`;
 
     // Global: top humans worldwide. Exclude bots at the query level so the

@@ -4,6 +4,7 @@ import {
   GameDifficulty,
 } from "./game/game.service";
 import { supabase } from "./lib/supabase";
+import { eloColumnFor } from "./rating-fields";
 import { randomUUID } from "crypto";
 
 // Acceptable rating gap as a function of how long a player has waited. Starts
@@ -72,7 +73,9 @@ const tryMatch = async () => {
     const ids = fresh.map((r) => r.profilesId);
     const { data: profs } = await supabase
       .from("profiles")
-      .select("id, eloRating, eloRatingSudoku")
+      .select(
+        "id, eloRating, eloRatingSudoku, eloRatingWordSearch, eloRatingTrivia"
+      )
       .in("id", ids);
     const ratingOf = new Map(
       (profs ?? []).map((p) => [p.id, p])
@@ -82,9 +85,9 @@ const tryMatch = async () => {
       const variant = (r.gameVariant ?? "CROSSWORD") as GameVariant;
       const prof = ratingOf.get(r.profilesId);
       const rating =
-        variant === "SUDOKU"
-          ? prof?.eloRatingSudoku ?? 1000
-          : prof?.eloRating ?? 1000;
+        (prof as Record<string, number> | undefined)?.[
+          eloColumnFor(variant)
+        ] ?? 1000;
       return {
         profilesId: r.profilesId,
         rating,

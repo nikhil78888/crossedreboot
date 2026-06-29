@@ -521,6 +521,12 @@ export interface Database {
           eloRatingSudoku: number
           ratingDeviationSudoku: number
           volatilitySudoku: number
+          eloRatingWordSearch: number
+          ratingDeviationWordSearch: number
+          volatilityWordSearch: number
+          eloRatingTrivia: number
+          ratingDeviationTrivia: number
+          volatilityTrivia: number
           email: string | null
           id: string
           name: string | null
@@ -539,6 +545,12 @@ export interface Database {
           eloRatingSudoku?: number
           ratingDeviationSudoku?: number
           volatilitySudoku?: number
+          eloRatingWordSearch?: number
+          ratingDeviationWordSearch?: number
+          volatilityWordSearch?: number
+          eloRatingTrivia?: number
+          ratingDeviationTrivia?: number
+          volatilityTrivia?: number
           email?: string | null
           id?: string
           name?: string | null
@@ -557,6 +569,12 @@ export interface Database {
           eloRatingSudoku?: number
           ratingDeviationSudoku?: number
           volatilitySudoku?: number
+          eloRatingWordSearch?: number
+          ratingDeviationWordSearch?: number
+          volatilityWordSearch?: number
+          eloRatingTrivia?: number
+          ratingDeviationTrivia?: number
+          volatilityTrivia?: number
           email?: string | null
           id?: string
           name?: string | null

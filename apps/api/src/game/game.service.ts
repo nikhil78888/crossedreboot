@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { Game } from "types-and-validators";
 import { onTournamentGameFinished } from "../tournament/tournament.service";
 import { resolveCluesForDifficulty } from "./clue-resolver";
+import { ratingFieldsFor } from "../rating-fields";
 
 // Time limit scales with puzzle size (7x7/8x8 -> 5 min, 9x9 -> 7 min).
 export const durationForSize = (size: number | null | undefined, base: number) =>
@@ -11,7 +12,7 @@ export const durationForSize = (size: number | null | undefined, base: number) =
 // Sudoku is a longer solve than a mini crossword: 15 minutes.
 export const SUDOKU_DURATION_SECONDS = 900;
 
-export type GameVariant = "CROSSWORD" | "SUDOKU";
+export type GameVariant = "CROSSWORD" | "SUDOKU" | "WORD_SEARCH" | "TRIVIA";
 export type GameDifficulty = "REGULAR" | "HARD";
 
 export const createRankedMatch = async (
@@ -257,20 +258,8 @@ const updateGlicko2Ratings = (
   ];
 };
 
-// Which profile columns hold the rating for each variant, so crossword and
-// sudoku ladders are fully independent.
-const RATING_FIELDS = {
-  CROSSWORD: {
-    rating: "eloRating",
-    rd: "ratingDeviation",
-    vol: "volatility",
-  },
-  SUDOKU: {
-    rating: "eloRatingSudoku",
-    rd: "ratingDeviationSudoku",
-    vol: "volatilitySudoku",
-  },
-} as const;
+// Per-variant rating columns live in the shared rating-fields module so
+// matchmaking, leaderboards, and rating application can't drift.
 
 // Compute + persist ratings for a finished rated game (RANKED or TOURNAMENT),
 // in the column set for the game's variant. Bots' ratings are never written
@@ -292,8 +281,7 @@ export const applyRankedRatings = async (
   })[];
   if (!players || players.length < 2) return;
 
-  const f =
-    game.gameVariant === "SUDOKU" ? RATING_FIELDS.SUDOKU : RATING_FIELDS.CROSSWORD;
+  const f = ratingFieldsFor(game.gameVariant);
   const botIds = new Set(
     players.filter((p) => p.type === "BOT").map((p) => p.id)
   );
