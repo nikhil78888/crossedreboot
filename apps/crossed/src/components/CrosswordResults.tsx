@@ -8,6 +8,7 @@ import { ShareAppButton } from "./ShareAppButton";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { NewGameButtons } from "./NewGameButtons";
 import { Button } from "./Button";
+import { ChallengeButton } from "./ChallengeButton";
 import { Avatar } from "react-native-ui-lib";
 import { Database, Game } from "types-and-validators";
 import { TouchableOpacity } from "react-native-gesture-handler";
@@ -72,6 +73,9 @@ export const FriendlyGameResult = ({
               />
             </View>
           )}
+        </View>
+        <View className="mt-6">
+          <ChallengeButton gameId={gameId} />
         </View>
         <Text className="mt-4 text-center text-[28px] font-[jost800] text-crossed-yellow-300">
           Checkout the Answers
@@ -196,6 +200,9 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
           >
             You get {points} Points
           </Text>
+        </View>
+        <View className="mt-6">
+          <ChallengeButton gameId={gameId} />
         </View>
         <Text className="mt-4 text-center text-[28px] font-[jost800] text-crossed-yellow-300">
           Checkout the Answers
