@@ -32,15 +32,16 @@ profileRouter.get("/leaderboard", async (req, res, next) => {
     const rdCol = fields.rd;
     const cols = `id, username, country, avatar, eloRating:${ratingCol}`;
 
-    // Global: top humans worldwide who've actually played a ranked match in this
-    // variant. Exclude bots, and exclude players still at the default rating
-    // deviation (350) — RD only drops once you play ranked and never reflates,
-    // so RD < 350 means "has played ranked". Keeps unplayed/test accounts out.
+    // Global: top humans who've actually played a ranked match in this variant.
+    // "Has played" = their rating moved off the defaults (1000 / RD 350). We can't
+    // rely on RD alone — some real ranked players still show RD 350 — so include
+    // anyone whose rating OR deviation differs from default. Never-played + test
+    // accounts sit at exactly 1000/350 and are dropped.
     const { data, error } = await supabase
       .from("profiles")
       .select(cols)
       .neq("type", "BOT")
-      .lt(rdCol, 350)
+      .or(`${ratingCol}.neq.1000,${rdCol}.neq.350`)
       .order(ratingCol, { ascending: false })
       .limit(limit);
     if (error) {
