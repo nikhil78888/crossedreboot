@@ -1,4 +1,4 @@
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { Button } from "./Button";
 import { Logo } from "./Logo";
 
@@ -50,24 +50,20 @@ export const WelcomeContent = ({
           onPress={onPlay}
           label="PLAY"
         />
-        <View className="my-9 w-full flex-row space-x-12 px-4">
-          <View
-            className="flex-1 bg-crossed-gray-200"
-            style={{ height: StyleSheet.hairlineWidth }}
-          />
-          <View
-            className="flex-1 bg-crossed-gray-200"
-            style={{ height: StyleSheet.hairlineWidth }}
-          />
-        </View>
-        <Button
-          intent="primary"
-          size="lg"
-          rounded={"full"}
-          mode={"outline"}
+        {/* Sign-in is intentionally tiny — almost all new users just tap Play. */}
+        <TouchableOpacity
           onPress={onSignIn}
-          label="SIGN IN"
-        />
+          hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
+          className="mt-5 self-center py-1.5"
+        >
+          <Text
+            className="font-[jost500] text-crossed-gray-400"
+            style={{ fontSize: 13 }}
+          >
+            Already have an account?{" "}
+            <Text className="font-[jost600] text-crossed-gray-600">Sign in</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
