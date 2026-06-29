@@ -27,16 +27,16 @@ export const IntroGamePrompt = ({
         className="mt-3 text-center font-[jost500] text-crossed-gray-500"
         style={{ fontSize: 16, lineHeight: 24 }}
       >
-        Your first match is a quick warm-up against a{" "}
+        Tap below to start a quick practice match against a{" "}
         <Text className="font-[jost700] text-crossed-gray-700">friendly bot</Text>{" "}
-        so you can learn the ropes. Real opponents come next.
+        so you can learn the ropes. You’ll race real people after.
       </Text>
       <View className="mt-10 w-full px-2">
         <Button
           intent="primary"
           size="xl"
           rounded="full"
-          label="Play intro game"
+          label="Start warm-up vs bot"
           isLoading={isLoading}
           onPress={onPlay}
         />

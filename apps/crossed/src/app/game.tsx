@@ -367,8 +367,10 @@ export default function Game() {
 
   // Pre-game countdown so both players start together.
   if (counting) {
+    // The guided intro is a warm-up vs a bot — don't bill it as a real opponent.
+    const isIntro = guided === "1";
     const isRace =
-      guided === "1" || gameType === "RANKED" || gameType === "TOURNAMENT";
+      isIntro || gameType === "RANKED" || gameType === "TOURNAMENT";
     return (
       <View className="flex-1 items-center justify-center bg-white px-8">
         {isRace && (
@@ -376,7 +378,7 @@ export default function Game() {
             className="mb-3 text-center font-[jost700] text-crossed-gray-900"
             style={{ fontSize: 30 }}
           >
-            🏁 Live Crossword Race
+            {isIntro ? "🤖 Warm-up Match" : "🏁 Live Crossword Race"}
           </Text>
         )}
         {!!opponent && (
@@ -384,7 +386,9 @@ export default function Game() {
             className="mb-2 text-center font-[jost600] text-crossed-gray-700"
             style={{ fontSize: 22 }}
           >
-            You vs {opponentUsername || opponent.username}
+            {isIntro
+              ? "You vs a friendly bot 🤖"
+              : `You vs ${opponentUsername || opponent.username}`}
           </Text>
         )}
         {isRace && (
@@ -392,8 +396,9 @@ export default function Game() {
             className="mb-8 text-center font-[jost400] text-crossed-gray-500"
             style={{ fontSize: 17, lineHeight: 24 }}
           >
-            A real opponent is solving the same grid — first to finish wins. Go
-            fast!
+            {isIntro
+              ? "A friendly bot is solving the same grid — finish first to win! This one's just practice."
+              : "A real opponent is solving the same grid — first to finish wins. Go fast!"}
           </Text>
         )}
         <Text
