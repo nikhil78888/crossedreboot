@@ -11,7 +11,8 @@ const fmtClock = (s: number) =>
   `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 
 export const TriviaGame = ({ gameId }: { gameId: string }) => {
-  const { game, finishGame } = useGame({ gameId });
+  const { game, finishGame, opponent, opponentProgress, opponentUsername } =
+    useGame({ gameId });
   const { myProfile } = useMyProfile();
 
   const quiz = (game?.gameState as { __trivia?: TriviaQuiz } | undefined)
@@ -25,6 +26,15 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineRef = useRef<{ t: number; p: number }[]>([]);
   const finishedRef = useRef(false);
+  const gsRef = useRef(game?.gameState);
+  const answersRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    gsRef.current = game?.gameState;
+  }, [game?.gameState]);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+  const isRace = !!opponent;
 
   const startAtMs = useMemo(() => {
     const s = game?.startedAt ?? game?.createdAt;
@@ -56,7 +66,7 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
       finishedRef.current = true;
       if (writeTimer.current) clearTimeout(writeTimer.current);
       const mergedDone = {
-        ...(game.gameState ?? {}),
+        ...(gsRef.current ?? {}),
         [myProfile.id]: {
           answers,
           solvedInSeconds: elapsed,
@@ -71,20 +81,72 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
       finishGame();
       return;
     }
-    const merged = {
-      ...(game.gameState ?? {}),
-      [myProfile.id]: { answers },
-    };
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       supabase
         .from("games")
-        .update({ gameState: merged as never })
+        .update({
+          gameState: {
+            ...(gsRef.current ?? {}),
+            [myProfile.id]: { answers },
+          } as never,
+        })
         .eq("id", gameId)
         .then();
     }, 600);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers]);
+
+  // Bot opponent: rubber-band its correct-answer count toward the player
+  // (capped ~90% so finishing wins) — answering the first N questions correctly.
+  const startAtMsForBot = startAtMs;
+  useEffect(() => {
+    const bot = opponent as { id?: string; type?: string } | undefined;
+    if (!quiz || !game || !bot?.id || bot.type !== "BOT" || !startAtMsForBot)
+      return;
+    const total = quiz.questions.length;
+    const duration = game.gameDurationInSeconds || 240;
+    const botId = bot.id;
+    let botCount =
+      Object.keys(
+        (gsRef.current as Record<string, { answers?: Record<string, number> }> | undefined)?.[
+          botId
+        ]?.answers ?? {}
+      ).length || 0;
+    const tick = setInterval(() => {
+      if (finishedRef.current) {
+        clearInterval(tick);
+        return;
+      }
+      const elapsedSec = Math.max(0, (Date.now() - startAtMsForBot) / 1000);
+      const elapsedFrac = Math.min(1, elapsedSec / duration);
+      const playerFrac = total ? Object.keys(answersRef.current).length / total : 0;
+      const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+      const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+      const targetFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+      const target = Math.max(0, Math.floor(total * targetFrac));
+      if (target > botCount) {
+        botCount = target;
+        const botAnswers: Record<string, number> = {};
+        for (let i = 0; i < botCount; i++) {
+          const q = quiz.questions[i];
+          if (q) botAnswers[q.id] = q.answer; // bot answers correctly
+        }
+        supabase
+          .from("games")
+          .update({
+            gameState: {
+              ...(gsRef.current ?? {}),
+              [botId]: { answers: botAnswers },
+            } as never,
+          })
+          .eq("id", gameId)
+          .then();
+      }
+    }, 800);
+    return () => clearInterval(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opponent, quiz, startAtMsForBot, game?.gameDurationInSeconds]);
 
   if (!quiz) {
     return (
@@ -123,6 +185,21 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
           {fmtClock(elapsed)}
         </Text>
       </View>
+
+      {isRace && (
+        <View className="mb-3 px-1" style={{ gap: 6 }}>
+          <ProgressBar
+            label={opponentUsername || "Opponent"}
+            pct={opponentProgress}
+            color={colors["crossed-red"]["500"]}
+          />
+          <ProgressBar
+            label="You"
+            pct={triviaProgress(quiz, answers)}
+            color={colors["crossed-blue"]["450"]}
+          />
+        </View>
+      )}
 
       {/* Question */}
       <View className="mt-2 rounded-2xl bg-crossed-gray-50 px-5 py-6">
@@ -181,3 +258,36 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
     </View>
   );
 };
+
+const ProgressBar = ({
+  label,
+  pct,
+  color,
+}: {
+  label: string;
+  pct: number;
+  color: string;
+}) => (
+  <View className="flex-row items-center">
+    <Text
+      className="font-[jost600] text-[12px] text-crossed-gray-500"
+      numberOfLines={1}
+      style={{ width: 64 }}
+    >
+      {label}
+    </Text>
+    <View
+      className="flex-1 overflow-hidden rounded-full"
+      style={{ height: 10, backgroundColor: colors["crossed-gray"]["100"] }}
+    >
+      <View
+        style={{
+          height: 10,
+          width: `${Math.max(0, Math.min(100, pct))}%`,
+          backgroundColor: color,
+          borderRadius: 9999,
+        }}
+      />
+    </View>
+  </View>
+);

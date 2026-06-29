@@ -26,7 +26,11 @@ export const NewGameButtons = () => {
       variant === "TRIVIA" ? router.push("/trivia-setup") : pick("SOLO"),
     [variant, router, pick]
   );
-  const playFriendly = useCallback(() => pick("FRIENDLY"), [pick]);
+  const playFriendly = useCallback(
+    () =>
+      variant === "TRIVIA" ? router.push("/trivia-setup") : pick("FRIENDLY"),
+    [variant, router, pick]
+  );
   const playRanked = useCallback(() => pick("RANKED"), [pick]);
   const playTournament = useCallback(() => pick("TOURNAMENT"), [pick]);
   const playPrivateTournament = useCallback(

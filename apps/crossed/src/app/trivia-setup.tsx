@@ -18,18 +18,30 @@ const LEVELS: { key: Difficulty; label: string }[] = [
 export default function TriviaSetup() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { createSoloGame, creatingSoloGame } = useGame({ gameId: undefined });
+  const { createSoloGame, creatingSoloGame, createBotRace, creatingBotRace } =
+    useGame({ gameId: undefined });
   const [category, setCategory] = useState<string>("Any");
   const [level, setLevel] = useState<Difficulty>("easy");
 
+  const opts = {
+    variant: "TRIVIA" as const,
+    difficulty: (level === "hard" ? "HARD" : "REGULAR") as "HARD" | "REGULAR",
+    triviaCategory: category,
+    triviaLevel: level,
+  };
+
   const start = async () => {
     try {
-      const id = await createSoloGame({
-        variant: "TRIVIA",
-        difficulty: level === "hard" ? "HARD" : "REGULAR",
-        triviaCategory: category,
-        triviaLevel: level,
-      });
+      const id = await createSoloGame(opts);
+      if (id) router.replace(`/game?gameId=${id}`);
+    } catch {
+      // stay on screen
+    }
+  };
+
+  const race = async () => {
+    try {
+      const id = await createBotRace(opts);
       if (id) router.replace(`/game?gameId=${id}`);
     } catch {
       // stay on screen
@@ -115,7 +127,16 @@ export default function TriviaSetup() {
           intent="primary"
           size="xl"
           rounded="full"
-          label="Play"
+          label="⚡ Race a bot"
+          isLoading={creatingBotRace}
+          onPress={race}
+        />
+      </View>
+      <View className="mt-3 items-center">
+        <Button
+          intent="primary"
+          mode="text"
+          label="Play solo"
           isLoading={creatingSoloGame}
           onPress={start}
         />
