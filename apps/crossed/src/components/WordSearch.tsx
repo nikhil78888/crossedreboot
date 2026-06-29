@@ -32,7 +32,8 @@ const lineBetween = (a: Cell, b: Cell): Cell[] | null => {
 };
 
 export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
-  const { game, finishGame } = useGame({ gameId });
+  const { game, finishGame, opponent, opponentProgress, opponentUsername } =
+    useGame({ gameId });
   const { myProfile } = useMyProfile();
 
   const puzzle = (
@@ -46,6 +47,18 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineRef = useRef<{ t: number; p: number }[]>([]);
   const finishedRef = useRef(false);
+  // Freshest gameState + my found, so async writes (mine + the bot's) merge
+  // against current data instead of clobbering each other.
+  const gsRef = useRef(game?.gameState);
+  const foundRef = useRef<string[]>([]);
+  useEffect(() => {
+    gsRef.current = game?.gameState;
+  }, [game?.gameState]);
+  useEffect(() => {
+    foundRef.current = found;
+  }, [found]);
+
+  const isRace = !!opponent;
 
   const startAtMs = useMemo(() => {
     const s = game?.startedAt ?? game?.createdAt;
@@ -70,7 +83,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
       finishedRef.current = true;
       if (writeTimer.current) clearTimeout(writeTimer.current);
       const mergedDone = {
-        ...(game.gameState ?? {}),
+        ...(gsRef.current ?? {}),
         [myProfile.id]: {
           found,
           solvedInSeconds: elapsed,
@@ -85,20 +98,74 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
       finishGame();
       return;
     }
-    const merged = {
-      ...(game.gameState ?? {}),
-      [myProfile.id]: { found },
-    };
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       supabase
         .from("games")
-        .update({ gameState: merged as never })
+        .update({
+          gameState: {
+            ...(gsRef.current ?? {}),
+            [myProfile.id]: { found },
+          } as never,
+        })
         .eq("id", gameId)
         .then();
     }, 700);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [found]);
+
+  // Bot opponent: rubber-band its found-word count toward the player (a hair
+  // ahead early, then tracking, capped ~90% so finishing wins) — same feel as
+  // the crossword race, but counting words.
+  const startAtMsForBot = startAtMs;
+  useEffect(() => {
+    const bot = opponent as { id?: string; type?: string } | undefined;
+    if (
+      !puzzle ||
+      !game ||
+      !bot?.id ||
+      bot.type !== "BOT" ||
+      !startAtMsForBot
+    )
+      return;
+    const total = puzzle.words.length;
+    const duration = game.gameDurationInSeconds || 300;
+    const botId = bot.id;
+    let botCount =
+      (
+        (gsRef.current as Record<string, { found?: string[] }> | undefined)?.[
+          botId
+        ]?.found ?? []
+      ).length || 0;
+    const tick = setInterval(() => {
+      if (finishedRef.current) {
+        clearInterval(tick);
+        return;
+      }
+      const elapsedSec = Math.max(0, (Date.now() - startAtMsForBot) / 1000);
+      const elapsedFrac = Math.min(1, elapsedSec / duration);
+      const playerFrac = total ? foundRef.current.length / total : 0;
+      const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
+      const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
+      const targetFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+      const target = Math.max(0, Math.floor(total * targetFrac));
+      if (target > botCount) {
+        botCount = target;
+        supabase
+          .from("games")
+          .update({
+            gameState: {
+              ...(gsRef.current ?? {}),
+              [botId]: { found: puzzle.words.slice(0, botCount) },
+            } as never,
+          })
+          .eq("id", gameId)
+          .then();
+      }
+    }, 700);
+    return () => clearInterval(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opponent, puzzle, startAtMsForBot, game?.gameDurationInSeconds]);
 
   // Size the grid so the whole board + the full word list fit on screen.
   const { width, height } = Dimensions.get("window");
@@ -166,6 +233,21 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
           {fmtClock(elapsed)}
         </Text>
       </View>
+
+      {isRace && (
+        <View className="mb-2 px-1" style={{ gap: 6 }}>
+          <ProgressBar
+            label={opponentUsername || "Opponent"}
+            pct={opponentProgress}
+            color={colors["crossed-red"]["500"]}
+          />
+          <ProgressBar
+            label="You"
+            pct={wordSearchProgress(puzzle, found)}
+            color={colors["crossed-blue"]["450"]}
+          />
+        </View>
+      )}
 
       <GestureDetector gesture={pan}>
         <View className="self-center" style={{ width: gridPx, height: gridPx }}>
@@ -244,3 +326,36 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     </View>
   );
 };
+
+const ProgressBar = ({
+  label,
+  pct,
+  color,
+}: {
+  label: string;
+  pct: number;
+  color: string;
+}) => (
+  <View className="flex-row items-center">
+    <Text
+      className="font-[jost600] text-[12px] text-crossed-gray-500"
+      numberOfLines={1}
+      style={{ width: 64 }}
+    >
+      {label}
+    </Text>
+    <View
+      className="flex-1 overflow-hidden rounded-full"
+      style={{ height: 10, backgroundColor: colors["crossed-gray"]["100"] }}
+    >
+      <View
+        style={{
+          height: 10,
+          width: `${Math.max(0, Math.min(100, pct))}%`,
+          backgroundColor: color,
+          borderRadius: 9999,
+        }}
+      />
+    </View>
+  </View>
+);

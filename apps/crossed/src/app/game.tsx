@@ -284,9 +284,11 @@ export default function Game() {
             )?.[myProfile.id]
           : undefined;
         const youSecs = me?.solvedInSeconds ?? 0;
+        // In a bot race the bot is capped under 100%, so finishing = winning.
+        const raceWon = gameType !== "SOLO" && me?.solvedInSeconds != null;
         router.replace(
           `/variant-result?variant=${game.gameVariant}&type=${gameType}&won=${
-            won ? 1 : 0
+            raceWon ? 1 : 0
           }&you=${youSecs}&difficulty=${game.difficulty ?? "REGULAR"}`
         );
         return;

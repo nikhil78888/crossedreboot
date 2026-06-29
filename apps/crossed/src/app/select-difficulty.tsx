@@ -16,7 +16,9 @@ export default function SelectDifficulty() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode: Mode }>();
   const { variant } = useVariant();
-  const { createSoloGame, createFriendlyGame } = useGame({ gameId: undefined });
+  const { createSoloGame, createFriendlyGame, createBotRace } = useGame({
+    gameId: undefined,
+  });
   const { joinLobby } = useOnlineStatus();
   const { createPrivateTournament } = useTournament({
     tournamentId: undefined,
@@ -31,15 +33,21 @@ export default function SelectDifficulty() {
     setBusy(difficulty);
     try {
       trackEvent(events.DIFFICULTY_SELECTED, { mode, variant, difficulty });
-      // Word search / trivia are solo-only for now; competitive modes (the
-      // race vs a bot) are coming next.
+      // Word search "With Friend" = a live race vs a rubber-band bot (no
+      // friend-invite / rated ranked for the new variants yet).
+      if (variant === "WORD_SEARCH" && mode === "FRIENDLY") {
+        const id = await createBotRace({ variant, difficulty });
+        if (id) router.replace(`/game?gameId=${id}`);
+        return;
+      }
+      // Other competitive modes for the new variants aren't ready yet.
       if (
         (variant === "WORD_SEARCH" || variant === "TRIVIA") &&
         mode !== "SOLO"
       ) {
         Alert.alert(
           "Coming soon",
-          "Competitive modes for this game type are on the way — try Solo for now."
+          "More competitive modes for this game type are on the way — try Solo or a quick race for now."
         );
         return;
       }

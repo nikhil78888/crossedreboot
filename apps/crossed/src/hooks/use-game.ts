@@ -12,8 +12,17 @@ import { resolveAndLogClues } from "../lib/clue-resolver";
 import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
 import { loadChallenge } from "../lib/challenge-utils";
-import { generateWordSearch } from "../lib/word-search";
-import { generateTrivia, type Difficulty as TriviaLevel } from "../lib/trivia";
+import {
+  generateWordSearch,
+  wordSearchProgress,
+  type WordSearchPuzzle,
+} from "../lib/word-search";
+import {
+  generateTrivia,
+  triviaProgress,
+  type Difficulty as TriviaLevel,
+  type TriviaQuiz,
+} from "../lib/trivia";
 
 export type GameVariant = "CROSSWORD" | "SUDOKU" | "WORD_SEARCH" | "TRIVIA";
 export type { GameDifficulty };
@@ -538,6 +547,50 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       }
     );
 
+  // Live bot race for the variants without ranked/server scoring yet (word
+  // search, trivia): a non-rated FRIENDLY game vs a rubber-band bot, inline
+  // puzzle, short countdown so it starts like a real race.
+  const { trigger: createBotRace, isMutating: creatingBotRace } =
+    useSWRMutation(
+      "create-bot-race",
+      async (_key, { arg }: { arg?: NewGameArg } = {}) => {
+        if (!myProfile) return;
+        const variant = arg?.variant ?? "WORD_SEARCH";
+        const picked = await puzzleFieldsForNewGame(
+          variant,
+          myProfile.id,
+          180,
+          arg?.difficulty ?? "REGULAR",
+          arg?.triviaCategory,
+          arg?.triviaLevel
+        );
+        if (!picked) return;
+        const { data: bots } = await supabase
+          .from("random_bot_profiles")
+          .select();
+        const bot = (bots || [])[0];
+        if (!bot?.id) return;
+        const { data: game, error } = await supabase
+          .from("games")
+          .insert({
+            ...picked.fields,
+            ...(picked.gameState ? { gameState: picked.gameState } : {}),
+            gameType: "FRIENDLY",
+            playState: "PLAYING",
+            startedAt: addSeconds(new Date(), 6).toISOString(),
+            gameDurationInSeconds: picked.durationInSeconds,
+          })
+          .select("*")
+          .single();
+        if (error || !game) throw error ?? new Error("no game");
+        await supabase.from("gamePlayers").insert([
+          { gamesId: game.id, profilesId: myProfile.id },
+          { gamesId: game.id, profilesId: bot.id },
+        ]);
+        return game.id;
+      }
+    );
+
   // Guided "first race" intro match: a real ranked game vs the WEAKEST bot, on a
   // regular crossword. The bot-fill caps the opponent around ~68% of the grid, so
   // any player who finishes the puzzle wins at the line — a beatable nail-biter
@@ -688,12 +741,26 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         game.gameState as { __challenge?: { name?: string | null } } | undefined
       )?.__challenge?.name;
       if (challengeName) opponentUsername = challengeName;
-      if (game.gameState?.[opponent.id]) {
-        opponentProgress = calculateScore({
-          correctSolution: solutionOf(game),
-          solution: game.gameState[opponent.id].solution,
-          puzzle: puzzleOf(game),
-        });
+      const oppState = game.gameState?.[opponent.id] as
+        | { solution?: unknown; found?: string[]; answers?: Record<string, number> }
+        | undefined;
+      if (oppState) {
+        // Progress is variant-specific: grid score for crossword/sudoku, words
+        // found for word search, % correct for trivia.
+        if (game?.gameVariant === "WORD_SEARCH") {
+          const wp = (game.gameState as { __wordsearch?: WordSearchPuzzle })
+            ?.__wordsearch;
+          opponentProgress = wordSearchProgress(wp, oppState.found);
+        } else if (game?.gameVariant === "TRIVIA") {
+          const tq = (game.gameState as { __trivia?: TriviaQuiz })?.__trivia;
+          opponentProgress = triviaProgress(tq, oppState.answers);
+        } else {
+          opponentProgress = calculateScore({
+            correctSolution: solutionOf(game),
+            solution: game.gameState[opponent.id].solution,
+            puzzle: puzzleOf(game),
+          });
+        }
       }
     }
   }
@@ -717,6 +784,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     forfeitingGame,
     createRankedBotMatch,
     creatingRankedBotMatch,
+    createBotRace,
+    creatingBotRace,
     createGuidedMatch,
     creatingGuidedMatch,
     acceptChallenge,
