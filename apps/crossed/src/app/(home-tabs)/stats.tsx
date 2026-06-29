@@ -1,7 +1,8 @@
 import { Text, View } from "react-native";
 import useSWR from "swr";
-import { ScrollView } from "react-native-gesture-handler";
-import { formatDistanceToNowStrict } from "date-fns";
+import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
+import { format } from "date-fns";
+import { useRouter } from "expo-router";
 import { useStats } from "../../hooks/use-stats";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { useVariant } from "../../hooks/use-variant";
@@ -10,11 +11,16 @@ import { getRank } from "../../lib/rank";
 import { supabase } from "../../lib/supabase";
 import colors from "../../lib/colors";
 
+// mm:ss, or — when a game has no recorded solve time (pre-feature / unfinished).
+export const fmtSolve = (s: number | null) =>
+  s == null ? "—" : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
 type Activity = {
   id: string;
   opponent: string;
   result: "WON" | "LOST" | "TIE";
   createdAt: string;
+  solveSeconds: number | null;
 };
 
 const useRecentActivity = (
@@ -26,7 +32,7 @@ const useRecentActivity = (
     async (): Promise<Activity[]> => {
       const { data: games } = await supabase
         .from("games")
-        .select("id, winnerId, createdAt, profiles!gamePlayers!inner(id)")
+        .select("id, winnerId, createdAt, gameState, profiles!gamePlayers!inner(id)")
         .eq("gameType", "RANKED")
         .eq("gameVariant", variant)
         .eq("playState", "COMPLETED")
@@ -56,6 +62,10 @@ const useRecentActivity = (
             ? "LOST"
             : "TIE",
         createdAt: g.createdAt as string,
+        solveSeconds:
+          (g.gameState as Record<string, { solvedInSeconds?: number }> | null)?.[
+            profileId as string
+          ]?.solvedInSeconds ?? null,
       }));
     }
   );
@@ -72,6 +82,7 @@ export default function Stats() {
       : myProfile?.eloRating;
   const rank = getRank(rating);
   const activity = useRecentActivity(variant, myProfile?.id);
+  const router = useRouter();
 
   return (
     <ScrollView
@@ -195,13 +206,26 @@ export default function Stats() {
                     : "Tie"}
                 </Text>
               </View>
-              <Text className="ml-3 w-16 text-right font-[jost400] text-[12px] text-crossed-gray-400">
-                {formatDistanceToNowStrict(new Date(`${a.createdAt}Z`), {
-                  addSuffix: false,
-                })}
-              </Text>
+              <View className="ml-3 w-16 items-end">
+                <Text className="font-[jost700] text-[13px] text-crossed-gray-900">
+                  {fmtSolve(a.solveSeconds)}
+                </Text>
+                <Text className="font-[jost400] text-[11px] text-crossed-gray-400">
+                  {format(new Date(`${a.createdAt}Z`), "MMM d")}
+                </Text>
+              </View>
             </View>
           ))
+        )}
+        {activity.length > 0 && (
+          <TouchableOpacity
+            onPress={() => router.push(`/all-games?variant=${variant}`)}
+            className="mt-3 items-center border-t border-crossed-gray-100 pt-3"
+          >
+            <Text className="font-[jost700] text-[13px] text-crossed-blue-450">
+              View all puzzles →
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </ScrollView>

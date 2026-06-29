@@ -299,7 +299,24 @@ export const CrosswordGrid = ({
         clearTimeout(progressTimer.current);
         progressTimer.current = null;
       }
-      write(); // write the winning state NOW (scoring reads it)
+      // Stamp how long the solve took (now - startedAt) so stats can show it.
+      const solveSeconds = game.startedAt
+        ? Math.max(
+            0,
+            Math.round(
+              (Date.now() - new Date(`${game.startedAt}Z`).getTime()) / 1000
+            )
+          )
+        : null;
+      const mergedDone: Record<string, unknown> = {
+        ...(game.gameState ?? {}),
+        [myProfile.id]: { ...gameState, solvedInSeconds: solveSeconds },
+      };
+      supabase
+        .from("games")
+        .update({ gameState: mergedDone as never })
+        .eq("id", gameId)
+        .then(); // write the winning state NOW (scoring reads it)
       finishGame();
       return;
     }
