@@ -187,12 +187,14 @@ export const SudokuGrid = ({
         clearTimeout(progressTimer.current);
         progressTimer.current = null;
       }
-      // Stamp how long the solve took (now - startedAt) so stats can show it.
-      const solveSeconds = game.startedAt
+      // Stamp how long the solve took so stats can show it. Solo has no
+      // startedAt (self-paced) — fall back to createdAt.
+      const solveStart = game.startedAt ?? game.createdAt;
+      const solveSeconds = solveStart
         ? Math.max(
             0,
             Math.round(
-              (Date.now() - new Date(`${game.startedAt}Z`).getTime()) / 1000
+              (Date.now() - new Date(`${solveStart}Z`).getTime()) / 1000
             )
           )
         : null;

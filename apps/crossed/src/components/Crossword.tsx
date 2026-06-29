@@ -287,7 +287,10 @@ export const CrosswordGrid = ({
   useEffect(() => {
     if (!(game && gameState && myProfile && !isGameFinished)) return;
     // Capture a progress sample (only when it advances) for the ghost replay.
-    if (game.startedAt) {
+    // Solo games have no startedAt (self-paced) — fall back to createdAt so solo
+    // solves still record a time + timeline (and get the Challenge button).
+    const startAt = game.startedAt ?? game.createdAt;
+    if (startAt) {
       const p = calculateScore({
         correctSolution: solutionOf(game),
         solution: gameState.solution,
@@ -297,9 +300,7 @@ export const CrosswordGrid = ({
       if (!last || p > last.p) {
         const t = Math.max(
           0,
-          Math.round(
-            (Date.now() - new Date(`${game.startedAt}Z`).getTime()) / 1000
-          )
+          Math.round((Date.now() - new Date(`${startAt}Z`).getTime()) / 1000)
         );
         timelineRef.current.push({ t, p });
       }
@@ -320,12 +321,12 @@ export const CrosswordGrid = ({
         clearTimeout(progressTimer.current);
         progressTimer.current = null;
       }
-      // Stamp how long the solve took (now - startedAt) so stats can show it.
-      const solveSeconds = game.startedAt
+      // Stamp how long the solve took so stats + challenges can show it.
+      const solveSeconds = startAt
         ? Math.max(
             0,
             Math.round(
-              (Date.now() - new Date(`${game.startedAt}Z`).getTime()) / 1000
+              (Date.now() - new Date(`${startAt}Z`).getTime()) / 1000
             )
           )
         : null;
