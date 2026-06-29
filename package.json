@@ -24,6 +24,6 @@
     "node": ">=20.19.4"
   },
   "dependencies": {
-    "@config-plugins/react-native-branch": "^13.0.1"
+    "@config-plugins/react-native-branch": "~12.0.0"
   }
 }

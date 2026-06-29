@@ -1200,10 +1200,10 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@config-plugins/react-native-branch@^13.0.1":
-  version "13.0.1"
-  resolved "https://registry.yarnpkg.com/@config-plugins/react-native-branch/-/react-native-branch-13.0.1.tgz#9e532977786f9bbbc1888086a0318ce13f871247"
-  integrity sha512-iYV07H80rrn2fhQqWNxh6wm2f9LsNdYyWPgOGUHf23zjWpxHr9fNsrmiUfVPP4ONu12JBgWr+3u78B/OSzKhGQ==
+"@config-plugins/react-native-branch@~12.0.0":
+  version "12.0.0"
+  resolved "https://registry.yarnpkg.com/@config-plugins/react-native-branch/-/react-native-branch-12.0.0.tgz#8d856342a156529489f84867e3392be9aad3b2c2"
+  integrity sha512-ed9BXmRxVdwz25Jgl3UHiVyZkLCXy0kWO2W56muWDtKUho5JWM1/UhAh1Wga88ag7sBBFT0LXQ0FUUwzYHTsiw==
   dependencies:
     glob "^11.0.3"
 
