@@ -21,6 +21,7 @@ type Activity = {
   result: "WON" | "LOST" | "TIE";
   createdAt: string;
   solveSeconds: number | null;
+  challenge?: boolean;
 };
 
 const useRecentActivity = (
@@ -30,16 +31,27 @@ const useRecentActivity = (
   const { data } = useSWR(
     profileId ? ["recent-activity", profileId, variant] : null,
     async (): Promise<Activity[]> => {
+      // Pull ranked games AND challenge ghost-races (FRIENDLY with a __challenge
+      // marker); over-fetch then filter out plain friendly/intro matches.
       const { data: games } = await supabase
         .from("games")
-        .select("id, winnerId, createdAt, gameState, profiles!gamePlayers!inner(id)")
-        .eq("gameType", "RANKED")
+        .select(
+          "id, winnerId, createdAt, gameState, gameType, profiles!gamePlayers!inner(id)"
+        )
+        .in("gameType", ["RANKED", "FRIENDLY"])
         .eq("gameVariant", variant)
         .eq("playState", "COMPLETED")
         .filter("profiles.id", "eq", profileId)
         .order("createdAt", { ascending: false })
-        .limit(6);
-      const ids = (games ?? []).map((g) => g.id);
+        .limit(30);
+      const relevant = (games ?? [])
+        .filter((g) => {
+          const ch = (g.gameState as { __challenge?: unknown } | null)
+            ?.__challenge;
+          return g.gameType === "RANKED" || !!ch;
+        })
+        .slice(0, 6);
+      const ids = relevant.map((g) => g.id);
       if (!ids.length) return [];
       const { data: opps } = await supabase
         .from("gamePlayers")
@@ -52,21 +64,38 @@ const useRecentActivity = (
           (o.profiles as { username?: string } | null)?.username ?? "Opponent",
         ])
       );
-      return (games ?? []).map((g) => ({
-        id: g.id,
-        opponent: oppMap.get(g.id) ?? "Opponent",
-        result:
-          g.winnerId === profileId
-            ? "WON"
-            : g.winnerId
-            ? "LOST"
-            : "TIE",
-        createdAt: g.createdAt as string,
-        solveSeconds:
+      return relevant.map((g) => {
+        const ch = (
+          g.gameState as
+            | { __challenge?: { name?: string | null; seconds?: number | null } }
+            | null
+        )?.__challenge;
+        const mySolve =
           (g.gameState as Record<string, { solvedInSeconds?: number }> | null)?.[
             profileId as string
-          ]?.solvedInSeconds ?? null,
-      }));
+          ]?.solvedInSeconds ?? null;
+        // Challenge result is time-based (beat their solve); ranked is winnerId.
+        let opponent: string;
+        let result: "WON" | "LOST" | "TIE";
+        if (ch) {
+          opponent = ch.name || "Challenger";
+          const theirs = ch.seconds ?? 0;
+          result =
+            mySolve != null && theirs > 0 && mySolve < theirs ? "WON" : "LOST";
+        } else {
+          opponent = oppMap.get(g.id) ?? "Opponent";
+          result =
+            g.winnerId === profileId ? "WON" : g.winnerId ? "LOST" : "TIE";
+        }
+        return {
+          id: g.id,
+          opponent,
+          result,
+          createdAt: g.createdAt as string,
+          solveSeconds: mySolve,
+          challenge: !!ch,
+        };
+      });
     }
   );
   return data ?? [];
@@ -157,8 +186,8 @@ export default function Stats() {
         </Text>
         {activity.length === 0 ? (
           <Text className="mt-3 font-[jost400] text-sm text-crossed-gray-400">
-            No ranked {variant === "SUDOKU" ? "Sudoku" : "Crossword"} games yet —
-            play one to see it here.
+            No ranked {variant === "SUDOKU" ? "Sudoku" : "Crossword"} games or
+            challenges yet — play one to see it here.
           </Text>
         ) : (
           activity.map((a, i) => (
@@ -175,7 +204,7 @@ export default function Stats() {
                 className="flex-1 font-[jost600] text-[15px] text-crossed-gray-900"
                 numberOfLines={1}
               >
-                vs {a.opponent}
+                {a.challenge ? "⚡ " : ""}vs {a.opponent}
               </Text>
               <View
                 className="rounded-full px-2.5 py-0.5"

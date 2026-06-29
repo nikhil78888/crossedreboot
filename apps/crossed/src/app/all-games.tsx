@@ -61,23 +61,37 @@ export default function AllGames() {
       }
       const mapped: Row[] = list.map((g) => {
         const isSolo = g.gameType === "SOLO";
+        const ch = (
+          g.gameState as
+            | { __challenge?: { name?: string | null; seconds?: number | null } }
+            | null
+        )?.__challenge;
+        const mySolve =
+          (g.gameState as Record<string, { solvedInSeconds?: number }> | null)?.[
+            myProfile.id
+          ]?.solvedInSeconds ?? null;
+        let label: string;
+        let result: "WON" | "LOST" | "TIE" | null;
+        if (ch) {
+          // Challenge ghost-race: real opponent is the challenger; time-based.
+          label = `⚡ vs ${ch.name || "Challenger"}`;
+          const theirs = ch.seconds ?? 0;
+          result =
+            mySolve != null && theirs > 0 && mySolve < theirs ? "WON" : "LOST";
+        } else if (isSolo) {
+          label = "Solo puzzle";
+          result = null;
+        } else {
+          label = `vs ${oppMap.get(g.id) ?? "Opponent"}`;
+          result =
+            g.winnerId === myProfile.id ? "WON" : g.winnerId ? "LOST" : "TIE";
+        }
         return {
           id: g.id,
-          label: isSolo
-            ? "Solo puzzle"
-            : `vs ${oppMap.get(g.id) ?? "Opponent"}`,
-          result: isSolo
-            ? null
-            : g.winnerId === myProfile.id
-            ? "WON"
-            : g.winnerId
-            ? "LOST"
-            : "TIE",
+          label,
+          result,
           createdAt: g.createdAt as string,
-          solveSeconds:
-            (
-              g.gameState as Record<string, { solvedInSeconds?: number }> | null
-            )?.[myProfile.id]?.solvedInSeconds ?? null,
+          solveSeconds: mySolve,
         };
       });
       setRows((prev) => (p === 0 ? mapped : [...prev, ...mapped]));

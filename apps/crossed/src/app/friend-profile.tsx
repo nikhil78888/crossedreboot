@@ -29,6 +29,11 @@ export default function FriendProfile() {
   const { inviteToGame } = useFriends();
   const { checkCanPlay } = useGameGate();
   const [h2h, setH2h] = useState<H2H | null>(null);
+  const [challengeTally, setChallengeTally] = useState({
+    wins: 0,
+    losses: 0,
+    count: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -40,8 +45,46 @@ export default function FriendProfile() {
         viewer_id: myProfile.id,
         opponent_id: id,
       });
+      // Async challenges between these two don't show in the RPC (the game's
+      // opponent is a bot driving the ghost), so fold them in from
+      // challenge_results, in either direction.
+      const chClient = supabase as unknown as {
+        from: (t: "challenge_results") => {
+          select: (c: string) => {
+            or: (f: string) => Promise<{
+              data:
+                | {
+                    challengerId: string;
+                    opponentId: string;
+                    opponentWon: boolean;
+                  }[]
+                | null;
+            }>;
+          };
+        };
+      };
+      const { data: chRows } = await chClient
+        .from("challenge_results")
+        .select("challengerId, opponentId, opponentWon")
+        .or(
+          `and(challengerId.eq.${myProfile.id},opponentId.eq.${id}),and(challengerId.eq.${id},opponentId.eq.${myProfile.id})`
+        );
+      let cWins = 0;
+      let cLosses = 0;
+      for (const r of chRows ?? []) {
+        // opponentWon = the accepter beat the challenger. Map to the viewer.
+        const viewerIsAccepter = r.opponentId === myProfile.id;
+        const viewerWon = viewerIsAccepter ? r.opponentWon : !r.opponentWon;
+        if (viewerWon) cWins++;
+        else cLosses++;
+      }
       if (active) {
         setH2h((data?.[0] as H2H) ?? null);
+        setChallengeTally({
+          wins: cWins,
+          losses: cLosses,
+          count: (chRows ?? []).length,
+        });
         setLoading(false);
       }
     })();
@@ -65,10 +108,10 @@ export default function FriendProfile() {
     }
   };
 
-  const wins = h2h?.viewer_wins ?? 0;
-  const losses = h2h?.opponent_wins ?? 0;
+  const wins = (h2h?.viewer_wins ?? 0) + challengeTally.wins;
+  const losses = (h2h?.opponent_wins ?? 0) + challengeTally.losses;
   const ties = h2h?.ties ?? 0;
-  const total = h2h?.total ?? 0;
+  const total = (h2h?.total ?? 0) + challengeTally.count;
 
   return (
     <View className="flex-1 bg-white px-6 pt-8">
