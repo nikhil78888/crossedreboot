@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import produce from "immer";
-import { useGame } from "../hooks/use-game";
+import { calculateScore, puzzleOf, solutionOf, useGame } from "../hooks/use-game";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import { Image } from "expo-image";
@@ -72,6 +72,9 @@ export const CrosswordGrid = ({
   // Debounce progress writes so we don't write the full game row on every
   // keystroke (realtime/write amplification). The WIN write is never debounced.
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Progress samples [{t: secs, p: score}] over the solve — the ghost replay a
+  // challenged friend will race against.
+  const timelineRef = useRef<{ t: number; p: number }[]>([]);
   useEffect(
     () => () => {
       if (progressTimer.current) clearTimeout(progressTimer.current);
@@ -283,6 +286,24 @@ export const CrosswordGrid = ({
 
   useEffect(() => {
     if (!(game && gameState && myProfile && !isGameFinished)) return;
+    // Capture a progress sample (only when it advances) for the ghost replay.
+    if (game.startedAt) {
+      const p = calculateScore({
+        correctSolution: solutionOf(game),
+        solution: gameState.solution,
+        puzzle: puzzleOf(game),
+      });
+      const last = timelineRef.current[timelineRef.current.length - 1];
+      if (!last || p > last.p) {
+        const t = Math.max(
+          0,
+          Math.round(
+            (Date.now() - new Date(`${game.startedAt}Z`).getTime()) / 1000
+          )
+        );
+        timelineRef.current.push({ t, p });
+      }
+    }
     const merged = game.gameState
       ? { ...game.gameState, [myProfile.id]: gameState }
       : { [myProfile.id]: gameState };
@@ -310,7 +331,11 @@ export const CrosswordGrid = ({
         : null;
       const mergedDone: Record<string, unknown> = {
         ...(game.gameState ?? {}),
-        [myProfile.id]: { ...gameState, solvedInSeconds: solveSeconds },
+        [myProfile.id]: {
+          ...gameState,
+          solvedInSeconds: solveSeconds,
+          timeline: timelineRef.current,
+        },
       };
       supabase
         .from("games")
