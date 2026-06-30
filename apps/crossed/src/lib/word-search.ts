@@ -117,7 +117,7 @@ const tryPlace = (
 
 export const wordSearchConfig = (difficulty: "REGULAR" | "HARD") =>
   difficulty === "HARD"
-    ? { size: 12, count: 10, dirs: DIRS_HARD }
+    ? { size: 12, count: 8, dirs: DIRS_HARD }
     : { size: 9, count: 7, dirs: DIRS_EASY };
 
 export const generateWordSearch = (

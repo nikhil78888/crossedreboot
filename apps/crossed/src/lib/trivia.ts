@@ -1,7 +1,16 @@
-// Bundled trivia bank + quiz selection. Like word search, a quiz is generated
-// (selected) on the client and stored inline in gameState.__trivia, so trivia
-// needs no content table / RPC and ships over-the-air. The bank is authored here
-// and can be expanded over time (categories × easy/medium/hard).
+// Bundled trivia bank + quiz selection. A quiz is generated (selected) on the
+// client and stored inline in gameState.__trivia, so trivia needs no content
+// table / RPC and ships over-the-air.
+//
+// AUTHORING RULES (from trivia_evals calibration — keep this bar):
+//  - ACCURATE: exactly one defensible answer; no disputed/contested facts.
+//  - HARD per tier: easy = solid general knowledge (not kids' level); medium =
+//    real recall; hard = precise/specialist.
+//  - DISTRACTORS MUST NOT GIVE IT AWAY: all four choices are the same type and
+//    individually plausible, so you can't pick by inspection. NEVER use
+//    spelling/letter/pattern questions ("which ends in 3 vowels") — the choices
+//    expose the answer.
+//  - NO REPEATS: keep the bank large so games rarely reuse a question.
 
 export type Difficulty = "easy" | "medium" | "hard";
 export type TriviaQuestion = {
@@ -13,8 +22,6 @@ export type TriviaQuestion = {
   answer: number; // index into choices
 };
 
-// A selected quiz stored on the game (answer index stripped is NOT needed —
-// the game is client-finalized; we keep the answer for instant local checking).
 export type TriviaQuiz = {
   category: string;
   difficulty: Difficulty;
@@ -22,100 +29,129 @@ export type TriviaQuiz = {
 };
 
 export const TRIVIA_CATEGORIES = [
-  "General",
   "Science",
   "History",
   "Geography",
   "Sports",
-  "Entertainment",
+  "Film & TV",
+  "Art & Literature",
+  "Music",
+  "Nature",
 ] as const;
 
 const BANK: TriviaQuestion[] = [
-  // ---- General ----
-  { id: "g1", category: "General", difficulty: "easy", q: "How many days are in a leap year?", choices: ["365", "366", "364", "360"], answer: 1 },
-  { id: "g2", category: "General", difficulty: "medium", q: "What number does the Roman numeral 'L' represent?", choices: ["10", "50", "100", "500"], answer: 1 },
-  { id: "g3", category: "General", difficulty: "easy", q: "How many sides does a hexagon have?", choices: ["5", "6", "7", "8"], answer: 1 },
-  { id: "g4", category: "General", difficulty: "medium", q: "What is the most spoken native language in the world?", choices: ["English", "Hindi", "Mandarin Chinese", "Spanish"], answer: 2 },
-  { id: "g5", category: "General", difficulty: "hard", q: "What is the only number spelled with letters in alphabetical order (in English)?", choices: ["Six", "Forty", "Ten", "Two"], answer: 1 },
-  { id: "g6", category: "General", difficulty: "hard", q: "Which is the only U.S. state name that ends in three vowels?", choices: ["Hawaii", "Ohio", "Iowa", "Idaho"], answer: 0 },
+  // ============================ SCIENCE ============================
+  { id: "sci-e1", category: "Science", difficulty: "easy", q: "Which planet is closest to the Sun?", choices: ["Mercury", "Venus", "Earth", "Mars"], answer: 0 },
+  { id: "sci-e2", category: "Science", difficulty: "easy", q: "What is the largest organ in the human body?", choices: ["Skin", "Liver", "Brain", "Lungs"], answer: 0 },
+  { id: "sci-e3", category: "Science", difficulty: "easy", q: "What type of animal is a dolphin?", choices: ["Mammal", "Fish", "Amphibian", "Reptile"], answer: 0 },
+  { id: "sci-e4", category: "Science", difficulty: "easy", q: "Which gas makes up most of the air we breathe?", choices: ["Nitrogen", "Oxygen", "Carbon dioxide", "Hydrogen"], answer: 0 },
+  { id: "sci-m1", category: "Science", difficulty: "medium", q: "What is the chemical symbol for iron?", choices: ["Fe", "Ir", "In", "Fr"], answer: 0 },
+  { id: "sci-m2", category: "Science", difficulty: "medium", q: "What is the pH value of a neutral solution?", choices: ["7", "0", "14", "1"], answer: 0 },
+  { id: "sci-m3", category: "Science", difficulty: "medium", q: "Which blood cells primarily fight infection?", choices: ["White blood cells", "Red blood cells", "Platelets", "Plasma cells"], answer: 0 },
+  { id: "sci-m4", category: "Science", difficulty: "medium", q: "What is the atomic number of carbon?", choices: ["6", "12", "8", "14"], answer: 0 },
+  { id: "sci-m5", category: "Science", difficulty: "medium", q: "What is the lightest element on the periodic table?", choices: ["Hydrogen", "Helium", "Lithium", "Carbon"], answer: 0 },
+  { id: "sci-h1", category: "Science", difficulty: "hard", q: "What is the SI unit of force?", choices: ["Newton", "Joule", "Pascal", "Watt"], answer: 0 },
+  { id: "sci-h2", category: "Science", difficulty: "hard", q: "Who formulated the three laws of planetary motion?", choices: ["Johannes Kepler", "Nicolaus Copernicus", "Galileo Galilei", "Tycho Brahe"], answer: 0 },
+  { id: "sci-h3", category: "Science", difficulty: "hard", q: "What is the most abundant metal in the Earth's crust?", choices: ["Aluminum", "Iron", "Calcium", "Sodium"], answer: 0 },
+  { id: "sci-h4", category: "Science", difficulty: "hard", q: "Which element has the chemical symbol 'K'?", choices: ["Potassium", "Krypton", "Calcium", "Carbon"], answer: 0 },
+  { id: "sci-h5", category: "Science", difficulty: "hard", q: "In cellular biology, where does the citric acid cycle take place?", choices: ["Mitochondria", "Nucleus", "Ribosome", "Cytoplasm"], answer: 0 },
 
-  // ---- Science ----
-  { id: "s1", category: "Science", difficulty: "easy", q: "What gas do plants primarily absorb from the air?", choices: ["Oxygen", "Carbon dioxide", "Nitrogen", "Hydrogen"], answer: 1 },
-  { id: "s3", category: "Science", difficulty: "medium", q: "What is the chemical symbol for gold?", choices: ["Gd", "Au", "Ag", "Go"], answer: 1 },
-  { id: "s4", category: "Science", difficulty: "medium", q: "How many bones are in the adult human body?", choices: ["206", "201", "212", "198"], answer: 0 },
-  { id: "s5", category: "Science", difficulty: "hard", q: "What is the powerhouse of the cell?", choices: ["Nucleus", "Ribosome", "Mitochondria", "Golgi body"], answer: 2 },
-  { id: "s6", category: "Science", difficulty: "hard", q: "What particle has no electric charge?", choices: ["Proton", "Electron", "Neutron", "Positron"], answer: 2 },
+  // ============================ HISTORY ============================
+  { id: "his-e1", category: "History", difficulty: "easy", q: "On which continent was ancient Egypt located?", choices: ["Africa", "Asia", "Europe", "South America"], answer: 0 },
+  { id: "his-e2", category: "History", difficulty: "easy", q: "Who was the first President of the United States?", choices: ["George Washington", "Abraham Lincoln", "Thomas Jefferson", "John Adams"], answer: 0 },
+  { id: "his-e3", category: "History", difficulty: "easy", q: "The Roman Colosseum is located in which modern city?", choices: ["Rome", "Athens", "Cairo", "Istanbul"], answer: 0 },
+  { id: "his-m1", category: "History", difficulty: "medium", q: "In what year did World War II end?", choices: ["1945", "1943", "1947", "1939"], answer: 0 },
+  { id: "his-m2", category: "History", difficulty: "medium", q: "Which empire built Machu Picchu?", choices: ["Inca", "Aztec", "Maya", "Olmec"], answer: 0 },
+  { id: "his-m3", category: "History", difficulty: "medium", q: "Who was the British Prime Minister for most of World War II?", choices: ["Winston Churchill", "Neville Chamberlain", "Clement Attlee", "Anthony Eden"], answer: 0 },
+  { id: "his-m4", category: "History", difficulty: "medium", q: "The ancient city of Babylon was located in modern-day which country?", choices: ["Iraq", "Egypt", "Iran", "Syria"], answer: 0 },
+  { id: "his-h1", category: "History", difficulty: "hard", q: "Who was the first emperor of Rome?", choices: ["Augustus", "Julius Caesar", "Nero", "Constantine"], answer: 0 },
+  { id: "his-h2", category: "History", difficulty: "hard", q: "In what year did the French Revolution begin?", choices: ["1789", "1776", "1804", "1715"], answer: 0 },
+  { id: "his-h3", category: "History", difficulty: "hard", q: "Which treaty formally ended World War I?", choices: ["Treaty of Versailles", "Treaty of Paris", "Treaty of Ghent", "Treaty of Trianon"], answer: 0 },
+  { id: "his-h4", category: "History", difficulty: "hard", q: "Who was the last active ruler of the Ptolemaic Kingdom of Egypt?", choices: ["Cleopatra VII", "Nefertiti", "Hatshepsut", "Berenice IV"], answer: 0 },
+  { id: "his-h5", category: "History", difficulty: "hard", q: "The Magna Carta was sealed during the reign of which English king?", choices: ["King John", "Henry VIII", "Richard I", "Edward I"], answer: 0 },
 
-  // ---- History ----
-  { id: "h1", category: "History", difficulty: "easy", q: "Who was the first President of the United States?", choices: ["Lincoln", "Jefferson", "Washington", "Adams"], answer: 2 },
-  { id: "h2", category: "History", difficulty: "easy", q: "The Great Wall is located in which country?", choices: ["Japan", "China", "India", "Korea"], answer: 1 },
-  { id: "h3", category: "History", difficulty: "medium", q: "In what year did World War II end?", choices: ["1943", "1945", "1947", "1950"], answer: 1 },
-  { id: "h4", category: "History", difficulty: "medium", q: "Which ancient civilization built the pyramids at Giza?", choices: ["Roman", "Greek", "Egyptian", "Persian"], answer: 2 },
-  { id: "h5", category: "History", difficulty: "hard", q: "Who was the first woman to win a Nobel Prize?", choices: ["Marie Curie", "Rosalind Franklin", "Ada Lovelace", "Dorothy Hodgkin"], answer: 0 },
-  { id: "h6", category: "History", difficulty: "hard", q: "The Magna Carta was signed in which year?", choices: ["1066", "1215", "1492", "1300"], answer: 1 },
+  // ============================ GEOGRAPHY ============================
+  { id: "geo-e1", category: "Geography", difficulty: "easy", q: "What is the largest ocean on Earth?", choices: ["Pacific", "Atlantic", "Indian", "Arctic"], answer: 0 },
+  { id: "geo-e2", category: "Geography", difficulty: "easy", q: "Which country is shaped like a boot?", choices: ["Italy", "Spain", "Greece", "Portugal"], answer: 0 },
+  { id: "geo-e3", category: "Geography", difficulty: "easy", q: "The Great Barrier Reef is off the coast of which country?", choices: ["Australia", "Brazil", "Mexico", "Indonesia"], answer: 0 },
+  { id: "geo-m1", category: "Geography", difficulty: "medium", q: "What is the capital of Canada?", choices: ["Ottawa", "Toronto", "Vancouver", "Montreal"], answer: 0 },
+  { id: "geo-m2", category: "Geography", difficulty: "medium", q: "Mount Kilimanjaro is located in which country?", choices: ["Tanzania", "Kenya", "Uganda", "Ethiopia"], answer: 0 },
+  { id: "geo-m3", category: "Geography", difficulty: "medium", q: "Which country has the largest population in Africa?", choices: ["Nigeria", "Egypt", "Ethiopia", "South Africa"], answer: 0 },
+  { id: "geo-m4", category: "Geography", difficulty: "medium", q: "The Danube River flows through more countries than any other in the world. On which continent is it?", choices: ["Europe", "Asia", "Africa", "South America"], answer: 0 },
+  { id: "geo-h1", category: "Geography", difficulty: "hard", q: "What is the capital of Mongolia?", choices: ["Ulaanbaatar", "Astana", "Bishkek", "Tashkent"], answer: 0 },
+  { id: "geo-h2", category: "Geography", difficulty: "hard", q: "What is the capital of New Zealand?", choices: ["Wellington", "Auckland", "Christchurch", "Hamilton"], answer: 0 },
+  { id: "geo-h3", category: "Geography", difficulty: "hard", q: "The Strait of Gibraltar connects the Atlantic Ocean to which sea?", choices: ["Mediterranean Sea", "Black Sea", "Red Sea", "Caspian Sea"], answer: 0 },
+  { id: "geo-h4", category: "Geography", difficulty: "hard", q: "Which is the smallest country in the world by area?", choices: ["Vatican City", "Monaco", "Nauru", "San Marino"], answer: 0 },
+  { id: "geo-h5", category: "Geography", difficulty: "hard", q: "What is the capital of Australia?", choices: ["Canberra", "Sydney", "Melbourne", "Perth"], answer: 0 },
 
-  // ---- Geography ----
-  { id: "ge1", category: "Geography", difficulty: "easy", q: "What is the largest ocean on Earth?", choices: ["Atlantic", "Indian", "Arctic", "Pacific"], answer: 3 },
-  { id: "ge2", category: "Geography", difficulty: "easy", q: "What is the capital of France?", choices: ["Lyon", "Paris", "Marseille", "Nice"], answer: 1 },
-  { id: "ge3", category: "Geography", difficulty: "medium", q: "Which country has the most natural lakes?", choices: ["USA", "Russia", "Canada", "Finland"], answer: 2 },
-  { id: "ge4", category: "Geography", difficulty: "medium", q: "Mount Kilimanjaro is in which country?", choices: ["Kenya", "Tanzania", "Uganda", "Ethiopia"], answer: 1 },
-  { id: "ge5", category: "Geography", difficulty: "hard", q: "What is the smallest country in the world by area?", choices: ["Monaco", "Nauru", "Vatican City", "San Marino"], answer: 2 },
-  { id: "ge6", category: "Geography", difficulty: "hard", q: "What is the largest hot desert on Earth?", choices: ["Gobi", "Sahara", "Kalahari", "Arabian"], answer: 1 },
+  // ============================ SPORTS ============================
+  { id: "sp-e1", category: "Sports", difficulty: "easy", q: "In which sport is the Ryder Cup contested?", choices: ["Golf", "Tennis", "Rowing", "Cycling"], answer: 0 },
+  { id: "sp-e2", category: "Sports", difficulty: "easy", q: "Which sport uses a shuttlecock?", choices: ["Badminton", "Squash", "Table tennis", "Volleyball"], answer: 0 },
+  { id: "sp-e3", category: "Sports", difficulty: "easy", q: "How many players from one team are on a basketball court at once?", choices: ["5", "6", "7", "11"], answer: 0 },
+  { id: "sp-e4", category: "Sports", difficulty: "easy", q: "In tennis, what term denotes a score of zero?", choices: ["Love", "Deuce", "Ace", "Fault"], answer: 0 },
+  { id: "sp-e5", category: "Sports", difficulty: "easy", q: "How many players per side are on the ice in ice hockey (including the goalie)?", choices: ["6", "5", "7", "11"], answer: 0 },
+  { id: "sp-m1", category: "Sports", difficulty: "medium", q: "How often are the Summer Olympic Games held?", choices: ["Every 4 years", "Every 2 years", "Every 3 years", "Every 5 years"], answer: 0 },
+  { id: "sp-m2", category: "Sports", difficulty: "medium", q: "In which country did the martial art judo originate?", choices: ["Japan", "China", "South Korea", "Thailand"], answer: 0 },
+  { id: "sp-m3", category: "Sports", difficulty: "medium", q: "How many players are on a cricket team?", choices: ["11", "9", "10", "13"], answer: 0 },
+  { id: "sp-m4", category: "Sports", difficulty: "medium", q: "Which country has won the most FIFA World Cups?", choices: ["Brazil", "Germany", "Italy", "Argentina"], answer: 0 },
+  { id: "sp-m5", category: "Sports", difficulty: "medium", q: "How many points is a touchdown worth in American football (before the extra point)?", choices: ["6", "7", "3", "5"], answer: 0 },
+  { id: "sp-h1", category: "Sports", difficulty: "hard", q: "Which boxer defeated George Foreman in the 1974 'Rumble in the Jungle'?", choices: ["Muhammad Ali", "Joe Frazier", "Sonny Liston", "Ken Norton"], answer: 0 },
+  { id: "sp-h2", category: "Sports", difficulty: "hard", q: "In which year were the first modern Olympic Games held?", choices: ["1896", "1900", "1888", "1924"], answer: 0 },
+  { id: "sp-h3", category: "Sports", difficulty: "hard", q: "In golf, what is two strokes under par on a single hole called?", choices: ["Eagle", "Birdie", "Albatross", "Bogey"], answer: 0 },
+  { id: "sp-h4", category: "Sports", difficulty: "hard", q: "A marathon is approximately how many miles long?", choices: ["26.2", "24.2", "28.2", "30.0"], answer: 0 },
 
-  // ---- Sports ----
-  { id: "sp1", category: "Sports", difficulty: "easy", q: "How many players are on a soccer team on the field?", choices: ["9", "10", "11", "12"], answer: 2 },
-  { id: "sp3", category: "Sports", difficulty: "medium", q: "How often are the Summer Olympic Games held?", choices: ["Every 2 years", "Every 3 years", "Every 4 years", "Every 5 years"], answer: 2 },
-  { id: "sp4", category: "Sports", difficulty: "medium", q: "What sport is associated with Wimbledon?", choices: ["Golf", "Tennis", "Rowing", "Cricket"], answer: 1 },
-  { id: "sp5", category: "Sports", difficulty: "hard", q: "How many points is a touchdown worth in American football (before extra point)?", choices: ["3", "6", "7", "5"], answer: 1 },
-  { id: "sp6", category: "Sports", difficulty: "hard", q: "Which country has won the most FIFA World Cups?", choices: ["Germany", "Italy", "Brazil", "Argentina"], answer: 2 },
+  // ============================ FILM & TV ============================
+  { id: "film-e1", category: "Film & TV", difficulty: "easy", q: "In Disney's 'The Lion King', what kind of animal is Simba?", choices: ["Lion", "Tiger", "Leopard", "Cheetah"], answer: 0 },
+  { id: "film-e2", category: "Film & TV", difficulty: "easy", q: "The line 'May the Force be with you' is from which franchise?", choices: ["Star Wars", "Star Trek", "Dune", "Avatar"], answer: 0 },
+  { id: "film-e3", category: "Film & TV", difficulty: "easy", q: "What is the name of the wizarding school in the Harry Potter series?", choices: ["Hogwarts", "Durmstrang", "Beauxbatons", "Ilvermorny"], answer: 0 },
+  { id: "film-m1", category: "Film & TV", difficulty: "medium", q: "Who directed the 1975 film 'Jaws'?", choices: ["Steven Spielberg", "George Lucas", "Ridley Scott", "Brian De Palma"], answer: 0 },
+  { id: "film-m2", category: "Film & TV", difficulty: "medium", q: "In Star Wars, what is the name of Han Solo's ship?", choices: ["Millennium Falcon", "Slave I", "Tantive IV", "The Ghost"], answer: 0 },
+  { id: "film-m3", category: "Film & TV", difficulty: "medium", q: "Which actor played the title role in 'Forrest Gump'?", choices: ["Tom Hanks", "Kevin Costner", "Bill Murray", "Tom Cruise"], answer: 0 },
+  { id: "film-m4", category: "Film & TV", difficulty: "medium", q: "The TV series 'Breaking Bad' is primarily set in which U.S. city?", choices: ["Albuquerque", "Phoenix", "Denver", "El Paso"], answer: 0 },
+  { id: "film-h1", category: "Film & TV", difficulty: "hard", q: "Which film won the very first Academy Award for Best Picture (1929)?", choices: ["Wings", "Sunrise", "The Jazz Singer", "Metropolis"], answer: 0 },
+  { id: "film-h2", category: "Film & TV", difficulty: "hard", q: "In 'Blade Runner', what are the bioengineered artificial humans called?", choices: ["Replicants", "Synths", "Cylons", "Androids"], answer: 0 },
+  { id: "film-h3", category: "Film & TV", difficulty: "hard", q: "Who composed the score for the original 1977 'Star Wars' film?", choices: ["John Williams", "Hans Zimmer", "Ennio Morricone", "Jerry Goldsmith"], answer: 0 },
+  { id: "film-h4", category: "Film & TV", difficulty: "hard", q: "Who directed 'Pulp Fiction'?", choices: ["Quentin Tarantino", "Martin Scorsese", "Paul Thomas Anderson", "David Fincher"], answer: 0 },
 
-  // ---- Entertainment ----
-  { id: "e3", category: "Entertainment", difficulty: "medium", q: "Who painted the Mona Lisa?", choices: ["Michelangelo", "Da Vinci", "Raphael", "Donatello"], answer: 1 },
-  { id: "e4", category: "Entertainment", difficulty: "medium", q: "Which band released the album 'Abbey Road'?", choices: ["The Rolling Stones", "The Beatles", "Pink Floyd", "Queen"], answer: 1 },
-  { id: "e5", category: "Entertainment", difficulty: "hard", q: "What was Disney's first full-length animated film?", choices: ["Pinocchio", "Bambi", "Snow White and the Seven Dwarfs", "Fantasia"], answer: 2 },
-  { id: "e6", category: "Entertainment", difficulty: "hard", q: "Who composed the Four Seasons?", choices: ["Bach", "Mozart", "Vivaldi", "Beethoven"], answer: 2 },
+  // ======================= ART & LITERATURE =======================
+  { id: "art-e1", category: "Art & Literature", difficulty: "easy", q: "Who wrote the play 'Romeo and Juliet'?", choices: ["William Shakespeare", "Charles Dickens", "Jane Austen", "Mark Twain"], answer: 0 },
+  { id: "art-e2", category: "Art & Literature", difficulty: "easy", q: "Which artist painted the 'Mona Lisa'?", choices: ["Leonardo da Vinci", "Michelangelo", "Raphael", "Caravaggio"], answer: 0 },
+  { id: "art-e3", category: "Art & Literature", difficulty: "easy", q: "'The Starry Night' was painted by which artist?", choices: ["Vincent van Gogh", "Claude Monet", "Paul Cezanne", "Edvard Munch"], answer: 0 },
+  { id: "art-m1", category: "Art & Literature", difficulty: "medium", q: "Who painted the ceiling of the Sistine Chapel?", choices: ["Michelangelo", "Leonardo da Vinci", "Raphael", "Botticelli"], answer: 0 },
+  { id: "art-m2", category: "Art & Literature", difficulty: "medium", q: "Who wrote the dystopian novel '1984'?", choices: ["George Orwell", "Aldous Huxley", "Ray Bradbury", "H.G. Wells"], answer: 0 },
+  { id: "art-m3", category: "Art & Literature", difficulty: "medium", q: "Salvador Dali is most associated with which art movement?", choices: ["Surrealism", "Cubism", "Impressionism", "Fauvism"], answer: 0 },
+  { id: "art-h1", category: "Art & Literature", difficulty: "hard", q: "Who painted 'Guernica'?", choices: ["Pablo Picasso", "Salvador Dali", "Joan Miro", "Francisco Goya"], answer: 0 },
+  { id: "art-h2", category: "Art & Literature", difficulty: "hard", q: "Which novel famously opens with the line 'Call me Ishmael'?", choices: ["Moby-Dick", "Treasure Island", "The Old Man and the Sea", "Robinson Crusoe"], answer: 0 },
+  { id: "art-h3", category: "Art & Literature", difficulty: "hard", q: "Who wrote the epic novel 'War and Peace'?", choices: ["Leo Tolstoy", "Fyodor Dostoevsky", "Anton Chekhov", "Maxim Gorky"], answer: 0 },
+  { id: "art-h4", category: "Art & Literature", difficulty: "hard", q: "Who wrote 'The Divine Comedy'?", choices: ["Dante Alighieri", "Petrarch", "Giovanni Boccaccio", "Virgil"], answer: 0 },
+  { id: "art-h5", category: "Art & Literature", difficulty: "hard", q: "Who sculpted the marble statue of 'David' in Florence?", choices: ["Michelangelo", "Donatello", "Gian Lorenzo Bernini", "Benvenuto Cellini"], answer: 0 },
 
-  // --- Batch 2 (user-evaluated 2026-06-29; tiers per their calibration) ---
-  { id: "n1", category: "Science", difficulty: "easy", q: "How many planets are in our solar system?", choices: ["7", "8", "9", "10"], answer: 1 },
-  { id: "n2", category: "Science", difficulty: "medium", q: "What is the hardest natural substance on Earth?", choices: ["Diamond", "Quartz", "Titanium", "Granite"], answer: 0 },
-  { id: "n3", category: "Science", difficulty: "medium", q: "What is the most abundant gas in Earth's atmosphere?", choices: ["Oxygen", "Nitrogen", "Carbon dioxide", "Argon"], answer: 1 },
-  { id: "n4", category: "Science", difficulty: "medium", q: "Which part of a plant carries out most photosynthesis?", choices: ["Roots", "Leaves", "Stem", "Flowers"], answer: 1 },
-  { id: "n5", category: "Geography", difficulty: "easy", q: "Which continent is the Sahara Desert in?", choices: ["Asia", "Africa", "Australia", "South America"], answer: 1 },
-  { id: "n6", category: "Geography", difficulty: "medium", q: "What is the capital of Australia?", choices: ["Sydney", "Melbourne", "Canberra", "Perth"], answer: 2 },
-  { id: "n7", category: "Geography", difficulty: "easy", q: "The Great Barrier Reef lies off the coast of which country?", choices: ["Brazil", "Australia", "Mexico", "Thailand"], answer: 1 },
-  { id: "n8", category: "Geography", difficulty: "hard", q: "What is the longest international border between two countries?", choices: ["Russia–China", "USA–Canada", "Argentina–Chile", "Kazakhstan–Russia"], answer: 1 },
-  { id: "n9", category: "History", difficulty: "easy", q: "In which country did the Olympic Games originate?", choices: ["Italy", "Greece", "Egypt", "China"], answer: 1 },
-  { id: "n10", category: "History", difficulty: "medium", q: "Who was the primary author of the U.S. Declaration of Independence?", choices: ["George Washington", "Benjamin Franklin", "Thomas Jefferson", "John Adams"], answer: 2 },
-  { id: "n11", category: "History", difficulty: "hard", q: "In what year did the Berlin Wall fall?", choices: ["1987", "1989", "1991", "1985"], answer: 1 },
-  { id: "n12", category: "Sports", difficulty: "easy", q: "How many points is a free throw worth in basketball?", choices: ["1", "2", "3", "4"], answer: 0 },
-  { id: "n13", category: "Sports", difficulty: "easy", q: "In golf, what is one stroke under par called?", choices: ["Eagle", "Birdie", "Bogey", "Albatross"], answer: 1 },
-  { id: "n14", category: "Sports", difficulty: "hard", q: "A marathon is approximately how many miles?", choices: ["24.2", "26.2", "28.2", "30.0"], answer: 1 },
-  { id: "n15", category: "Entertainment", difficulty: "easy", q: "What is the name of Harry Potter's pet owl?", choices: ["Hedwig", "Errol", "Crookshanks", "Scabbers"], answer: 0 },
-  { id: "n16", category: "Entertainment", difficulty: "medium", q: "Who directed the 1975 film 'Jaws'?", choices: ["Steven Spielberg", "George Lucas", "Martin Scorsese", "Francis Ford Coppola"], answer: 0 },
-  { id: "n17", category: "Entertainment", difficulty: "hard", q: "Who composed the opera 'The Magic Flute'?", choices: ["Mozart", "Wagner", "Verdi", "Puccini"], answer: 0 },
-  { id: "n18", category: "General", difficulty: "easy", q: "What is the currency of Japan?", choices: ["Yuan", "Won", "Yen", "Ringgit"], answer: 2 },
-  { id: "n19", category: "General", difficulty: "easy", q: "How many colors are traditionally in a rainbow?", choices: ["5", "6", "7", "8"], answer: 2 },
-  { id: "n20", category: "General", difficulty: "hard", q: "What does \"HTTP\" stand for?", choices: ["HyperText Transmission Process", "HyperText Transfer Protocol", "High Transfer Text Protocol", "Hyperlink Text Transfer Path"], answer: 1 },
+  // ============================ MUSIC ============================
+  { id: "mus-e1", category: "Music", difficulty: "easy", q: "Which instrument has 88 keys?", choices: ["Piano", "Organ", "Harpsichord", "Accordion"], answer: 0 },
+  { id: "mus-e2", category: "Music", difficulty: "easy", q: "The Beatles formed in which English city?", choices: ["Liverpool", "London", "Manchester", "Birmingham"], answer: 0 },
+  { id: "mus-e3", category: "Music", difficulty: "easy", q: "Which artist is widely known as the 'King of Pop'?", choices: ["Michael Jackson", "Elvis Presley", "Prince", "James Brown"], answer: 0 },
+  { id: "mus-m1", category: "Music", difficulty: "medium", q: "Which composer wrote 'The Four Seasons'?", choices: ["Antonio Vivaldi", "Johann Sebastian Bach", "Wolfgang Mozart", "George Handel"], answer: 0 },
+  { id: "mus-m2", category: "Music", difficulty: "medium", q: "'Bohemian Rhapsody' was a hit single for which band?", choices: ["Queen", "Led Zeppelin", "The Who", "Pink Floyd"], answer: 0 },
+  { id: "mus-m3", category: "Music", difficulty: "medium", q: "How many strings does a standard violin have?", choices: ["4", "5", "6", "7"], answer: 0 },
+  { id: "mus-m4", category: "Music", difficulty: "medium", q: "In music, what does the term 'forte' instruct a player to do?", choices: ["Play loudly", "Play softly", "Play faster", "Play slower"], answer: 0 },
+  { id: "mus-h1", category: "Music", difficulty: "hard", q: "Who composed the opera 'The Magic Flute'?", choices: ["Wolfgang Amadeus Mozart", "Richard Wagner", "Giuseppe Verdi", "Giacomo Puccini"], answer: 0 },
+  { id: "mus-h2", category: "Music", difficulty: "hard", q: "How many completed symphonies did Ludwig van Beethoven write?", choices: ["9", "7", "12", "5"], answer: 0 },
+  { id: "mus-h3", category: "Music", difficulty: "hard", q: "In 4/4 time, how many beats does a whole note receive?", choices: ["4", "2", "1", "8"], answer: 0 },
+  { id: "mus-h4", category: "Music", difficulty: "hard", q: "Which composer wrote the 'Brandenburg Concertos'?", choices: ["Johann Sebastian Bach", "Antonio Vivaldi", "George Handel", "Georg Telemann"], answer: 0 },
 
-  // --- Batch 3 (harder set, user-evaluated 2026-06-29) ---
-  { id: "m1", category: "Science", difficulty: "hard", q: "What is the SI unit of electrical resistance?", choices: ["Ohm", "Watt", "Volt", "Joule"], answer: 0 },
-  { id: "m2", category: "Science", difficulty: "hard", q: "What is the atomic number of gold?", choices: ["47", "79", "29", "26"], answer: 1 },
-  { id: "m3", category: "Science", difficulty: "medium", q: "What is the most abundant element in the universe?", choices: ["Helium", "Hydrogen", "Oxygen", "Carbon"], answer: 1 },
-  { id: "m4", category: "Science", difficulty: "hard", q: "A bond formed by sharing electron pairs is called?", choices: ["Ionic", "Covalent", "Metallic", "Hydrogen"], answer: 1 },
-  { id: "m5", category: "History", difficulty: "medium", q: "In what year did the French Revolution begin?", choices: ["1776", "1789", "1804", "1715"], answer: 1 },
-  { id: "m6", category: "History", difficulty: "hard", q: "Who was the first emperor of Rome?", choices: ["Julius Caesar", "Augustus", "Nero", "Constantine"], answer: 1 },
-  { id: "m7", category: "History", difficulty: "medium", q: "Which treaty formally ended World War I?", choices: ["Treaty of Versailles", "Treaty of Paris", "Treaty of Ghent", "Treaty of Tordesillas"], answer: 0 },
-  { id: "m8", category: "History", difficulty: "hard", q: "The Hundred Years' War was fought mainly between England and which country?", choices: ["France", "Spain", "Scotland", "Germany"], answer: 0 },
-  { id: "m9", category: "Geography", difficulty: "hard", q: "What is the capital of Mongolia?", choices: ["Astana", "Ulaanbaatar", "Bishkek", "Tashkent"], answer: 1 },
-  { id: "m10", category: "Geography", difficulty: "medium", q: "What is the capital of Canada?", choices: ["Toronto", "Ottawa", "Vancouver", "Montreal"], answer: 1 },
-  { id: "m11", category: "Geography", difficulty: "medium", q: "What is the capital of New Zealand?", choices: ["Auckland", "Wellington", "Christchurch", "Hamilton"], answer: 1 },
-  { id: "m12", category: "Geography", difficulty: "hard", q: "The Strait of Gibraltar connects the Atlantic Ocean to which sea?", choices: ["Mediterranean", "Black", "Red", "Caspian"], answer: 0 },
-  { id: "m13", category: "Sports", difficulty: "easy", q: "In tennis, what term denotes a score of zero?", choices: ["Love", "Deuce", "Ace", "Fault"], answer: 0 },
-  { id: "m14", category: "Sports", difficulty: "easy", q: "How many players per side are on the ice in ice hockey (including the goalie)?", choices: ["5", "6", "7", "11"], answer: 1 },
-  { id: "m15", category: "Entertainment", difficulty: "hard", q: "Who painted 'Guernica'?", choices: ["Salvador Dali", "Pablo Picasso", "Francisco Goya", "Joan Miro"], answer: 1 },
-  { id: "m16", category: "Entertainment", difficulty: "medium", q: "Who wrote the novel '1984'?", choices: ["Aldous Huxley", "George Orwell", "Ray Bradbury", "Kurt Vonnegut"], answer: 1 },
-  { id: "m17", category: "General", difficulty: "medium", q: "The Roman numeral 'M' represents what number?", choices: ["100", "1,000", "500", "50"], answer: 1 },
-  { id: "m18", category: "General", difficulty: "medium", q: "What is the chemical formula for table salt?", choices: ["NaCl", "KCl", "NaHCO3", "CaCO3"], answer: 0 },
+  // ============================ NATURE ============================
+  { id: "nat-e1", category: "Nature", difficulty: "easy", q: "What is the largest land animal?", choices: ["African elephant", "Hippopotamus", "Rhinoceros", "Giraffe"], answer: 0 },
+  { id: "nat-e2", category: "Nature", difficulty: "easy", q: "How many legs does an insect have?", choices: ["6", "8", "4", "10"], answer: 0 },
+  { id: "nat-e3", category: "Nature", difficulty: "easy", q: "What do bees gather from flowers to make honey?", choices: ["Nectar", "Pollen", "Sap", "Dew"], answer: 0 },
+  { id: "nat-m1", category: "Nature", difficulty: "medium", q: "What is the fastest land animal over a short sprint?", choices: ["Cheetah", "Pronghorn", "Lion", "Gazelle"], answer: 0 },
+  { id: "nat-m2", category: "Nature", difficulty: "medium", q: "A group of lions is called a what?", choices: ["Pride", "Pack", "Herd", "Troop"], answer: 0 },
+  { id: "nat-m3", category: "Nature", difficulty: "medium", q: "What is the largest living species of fish?", choices: ["Whale shark", "Great white shark", "Manta ray", "Sturgeon"], answer: 0 },
+  { id: "nat-m4", category: "Nature", difficulty: "medium", q: "What is a baby kangaroo called?", choices: ["Joey", "Cub", "Calf", "Kit"], answer: 0 },
+  { id: "nat-m5", category: "Nature", difficulty: "medium", q: "What is the largest living species of bird?", choices: ["Ostrich", "Emu", "Cassowary", "Andean condor"], answer: 0 },
+  { id: "nat-h1", category: "Nature", difficulty: "hard", q: "What is the only mammal capable of true sustained flight?", choices: ["Bat", "Flying squirrel", "Colugo", "Sugar glider"], answer: 0 },
+  { id: "nat-h2", category: "Nature", difficulty: "hard", q: "How many hearts does an octopus have?", choices: ["3", "1", "2", "4"], answer: 0 },
+  { id: "nat-h3", category: "Nature", difficulty: "hard", q: "The axolotl, a salamander that stays aquatic for life, is native to which country?", choices: ["Mexico", "Brazil", "Japan", "Australia"], answer: 0 },
+  { id: "nat-h4", category: "Nature", difficulty: "hard", q: "What is the largest animal known to have ever lived?", choices: ["Blue whale", "Argentinosaurus", "Sperm whale", "African elephant"], answer: 0 },
 ];
 
 const makeRng = (seed: number) => {
@@ -131,7 +167,6 @@ const makeRng = (seed: number) => {
 
 export const TRIVIA_COUNT = 6; // questions per quiz
 
-// Select a quiz of the given difficulty (and optional category), shuffled.
 export const generateTrivia = (
   difficulty: Difficulty,
   seed: number,
@@ -141,24 +176,35 @@ export const generateTrivia = (
   let pool = BANK.filter((q) => q.difficulty === difficulty);
   if (category && category !== "Any")
     pool = pool.filter((q) => q.category === category);
-  // Fall back to all difficulties if a narrow filter is too small.
   if (pool.length < TRIVIA_COUNT) {
-    pool = category && category !== "Any"
-      ? BANK.filter((q) => q.category === category)
-      : BANK.filter((q) => q.difficulty === difficulty);
+    pool =
+      category && category !== "Any"
+        ? BANK.filter((q) => q.category === category)
+        : BANK.filter((q) => q.difficulty === difficulty);
   }
   if (pool.length < TRIVIA_COUNT) pool = [...BANK];
-  // Shuffle.
   const arr = [...pool];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  const questions = arr.slice(0, TRIVIA_COUNT);
+  // Shuffle each question's choices too, so the correct answer isn't always in
+  // the same slot (the bank authors the answer first for readability).
+  const questions = arr.slice(0, TRIVIA_COUNT).map((qn) => {
+    const order = qn.choices.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    return {
+      ...qn,
+      choices: order.map((i) => qn.choices[i]),
+      answer: order.indexOf(qn.answer),
+    };
+  });
   return { category: category ?? "Any", difficulty, questions };
 };
 
-// answers: map of questionId -> chosen index (or -1). Progress = % correct.
 export const triviaProgress = (
   quiz: TriviaQuiz | null | undefined,
   answers: Record<string, number> | null | undefined

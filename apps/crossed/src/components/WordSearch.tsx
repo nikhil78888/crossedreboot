@@ -180,10 +180,12 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   }, [opponent, puzzle, startAtMsForBot, game?.gameDurationInSeconds]);
 
   // Size the grid so the whole board + the full word list fit on screen.
+  // Reserve more vertical room on bigger boards (more words wrap below).
   const { width, height } = Dimensions.get("window");
   const size = puzzle?.size ?? 9;
+  const reserved = size >= 12 ? 430 : 360;
   const cellSize = Math.floor(
-    Math.min((width - 24) / size, (height - 330) / size)
+    Math.min((width - 24) / size, (height - reserved) / size)
   );
 
   if (!puzzle) {
