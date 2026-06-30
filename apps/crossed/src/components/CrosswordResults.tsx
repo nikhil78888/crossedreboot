@@ -58,6 +58,10 @@ export const FriendlyGameResult = ({
             You get {myPoints} Points
           </Text>
         </View>
+        {/* Challenge is the hero CTA — surfaced first, right after the result. */}
+        <View className="mt-5">
+          <ChallengeButton gameId={gameId} />
+        </View>
         <View className="mt-4">
           <PlayerResultCard
             player={myProfile}

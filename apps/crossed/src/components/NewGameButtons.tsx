@@ -107,10 +107,10 @@ export const NewGameButtons = () => {
               contentFit="contain"
             />
             <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
-              With Your Friend
+              Live Match
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Invite and challenge your friend.
+              Race a friend in real time.
             </Text>
           </TouchableOpacity>
         </View>
@@ -129,10 +129,10 @@ export const NewGameButtons = () => {
               contentFit="contain"
             />
             <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
-              Solo Game
+              Challenge a Friend
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Play at your own pace anytime.
+              Solve it, then send it — they race your time anytime.
             </Text>
           </TouchableOpacity>
         </View>
