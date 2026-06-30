@@ -1,6 +1,6 @@
 import { addSeconds } from "date-fns";
 import { supabase } from "../lib/supabase";
-import { Game } from "types-and-validators";
+import { Game, generateWordSearch, generateTrivia } from "types-and-validators";
 import { onTournamentGameFinished } from "../tournament/tournament.service";
 import { resolveCluesForDifficulty } from "./clue-resolver";
 import { ratingFieldsFor } from "../rating-fields";
@@ -22,6 +22,36 @@ export const createRankedMatch = async (
   difficulty: GameDifficulty = "REGULAR"
 ) => {
   const isHard = difficulty === "HARD";
+  // Word search / trivia have no content table — generate the puzzle inline
+  // (shared generator, same as the client) and store it on the game so both
+  // matched players race the exact same one.
+  if (gameVariant === "WORD_SEARCH" || gameVariant === "TRIVIA") {
+    const seed = Math.floor(Math.random() * 0xffffffff) || 1;
+    const gameState =
+      gameVariant === "WORD_SEARCH"
+        ? { __wordsearch: generateWordSearch(difficulty, seed) }
+        : { __trivia: generateTrivia(isHard ? "hard" : "easy", seed) };
+    const duration = gameVariant === "TRIVIA" ? 240 : isHard ? 420 : 300;
+    const { data: game, error: createGameError } = await supabase
+      .from("games")
+      .insert({
+        gameVariant,
+        gameType: "RANKED",
+        difficulty,
+        playState: "PLAYING",
+        gameDurationInSeconds: duration,
+        startedAt: addSeconds(new Date(), 10).toISOString(),
+        gameState: gameState as never,
+      })
+      .select("*")
+      .single();
+    if (createGameError) throw createGameError;
+    await supabase.from("gamePlayers").insert([
+      { gamesId: game.id, profilesId: playerOneId },
+      { gamesId: game.id, profilesId: playerTwoId },
+    ]);
+    return game;
+  }
   if (gameVariant === "SUDOKU") {
     // Hard = hard puzzles; Regular = easy/medium.
     const { data, error } = await supabase.rpc("get_available_ranked_sudoku", {

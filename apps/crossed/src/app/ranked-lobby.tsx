@@ -17,8 +17,11 @@ export default function RankedLobby() {
   const router = useRouter();
   const { variant: variantParam, difficulty: difficultyParam } =
     useLocalSearchParams();
-  const variant: GameVariant =
-    variantParam === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
+  const variant: GameVariant = (
+    ["SUDOKU", "WORD_SEARCH", "TRIVIA"].includes(variantParam as string)
+      ? variantParam
+      : "CROSSWORD"
+  ) as GameVariant;
   const difficulty: "REGULAR" | "HARD" =
     difficultyParam === "HARD" ? "HARD" : "REGULAR";
   const { myProfile } = useMyProfile();

@@ -17,3 +17,5 @@ exports.__esModule = true;
 __exportStar(require("./supabase-types"), exports);
 __exportStar(require("./crosswod-types"), exports);
 __exportStar(require("./game-types"), exports);
+__exportStar(require("./word-search"), exports);
+__exportStar(require("./trivia"), exports);

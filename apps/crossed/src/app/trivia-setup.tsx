@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
+import { useOnlineStatus } from "../hooks/use-online-status";
 import { TRIVIA_CATEGORIES, type Difficulty } from "../lib/trivia";
 import colors from "../lib/colors";
 
@@ -27,11 +28,11 @@ export default function TriviaSetup() {
     creatingSoloGame,
     createFriendlyGame,
     creatingFriendlyGame,
-    createRankedBotMatch,
-    creatingRankedBotMatch,
   } = useGame({ gameId: undefined });
+  const { joinLobby } = useOnlineStatus();
   const [category, setCategory] = useState<string>("Any");
   const [level, setLevel] = useState<Difficulty>("easy");
+  const [joiningLobby, setJoiningLobby] = useState(false);
 
   const opts = {
     variant: "TRIVIA" as const,
@@ -59,11 +60,16 @@ export default function TriviaSetup() {
   };
 
   const ranked = async () => {
+    // Real matchmaking via the lobby (search a human, bot fallback) — same as
+    // crossword. Ranked is standardized difficulty; category isn't matchmade.
     try {
-      const id = await createRankedBotMatch(opts);
-      if (id) router.replace(`/game?gameId=${id}`);
+      setJoiningLobby(true);
+      await joinLobby("TRIVIA", opts.difficulty);
+      router.replace(
+        `/ranked-lobby?variant=TRIVIA&difficulty=${opts.difficulty}`
+      );
     } catch {
-      // stay on screen
+      setJoiningLobby(false);
     }
   };
 
@@ -154,7 +160,7 @@ export default function TriviaSetup() {
           }
           isLoading={
             isRanked
-              ? creatingRankedBotMatch
+              ? joiningLobby
               : isFriendly
               ? creatingFriendlyGame
               : creatingSoloGame
