@@ -51,6 +51,23 @@ export default function Game() {
     : 0;
   const counting = gamePlayState === "PLAYING" && secondsToStart > 0;
 
+  // Challenge race: end the moment the challenger's ghost finishes (their solve
+  // time elapses). If you haven't beaten it by then, you've lost — don't keep
+  // playing past their time.
+  const ghostEnded = useRef(false);
+  useEffect(() => {
+    if (gamePlayState !== "PLAYING" || !startsAtMs || ghostEnded.current) return;
+    const ch = (
+      game?.gameState as { __challenge?: { seconds?: number } } | undefined
+    )?.__challenge;
+    if (!ch?.seconds) return;
+    const elapsed = (now - startsAtMs) / 1000;
+    if (elapsed >= ch.seconds) {
+      ghostEnded.current = true;
+      finishGame();
+    }
+  }, [now, gamePlayState, startsAtMs, game?.gameState, finishGame]);
+
   useEffect(() => {
     if (!opponentRating && opponent) {
       const r =
@@ -241,12 +258,12 @@ export default function Game() {
               )
             : 0);
         const theirSeconds = challengeMeta.seconds ?? 0;
-        const beat = theirSeconds > 0 && yourSeconds < theirSeconds;
-        // Close the loop: tell the original challenger how it went. Only when the
-        // accepter actually solved it (no false "they beat you" on a quick quit),
-        // there's a challenger to notify, and it isn't your own test challenge.
+        // Win = solved strictly faster than the challenger. (Reaching their time
+        // without solving = a loss, which now ends the game.)
+        const beat = solved != null && theirSeconds > 0 && solved < theirSeconds;
+        // Close the loop either way: "X beat your time" on a win, "your time held"
+        // on a loss. Skip only when there's no challenger or it's your own test.
         if (
-          solved != null &&
           challengeMeta.challengerId &&
           myProfile?.id &&
           challengeMeta.challengerId !== myProfile.id &&

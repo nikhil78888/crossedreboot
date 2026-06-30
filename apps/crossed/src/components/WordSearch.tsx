@@ -45,6 +45,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   const [sel, setSel] = useState<Cell[]>([]);
   const dragStart = useRef<Cell | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [boardH, setBoardH] = useState(0); // measured board area (for grid sizing)
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineRef = useRef<{ t: number; p: number }[]>([]);
   const finishedRef = useRef(false);
@@ -179,13 +180,16 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opponent, puzzle, startAtMsForBot, game?.gameDurationInSeconds]);
 
-  // Size the grid so the whole board + the full word list fit on screen.
-  // Reserve more vertical room on bigger boards (more words wrap below).
+  // Size the grid from the MEASURED board area (not the full window, which
+  // ignores the nav header + safe areas), reserving room for the header + the
+  // full word list + hint — so big puzzles never clip the word list. The grid
+  // shrinks to fit on shorter screens.
   const { width, height } = Dimensions.get("window");
   const size = puzzle?.size ?? 9;
-  const reserved = size >= 12 ? 430 : 360;
+  const reserve = isRace ? 280 : 180;
+  const avail = boardH || height - (size >= 12 ? 430 : 360);
   const cellSize = Math.floor(
-    Math.min((width - 24) / size, (height - reserved) / size)
+    Math.min((width - 24) / size, Math.max(96, avail - reserve) / size)
   );
 
   if (!puzzle) {
@@ -238,7 +242,10 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   const gridPx = cellSize * size;
 
   return (
-    <View className="flex-1 bg-white px-3 pt-2">
+    <View
+      className="flex-1 bg-white px-3 pt-2"
+      onLayout={(e) => setBoardH(e.nativeEvent.layout.height)}
+    >
       {/* Race: the shared head-to-head header (timer + opponent/you bars + the
           red urgency pulse) — identical to crossword. Solo: a count-up clock. */}
       {isRace ? (
