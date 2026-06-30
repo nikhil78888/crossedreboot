@@ -18,15 +18,15 @@ const LEVELS: { key: Difficulty; label: string }[] = [
 export default function TriviaSetup() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  // mode=race → live bot race; mode=ranked → rated bot match; else solo.
+  // mode=friendly → invite a friend (live); mode=ranked → rated match; else solo.
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const isRace = mode === "race";
+  const isFriendly = mode === "friendly";
   const isRanked = mode === "ranked";
   const {
     createSoloGame,
     creatingSoloGame,
-    createBotRace,
-    creatingBotRace,
+    createFriendlyGame,
+    creatingFriendlyGame,
     createRankedBotMatch,
     creatingRankedBotMatch,
   } = useGame({ gameId: undefined });
@@ -49,10 +49,10 @@ export default function TriviaSetup() {
     }
   };
 
-  const race = async () => {
+  const friendly = async () => {
     try {
-      const id = await createBotRace(opts);
-      if (id) router.replace(`/game?gameId=${id}`);
+      const id = await createFriendlyGame(opts);
+      if (id) router.replace(`/invite-friend?gameId=${id}`);
     } catch {
       // stay on screen
     }
@@ -82,7 +82,7 @@ export default function TriviaSetup() {
         className="font-[jost700] text-crossed-gray-900"
         style={{ fontSize: 28 }}
       >
-        {isRanked ? "Ranked Trivia" : isRace ? "Trivia Race" : "Trivia"}
+        {isRanked ? "Ranked Trivia" : isFriendly ? "Friendly Trivia" : "Trivia"}
       </Text>
 
       <Text className="mt-6 font-[jost700] text-[15px] text-crossed-gray-900">
@@ -149,15 +149,17 @@ export default function TriviaSetup() {
           intent="primary"
           size="xl"
           rounded="full"
-          label={isRanked ? "⚡ Play Ranked" : isRace ? "⚡ Race a bot" : "Play"}
+          label={
+            isRanked ? "⚡ Play Ranked" : isFriendly ? "Invite a Friend" : "Play"
+          }
           isLoading={
             isRanked
               ? creatingRankedBotMatch
-              : isRace
-              ? creatingBotRace
+              : isFriendly
+              ? creatingFriendlyGame
               : creatingSoloGame
           }
-          onPress={isRanked ? ranked : isRace ? race : start}
+          onPress={isRanked ? ranked : isFriendly ? friendly : start}
         />
       </View>
     </View>

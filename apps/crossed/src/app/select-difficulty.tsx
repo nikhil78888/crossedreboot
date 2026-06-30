@@ -16,8 +16,9 @@ export default function SelectDifficulty() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode: Mode }>();
   const { variant } = useVariant();
-  const { createSoloGame, createFriendlyGame, createBotRace, createRankedBotMatch } =
-    useGame({ gameId: undefined });
+  const { createSoloGame, createFriendlyGame, createRankedBotMatch } = useGame({
+    gameId: undefined,
+  });
   const { joinLobby } = useOnlineStatus();
   const { createPrivateTournament } = useTournament({
     tournamentId: undefined,
@@ -41,27 +42,20 @@ export default function SelectDifficulty() {
           return;
         }
       }
-      // Word search competitive = live race vs a rubber-band bot. RANKED is
-      // rated (server scores word-search state); FRIENDLY is a non-rated race.
-      // (Human matchmaking for the new variants is a later add — needs the
-      // puzzle generated server-side.)
+      // Word search RANKED = a rated match vs a bot (real-human ranked
+      // matchmaking for the new variants needs the puzzle generated server-side
+      // — a later add). FRIENDLY falls through to a real friend invite below.
       if (variant === "WORD_SEARCH" && mode === "RANKED") {
         const id = await createRankedBotMatch({ variant, difficulty });
         if (id) router.replace(`/game?gameId=${id}`);
         return;
       }
-      if (variant === "WORD_SEARCH" && mode === "FRIENDLY") {
-        const id = await createBotRace({ variant, difficulty });
-        if (id) router.replace(`/game?gameId=${id}`);
-        return;
-      }
-      if (
-        (variant === "WORD_SEARCH" || variant === "TRIVIA") &&
-        mode !== "SOLO"
-      ) {
+      // Trivia competitive is launched from /trivia-setup (category + level);
+      // block any stray trivia non-solo that reaches here.
+      if (variant === "TRIVIA" && mode !== "SOLO") {
         Alert.alert(
-          "Coming soon",
-          "More competitive modes for this game type are on the way — try Solo or a quick race for now."
+          "Pick a category",
+          "Start Trivia from the Trivia screen to choose a category and difficulty."
         );
         return;
       }

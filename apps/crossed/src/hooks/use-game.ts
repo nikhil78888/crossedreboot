@@ -345,13 +345,16 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           variant,
           myProfile.id,
           180,
-          arg?.difficulty ?? "REGULAR"
+          arg?.difficulty ?? "REGULAR",
+          arg?.triviaCategory,
+          arg?.triviaLevel
         );
         if (!picked) return;
         const { data: game, error: createGameError } = await supabase
           .from("games")
           .insert({
             ...picked.fields,
+            ...(picked.gameState ? { gameState: picked.gameState } : {}),
             gameType: "FRIENDLY",
             playState: "WAITING_FOR_OPPONENT",
             gameDurationInSeconds: picked.durationInSeconds,
