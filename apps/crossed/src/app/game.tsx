@@ -399,7 +399,17 @@ export default function Game() {
             className="mb-3 text-center font-[jost700] text-crossed-gray-900"
             style={{ fontSize: 30 }}
           >
-            {isIntro ? "🤖 Warm-up Match" : "🏁 Live Crossword Race"}
+            {isIntro
+              ? "🤖 Warm-up Match"
+              : `🏁 Live ${
+                  isWordSearch
+                    ? "Word Search"
+                    : isTrivia
+                    ? "Trivia"
+                    : isSudoku
+                    ? "Sudoku"
+                    : "Crossword"
+                } Race`}
           </Text>
         )}
         {!!opponent && (
@@ -417,9 +427,16 @@ export default function Game() {
             className="mb-8 text-center font-[jost400] text-crossed-gray-500"
             style={{ fontSize: 17, lineHeight: 24 }}
           >
-            {isIntro
-              ? "A friendly bot is solving the same grid — finish first to win! This one's just practice."
-              : "A real opponent is solving the same grid — first to finish wins. Go fast!"}
+            {(() => {
+              const task = isTrivia
+                ? "answering the same questions"
+                : isWordSearch
+                ? "searching the same grid"
+                : "solving the same grid";
+              return isIntro
+                ? `A friendly bot is ${task} — finish first to win! This one's just practice.`
+                : `A real opponent is ${task} — first to finish wins. Go fast!`;
+            })()}
           </Text>
         )}
         <Text

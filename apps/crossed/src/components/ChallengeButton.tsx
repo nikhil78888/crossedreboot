@@ -47,6 +47,14 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
 
   if (!game || !myProfile || !CHALLENGEABLE.includes(game.gameVariant))
     return null;
+  // The game noun for the share copy, so a challenge reads as the actual game
+  // sent (not always "crossword").
+  const gameNoun =
+    game.gameVariant === "WORD_SEARCH"
+      ? "word search"
+      : game.gameVariant === "TRIVIA"
+      ? "trivia round"
+      : "crossword";
   const mine = game.gameState?.[myProfile.id] as
     | { solvedInSeconds?: number; timeline?: unknown }
     | undefined;
@@ -85,7 +93,7 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
           const buo = await branch.createBranchUniversalObject(
             `challenge/${data.id}`,
             {
-              title: "Beat my Crossed time!",
+              title: `Beat my Crossed ${gameNoun} time!`,
               contentMetadata: { customMetadata: { challengeId: data.id } },
             }
           );
@@ -99,7 +107,7 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
         }
       }
       await Share.share({
-        message: `I solved this Crossed puzzle in ${fmtSolve(
+        message: `I finished this Crossed ${gameNoun} in ${fmtSolve(
           solveSeconds
         )} — think you can beat me? 👉 ${link}`,
       });
