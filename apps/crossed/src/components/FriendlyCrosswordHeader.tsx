@@ -12,6 +12,11 @@ import { useEffect, useState } from "react";
 import { addSeconds, differenceInSeconds, intervalToDuration } from "date-fns";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { RaceBar } from "./RaceBar";
+import {
+  wordSearchProgress,
+  type WordSearchPuzzle,
+} from "../lib/word-search";
+import { triviaProgress, type TriviaQuiz } from "../lib/trivia";
 
 export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const { myProfile } = useMyProfile();
@@ -22,15 +27,31 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   const [timeInGame, setTimeInGame] = useState("");
 
   // The player's own live progress, so the header shows the actual head-to-head
-  // race (was previously only the opponent's bar).
-  const myProgress =
-    myProfile && game
-      ? calculateScore({
-          correctSolution: solutionOf(game),
-          solution: game.gameState?.[myProfile.id]?.solution,
-          puzzle: puzzleOf(game),
-        })
-      : 0;
+  // race. Variant-aware: grid score for crossword/sudoku, words found for word
+  // search, % correct for trivia (so the bars match opponentProgress).
+  let myProgress = 0;
+  if (myProfile && game) {
+    const gs = game.gameState as
+      | (Record<
+          string,
+          { found?: string[]; answers?: Record<string, number> }
+        > & { __wordsearch?: WordSearchPuzzle; __trivia?: TriviaQuiz })
+      | undefined;
+    if (game.gameVariant === "WORD_SEARCH") {
+      myProgress = wordSearchProgress(
+        gs?.__wordsearch,
+        gs?.[myProfile.id]?.found
+      );
+    } else if (game.gameVariant === "TRIVIA") {
+      myProgress = triviaProgress(gs?.__trivia, gs?.[myProfile.id]?.answers);
+    } else {
+      myProgress = calculateScore({
+        correctSolution: solutionOf(game),
+        solution: game.gameState?.[myProfile.id]?.solution,
+        puzzle: puzzleOf(game),
+      });
+    }
+  }
 
   useEffect(() => {
     // if game duration is over, end the game, else update time in game

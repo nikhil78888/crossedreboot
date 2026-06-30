@@ -6,14 +6,14 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { TriviaQuiz, triviaProgress } from "../lib/trivia";
 import { ghostProgressAt, type TimelinePoint } from "../lib/challenge-utils";
+import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import colors from "../lib/colors";
 
 const fmtClock = (s: number) =>
   `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 
 export const TriviaGame = ({ gameId }: { gameId: string }) => {
-  const { game, finishGame, opponent, opponentProgress, opponentUsername } =
-    useGame({ gameId });
+  const { game, finishGame, opponent } = useGame({ gameId });
   const { myProfile } = useMyProfile();
 
   const quiz = (game?.gameState as { __trivia?: TriviaQuiz } | undefined)
@@ -190,27 +190,26 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
   return (
     <View className="flex-1 bg-white px-5 pt-2">
       {/* Header: progress + count-up timer */}
-      <View className="mb-3 flex-row items-center justify-between px-1">
-        <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
-          Q{Math.min(idx + 1, total)}/{total} · {correctCount} correct
-        </Text>
-        <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
-          {fmtClock(elapsed)}
-        </Text>
-      </View>
-
-      {isRace && (
-        <View className="mb-3 px-1" style={{ gap: 6 }}>
-          <ProgressBar
-            label={opponentUsername || "Opponent"}
-            pct={opponentProgress}
-            color={colors["crossed-red"]["500"]}
-          />
-          <ProgressBar
-            label="You"
-            pct={triviaProgress(quiz, answers)}
-            color={colors["crossed-blue"]["450"]}
-          />
+      {/* Race: the shared head-to-head header (timer + opponent/you bars + red
+          pulse) — identical to crossword — plus the question position. Solo: a
+          count-up clock + running score. */}
+      {isRace ? (
+        <>
+          <View className="mb-2">
+            <FriendlyCrosswordHeader gameId={gameId} />
+          </View>
+          <Text className="mb-1 text-center font-[jost600] text-[13px] text-crossed-gray-400">
+            Question {Math.min(idx + 1, total)} of {total}
+          </Text>
+        </>
+      ) : (
+        <View className="mb-3 flex-row items-center justify-between px-1">
+          <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
+            Q{Math.min(idx + 1, total)}/{total} · {correctCount} correct
+          </Text>
+          <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
+            {fmtClock(elapsed)}
+          </Text>
         </View>
       )}
 
@@ -271,36 +270,3 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
     </View>
   );
 };
-
-const ProgressBar = ({
-  label,
-  pct,
-  color,
-}: {
-  label: string;
-  pct: number;
-  color: string;
-}) => (
-  <View className="flex-row items-center">
-    <Text
-      className="font-[jost600] text-[12px] text-crossed-gray-500"
-      numberOfLines={1}
-      style={{ width: 64 }}
-    >
-      {label}
-    </Text>
-    <View
-      className="flex-1 overflow-hidden rounded-full"
-      style={{ height: 10, backgroundColor: colors["crossed-gray"]["100"] }}
-    >
-      <View
-        style={{
-          height: 10,
-          width: `${Math.max(0, Math.min(100, pct))}%`,
-          backgroundColor: color,
-          borderRadius: 9999,
-        }}
-      />
-    </View>
-  </View>
-);

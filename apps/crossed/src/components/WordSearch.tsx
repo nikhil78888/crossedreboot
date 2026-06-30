@@ -11,6 +11,7 @@ import {
   wordSearchProgress,
 } from "../lib/word-search";
 import { ghostProgressAt, type TimelinePoint } from "../lib/challenge-utils";
+import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import colors from "../lib/colors";
 
 const fmtClock = (s: number) =>
@@ -33,8 +34,7 @@ const lineBetween = (a: Cell, b: Cell): Cell[] | null => {
 };
 
 export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
-  const { game, finishGame, opponent, opponentProgress, opponentUsername } =
-    useGame({ gameId });
+  const { game, finishGame, opponent } = useGame({ gameId });
   const { myProfile } = useMyProfile();
 
   const puzzle = (
@@ -239,27 +239,20 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
 
   return (
     <View className="flex-1 bg-white px-3 pt-2">
-      <View className="mb-2 flex-row items-center justify-between px-1">
-        <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
-          {found.length}/{puzzle.words.length} found
-        </Text>
-        <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
-          {fmtClock(elapsed)}
-        </Text>
-      </View>
-
-      {isRace && (
-        <View className="mb-2 px-1" style={{ gap: 6 }}>
-          <ProgressBar
-            label={opponentUsername || "Opponent"}
-            pct={opponentProgress}
-            color={colors["crossed-red"]["500"]}
-          />
-          <ProgressBar
-            label="You"
-            pct={wordSearchProgress(puzzle, found)}
-            color={colors["crossed-blue"]["450"]}
-          />
+      {/* Race: the shared head-to-head header (timer + opponent/you bars + the
+          red urgency pulse) — identical to crossword. Solo: a count-up clock. */}
+      {isRace ? (
+        <View className="mb-3">
+          <FriendlyCrosswordHeader gameId={gameId} />
+        </View>
+      ) : (
+        <View className="mb-2 flex-row items-center justify-between px-1">
+          <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
+            {found.length}/{puzzle.words.length} found
+          </Text>
+          <Text className="font-[jost700] text-[18px] text-crossed-gray-900">
+            {fmtClock(elapsed)}
+          </Text>
         </View>
       )}
 
@@ -340,36 +333,3 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     </View>
   );
 };
-
-const ProgressBar = ({
-  label,
-  pct,
-  color,
-}: {
-  label: string;
-  pct: number;
-  color: string;
-}) => (
-  <View className="flex-row items-center">
-    <Text
-      className="font-[jost600] text-[12px] text-crossed-gray-500"
-      numberOfLines={1}
-      style={{ width: 64 }}
-    >
-      {label}
-    </Text>
-    <View
-      className="flex-1 overflow-hidden rounded-full"
-      style={{ height: 10, backgroundColor: colors["crossed-gray"]["100"] }}
-    >
-      <View
-        style={{
-          height: 10,
-          width: `${Math.max(0, Math.min(100, pct))}%`,
-          backgroundColor: color,
-          borderRadius: 9999,
-        }}
-      />
-    </View>
-  </View>
-);
