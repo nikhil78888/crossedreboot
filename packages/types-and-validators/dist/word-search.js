@@ -17,31 +17,78 @@ exports.__esModule = true;
 exports.wordSearchProgress = exports.matchSelection = exports.generateWordSearch = exports.wordSearchConfig = void 0;
 // Themed banks keep puzzles coherent and give us "categories" for parity with
 // trivia. Words are 3–8 letters, uppercase, no spaces.
+// Themes for the word lists. Each pool is large so a given puzzle samples only a
+// subset (see generateWordSearch) — the bigger the pool, the rarer a repeat of
+// the same set of words. Keep every word ≤9 letters (A–Z only) so it fits the
+// regular 9×9 grid as well as the hard 12×12 one.
 var THEMES = {
     Animals: [
         "TIGER", "PANDA", "OTTER", "EAGLE", "MOOSE", "ZEBRA", "KOALA", "LEMUR",
         "BISON", "HORSE", "SHARK", "WHALE", "GECKO", "RAVEN", "FERRET", "WALRUS",
-        "BADGER", "JAGUAR", "FALCON", "IGUANA", "BEAVER", "TURTLE",
+        "BADGER", "JAGUAR", "FALCON", "IGUANA", "BEAVER", "TURTLE", "COBRA", "LLAMA",
+        "RHINO", "HYENA", "PUMA", "LYNX", "STOAT", "VIPER", "WEASEL",
+        "MARMOT", "OCELOT", "PANTHER", "GIRAFFE", "DOLPHIN", "PENGUIN", "OSTRICH",
+        "GORILLA", "MEERKAT", "ANTELOPE", "FLAMINGO", "HEDGEHOG",
     ],
     Food: [
         "BREAD", "MANGO", "OLIVE", "PASTA", "HONEY", "LEMON", "PEACH", "BACON",
         "PIZZA", "SALAD", "WAFFLE", "PEPPER", "CARROT", "WALNUT", "BANANA", "TOMATO",
-        "GARLIC", "MUFFIN", "NOODLE", "PICKLE",
+        "GARLIC", "MUFFIN", "NOODLE", "PICKLE", "CHEESE", "BUTTER", "YOGURT", "CELERY",
+        "GINGER", "ALMOND", "CASHEW", "RADISH", "PUMPKIN", "AVOCADO", "CABBAGE",
+        "PRETZEL", "CRACKER", "OATMEAL", "PANCAKE", "SAUSAGE", "BISCUIT", "POPCORN",
     ],
     Travel: [
         "BEACH", "HOTEL", "TRAIN", "CABIN", "COAST", "RIVER", "TOKYO", "PARIS",
         "FLIGHT", "ISLAND", "DESERT", "CANYON", "JUNGLE", "AIRPORT", "PASSPORT",
-        "HARBOR", "SAFARI", "VOYAGE",
+        "HARBOR", "SAFARI", "VOYAGE", "RESORT", "TICKET", "LUGGAGE", "CRUISE",
+        "BORDER", "EMBASSY", "TROPICS", "LAGOON", "SUMMIT", "VILLAGE", "CASTLE",
+        "MARKET", "TEMPLE", "MUSEUM", "SHUTTLE", "TRANSIT", "JOURNEY",
     ],
     Sports: [
         "RUGBY", "TENNIS", "BOXING", "SKIING", "HOCKEY", "SOCCER", "GOLF", "RELAY",
         "SPRINT", "RACKET", "HELMET", "REFEREE", "STADIUM", "ARCHERY", "PADDLE",
-        "DISCUS", "HURDLE",
+        "DISCUS", "HURDLE", "ROWING", "CYCLING", "SKATING", "DIVING", "FENCING",
+        "NETBALL", "CRICKET", "BOWLING", "JAVELIN", "MARATHON", "DRIBBLE", "GOALIE",
+        "UMPIRE", "TROPHY", "JERSEY", "WHISTLE", "SURFING", "CLIMBING",
     ],
     Science: [
         "ATOM", "LASER", "COMET", "PRISM", "FORCE", "ORBIT", "QUARK", "PROTON",
         "GENOME", "MAGNET", "FUSION", "PLASMA", "NEURON", "GRAVITY", "MOLECULE",
-        "VOLTAGE", "ENTROPY",
+        "VOLTAGE", "ENTROPY", "PHOTON", "ENZYME", "GALAXY", "CIRCUIT", "ECLIPSE",
+        "ISOTOPE", "VACCINE", "GLACIER", "MINERAL", "BACTERIA", "ELECTRON",
+        "NEUTRON", "PENDULUM", "CRYSTAL", "OXYGEN", "HELIUM", "VELOCITY", "FRICTION",
+    ],
+    Nature: [
+        "RIVER", "MEADOW", "FOREST", "CANYON", "VALLEY", "STREAM", "BOULDER",
+        "BREEZE", "SUNSET", "BLOSSOM", "PRAIRIE", "TUNDRA", "MARSH", "GROVE",
+        "WILLOW", "MAPLE", "CEDAR", "FERN", "MOSS", "PEBBLE", "LAGOON", "RIDGE",
+        "SUMMIT", "GLACIER", "CRATER", "GEYSER", "ORCHARD", "WETLAND", "RAINBOW",
+        "THUNDER", "LIGHTNING", "WATERFALL", "VOLCANO", "WILDLIFE",
+    ],
+    Music: [
+        "PIANO", "GUITAR", "VIOLIN", "DRUMS", "FLUTE", "TRUMPET", "CELLO", "BANJO",
+        "HARP", "OBOE", "TEMPO", "RHYTHM", "MELODY", "CHORUS", "OCTAVE", "ANTHEM",
+        "BALLAD", "CONCERT", "ENCORE", "LYRICS", "BASSOON", "TROMBONE", "ORGAN",
+        "UKULELE", "MAESTRO", "QUARTET", "SOPRANO", "REMIX", "STUDIO", "VOCALS",
+    ],
+    Space: [
+        "PLANET", "ROCKET", "GALAXY", "NEBULA", "COMET", "METEOR", "ORBIT",
+        "ECLIPSE", "QUASAR", "PULSAR", "COSMOS", "CRATER", "SATURN", "VENUS",
+        "MERCURY", "NEPTUNE", "JUPITER", "GRAVITY", "STARDUST", "ASTEROID",
+        "TELESCOPE", "GALILEO", "LANDER", "ROVER", "LAUNCH", "VOYAGER", "MOON",
+        "SOLAR", "LUNAR", "COSMIC", "STELLAR",
+    ],
+    Weather: [
+        "CLOUD", "STORM", "FROST", "BREEZE", "DRIZZLE", "THUNDER", "RAINBOW",
+        "BLIZZARD", "CYCLONE", "MONSOON", "HUMID", "SUNNY", "WINDY", "FOGGY",
+        "SLEET", "HAIL", "TORNADO", "DROUGHT", "OVERCAST", "FORECAST", "PRESSURE",
+        "GUSTY", "SHOWER", "CHILLY", "TROPICAL",
+    ],
+    Ocean: [
+        "WHALE", "CORAL", "SHARK", "OCTOPUS", "DOLPHIN", "LOBSTER", "SEAWEED",
+        "STARFISH", "JELLYFISH", "URCHIN", "MARLIN", "PLANKTON", "CURRENT", "REEF",
+        "TIDE", "WAVE", "LAGOON", "HARBOR", "ANCHOR", "VESSEL", "SEASHELL", "MUSSEL",
+        "STINGRAY", "WALRUS", "NARWHAL", "SARDINE", "MACKEREL",
     ]
 };
 // Regular: across, down, and both forward diagonals (a proper word search).

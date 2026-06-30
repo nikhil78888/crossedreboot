@@ -162,7 +162,10 @@ var makeRng = function (seed) {
     };
 };
 exports.TRIVIA_COUNT = 6; // questions per quiz
-var generateTrivia = function (difficulty, seed, category) {
+var generateTrivia = function (difficulty, seed, category, 
+// Question ids the player has already seen — excluded so quizzes don't repeat
+// until the relevant pool is exhausted (then it resets to the full pool).
+excludeIds) {
     var _a;
     var rng = makeRng(seed);
     var pool = BANK.filter(function (q) { return q.difficulty === difficulty; });
@@ -176,6 +179,15 @@ var generateTrivia = function (difficulty, seed, category) {
     }
     if (pool.length < exports.TRIVIA_COUNT)
         pool = __spreadArray([], BANK, true);
+    // Prefer questions the player hasn't seen. Only honor the exclusion if it
+    // still leaves a full quiz's worth; otherwise keep the full pool so the
+    // player replays old questions rather than getting a short quiz.
+    if (excludeIds && excludeIds.length) {
+        var seen_1 = new Set(excludeIds);
+        var unseen = pool.filter(function (q) { return !seen_1.has(q.id); });
+        if (unseen.length >= exports.TRIVIA_COUNT)
+            pool = unseen;
+    }
     var arr = __spreadArray([], pool, true);
     for (var i = arr.length - 1; i > 0; i--) {
         var j = Math.floor(rng() * (i + 1));

@@ -122,6 +122,58 @@ export const fixType = (game: any): Game => {
   };
 };
 
+// Trivia "seen question" log (parallel to the crossword seenClues system).
+// The table isn't in the generated supabase types, so access it structurally.
+const seenTriviaTable = () =>
+  (supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (
+          col: string,
+          val: string
+        ) => {
+          order: (
+            col: string,
+            o: { ascending: boolean }
+          ) => {
+            limit: (n: number) => Promise<{
+              data: { questionId: string }[] | null;
+            }>;
+          };
+        };
+      };
+      insert: (rows: { profilesId: string; questionId: string }[]) => Promise<{
+        error: unknown;
+      }>;
+    };
+  }).from("seen_trivia");
+
+const fetchSeenTrivia = async (profileId: string): Promise<string[]> => {
+  try {
+    // Most-recent window — large enough to cover the whole bank, bounded so the
+    // query stays cheap as the log grows.
+    const { data } = await seenTriviaTable()
+      .select("questionId")
+      .eq("profilesId", profileId)
+      .order("createdAt", { ascending: false })
+      .limit(500);
+    return (data ?? []).map((r) => r.questionId);
+  } catch {
+    return [];
+  }
+};
+
+const recordSeenTrivia = async (profileId: string, questionIds: string[]) => {
+  if (!questionIds.length) return;
+  try {
+    await seenTriviaTable().insert(
+      questionIds.map((questionId) => ({ profilesId: profileId, questionId }))
+    );
+  } catch {
+    // Non-fatal: worst case a question can repeat sooner than ideal.
+  }
+};
+
 // Pick a puzzle the player hasn't seen and return the game-insert fields for it.
 // Shared by every "new game" creator so crossword/sudoku stay in lockstep.
 const puzzleFieldsForNewGame = async (
@@ -157,7 +209,14 @@ const puzzleFieldsForNewGame = async (
   if (variant === "TRIVIA") {
     const seed = Math.floor(Math.random() * 0xffffffff) || 1;
     const level = triviaLevel ?? (isHard ? "hard" : "easy");
-    const quiz = generateTrivia(level, seed, triviaCategory);
+    // Don't repeat questions this player has already seen until the bank is
+    // exhausted. seen_trivia isn't in the generated types — cast structurally.
+    const seenIds = await fetchSeenTrivia(profileId);
+    const quiz = generateTrivia(level, seed, triviaCategory, seenIds);
+    void recordSeenTrivia(
+      profileId,
+      quiz.questions.map((q) => q.id)
+    );
     return {
       // The games.difficulty column is REGULAR/HARD; the true level lives on the
       // quiz. Map hard → HARD so duration/UX stays consistent.

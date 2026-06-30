@@ -170,7 +170,10 @@ export const TRIVIA_COUNT = 6; // questions per quiz
 export const generateTrivia = (
   difficulty: Difficulty,
   seed: number,
-  category?: string
+  category?: string,
+  // Question ids the player has already seen — excluded so quizzes don't repeat
+  // until the relevant pool is exhausted (then it resets to the full pool).
+  excludeIds?: string[]
 ): TriviaQuiz => {
   const rng = makeRng(seed);
   let pool = BANK.filter((q) => q.difficulty === difficulty);
@@ -183,6 +186,14 @@ export const generateTrivia = (
         : BANK.filter((q) => q.difficulty === difficulty);
   }
   if (pool.length < TRIVIA_COUNT) pool = [...BANK];
+  // Prefer questions the player hasn't seen. Only honor the exclusion if it
+  // still leaves a full quiz's worth; otherwise keep the full pool so the
+  // player replays old questions rather than getting a short quiz.
+  if (excludeIds && excludeIds.length) {
+    const seen = new Set(excludeIds);
+    const unseen = pool.filter((q) => !seen.has(q.id));
+    if (unseen.length >= TRIVIA_COUNT) pool = unseen;
+  }
   const arr = [...pool];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
