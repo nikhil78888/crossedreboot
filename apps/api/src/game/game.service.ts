@@ -377,6 +377,35 @@ export const finalizeGame = async (
     ? (game.sudoku?.puzzle as unknown as PuzzleGrid)
     : undefined;
 
+  // Word search / trivia carry their puzzle inline in gameState (no content
+  // table); score them from found-words / correct-answers instead of the grid.
+  const gs = game.gameState as unknown as
+    | (Record<string, { solution?: unknown; found?: string[]; answers?: Record<string, number> }> & {
+        __wordsearch?: { words?: string[] };
+        __trivia?: { questions?: { id: string; answer: number }[] };
+      })
+    | undefined;
+  const variantScore = (playerId: string): number => {
+    if (game.gameVariant === "WORD_SEARCH") {
+      const words = gs?.__wordsearch?.words ?? [];
+      const found = gs?.[playerId]?.found ?? [];
+      return words.length
+        ? Math.round((words.filter((w) => found.includes(w)).length / words.length) * 100)
+        : 0;
+    }
+    if (game.gameVariant === "TRIVIA") {
+      const qs = gs?.__trivia?.questions ?? [];
+      const ans = gs?.[playerId]?.answers ?? {};
+      const correct = qs.filter((q) => ans[q.id] === q.answer).length;
+      return qs.length ? Math.round((correct / qs.length) * 100) : 0;
+    }
+    return calculateScore({
+      correctSolution,
+      solution: gs?.[playerId]?.solution as unknown as SolutionGrid | undefined,
+      puzzle,
+    });
+  };
+
   let scores: { playerId: string; score: number }[];
   if (opts?.forfeitProfileId) {
     scores = game.players.map((player) => ({
@@ -386,13 +415,7 @@ export const finalizeGame = async (
   } else {
     scores = game.players.map((player) => ({
       playerId: player.id,
-      score: calculateScore({
-        correctSolution,
-        solution: game.gameState?.[player.id]?.solution as unknown as
-          | SolutionGrid
-          | undefined,
-        puzzle,
-      }),
+      score: variantScore(player.id),
     }));
   }
 

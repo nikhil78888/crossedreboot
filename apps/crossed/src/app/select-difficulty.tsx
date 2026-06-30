@@ -16,9 +16,8 @@ export default function SelectDifficulty() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode: Mode }>();
   const { variant } = useVariant();
-  const { createSoloGame, createFriendlyGame, createBotRace } = useGame({
-    gameId: undefined,
-  });
+  const { createSoloGame, createFriendlyGame, createBotRace, createRankedBotMatch } =
+    useGame({ gameId: undefined });
   const { joinLobby } = useOnlineStatus();
   const { createPrivateTournament } = useTournament({
     tournamentId: undefined,
@@ -33,14 +32,29 @@ export default function SelectDifficulty() {
     setBusy(difficulty);
     try {
       trackEvent(events.DIFFICULTY_SELECTED, { mode, variant, difficulty });
-      // Word search "With Friend" = a live race vs a rubber-band bot (no
-      // friend-invite / rated ranked for the new variants yet).
+      // Competitive modes are gated by the subscription/daily limit.
+      if (mode !== "SOLO") {
+        const gate = await checkCanPlay();
+        if (!gate.allowed) {
+          trackEvent(events.GATE_BLOCKED, { mode, variant });
+          router.replace("/upgrade-to-pro");
+          return;
+        }
+      }
+      // Word search competitive = live race vs a rubber-band bot. RANKED is
+      // rated (server scores word-search state); FRIENDLY is a non-rated race.
+      // (Human matchmaking for the new variants is a later add — needs the
+      // puzzle generated server-side.)
+      if (variant === "WORD_SEARCH" && mode === "RANKED") {
+        const id = await createRankedBotMatch({ variant, difficulty });
+        if (id) router.replace(`/game?gameId=${id}`);
+        return;
+      }
       if (variant === "WORD_SEARCH" && mode === "FRIENDLY") {
         const id = await createBotRace({ variant, difficulty });
         if (id) router.replace(`/game?gameId=${id}`);
         return;
       }
-      // Other competitive modes for the new variants aren't ready yet.
       if (
         (variant === "WORD_SEARCH" || variant === "TRIVIA") &&
         mode !== "SOLO"
@@ -50,15 +64,6 @@ export default function SelectDifficulty() {
           "More competitive modes for this game type are on the way — try Solo or a quick race for now."
         );
         return;
-      }
-      // Competitive modes are gated by the subscription/daily limit.
-      if (mode !== "SOLO") {
-        const gate = await checkCanPlay();
-        if (!gate.allowed) {
-          trackEvent(events.GATE_BLOCKED, { mode, variant });
-          router.replace("/upgrade-to-pro");
-          return;
-        }
       }
       if (mode === "SOLO") {
         const id = await createSoloGame({ variant, difficulty });

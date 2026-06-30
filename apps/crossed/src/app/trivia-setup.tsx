@@ -18,11 +18,18 @@ const LEVELS: { key: Difficulty; label: string }[] = [
 export default function TriviaSetup() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  // mode=race → a live bot race; otherwise a plain solo game.
+  // mode=race → live bot race; mode=ranked → rated bot match; else solo.
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isRace = mode === "race";
-  const { createSoloGame, creatingSoloGame, createBotRace, creatingBotRace } =
-    useGame({ gameId: undefined });
+  const isRanked = mode === "ranked";
+  const {
+    createSoloGame,
+    creatingSoloGame,
+    createBotRace,
+    creatingBotRace,
+    createRankedBotMatch,
+    creatingRankedBotMatch,
+  } = useGame({ gameId: undefined });
   const [category, setCategory] = useState<string>("Any");
   const [level, setLevel] = useState<Difficulty>("easy");
 
@@ -51,6 +58,15 @@ export default function TriviaSetup() {
     }
   };
 
+  const ranked = async () => {
+    try {
+      const id = await createRankedBotMatch(opts);
+      if (id) router.replace(`/game?gameId=${id}`);
+    } catch {
+      // stay on screen
+    }
+  };
+
   const chip = (active: boolean) => ({
     borderRadius: 9999,
     paddingVertical: 9,
@@ -66,7 +82,7 @@ export default function TriviaSetup() {
         className="font-[jost700] text-crossed-gray-900"
         style={{ fontSize: 28 }}
       >
-        {isRace ? "Trivia Race" : "Trivia"}
+        {isRanked ? "Ranked Trivia" : isRace ? "Trivia Race" : "Trivia"}
       </Text>
 
       <Text className="mt-6 font-[jost700] text-[15px] text-crossed-gray-900">
@@ -133,9 +149,15 @@ export default function TriviaSetup() {
           intent="primary"
           size="xl"
           rounded="full"
-          label={isRace ? "⚡ Race a bot" : "Play"}
-          isLoading={isRace ? creatingBotRace : creatingSoloGame}
-          onPress={isRace ? race : start}
+          label={isRanked ? "⚡ Play Ranked" : isRace ? "⚡ Race a bot" : "Play"}
+          isLoading={
+            isRanked
+              ? creatingRankedBotMatch
+              : isRace
+              ? creatingBotRace
+              : creatingSoloGame
+          }
+          onPress={isRanked ? ranked : isRace ? race : start}
         />
       </View>
     </View>

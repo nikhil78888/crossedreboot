@@ -506,7 +506,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           variant,
           myProfile.id,
           180,
-          arg?.difficulty ?? "REGULAR"
+          arg?.difficulty ?? "REGULAR",
+          arg?.triviaCategory,
+          arg?.triviaLevel
         );
         if (!picked) return;
 
@@ -528,6 +530,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           .from("games")
           .insert({
             ...picked.fields,
+            ...(picked.gameState ? { gameState: picked.gameState } : {}),
             gameType: "RANKED",
             playState: "PLAYING",
             startedAt: addSeconds(new Date(), 10).toISOString(),
