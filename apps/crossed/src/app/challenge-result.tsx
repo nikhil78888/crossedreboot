@@ -4,22 +4,46 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { fmtSolve } from "./(home-tabs)/stats";
 
-// Result of a ghost-race challenge — decided by TIME (did you beat their solve?).
+// Result of a ghost-race challenge. Crossword / word search are decided by TIME;
+// trivia by ACCURACY (correct answers, tie broken by time). We just say won/lost
+// — no "faster by N seconds", which was misleading (a loss ends the instant you
+// pass their time, so the gap was always ~1s).
 export default function ChallengeResult() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { you, them, name, won } = useLocalSearchParams<{
+  const params = useLocalSearchParams<{
     you?: string;
     them?: string;
     name?: string;
     won?: string;
+    variant?: string;
+    youSolved?: string;
+    youScore?: string;
+    themScore?: string;
+    total?: string;
   }>();
-  const yourSeconds = parseInt(you ?? "0", 10) || 0;
-  const theirSeconds = parseInt(them ?? "0", 10) || 0;
-  const didWin = won === "1";
-  const diff = Math.abs(theirSeconds - yourSeconds);
-  const fmtDiff = diff < 60 ? `${diff}s` : fmtSolve(diff);
-  const rival = name || "your rival";
+  const didWin = params.won === "1";
+  const rival = params.name || "your rival";
+  const isTrivia = params.variant === "TRIVIA";
+
+  // The stat under each name: a score for trivia, a solve time otherwise.
+  let youStat: string;
+  let themStat: string;
+  let statLabel: string;
+  if (isTrivia) {
+    const total = parseInt(params.total ?? "0", 10) || 0;
+    youStat = `${parseInt(params.youScore ?? "0", 10) || 0}/${total}`;
+    themStat = `${parseInt(params.themScore ?? "0", 10) || 0}/${total}`;
+    statLabel = "correct";
+  } else {
+    const yourSeconds = parseInt(params.you ?? "0", 10) || 0;
+    const theirSeconds = parseInt(params.them ?? "0", 10) || 0;
+    // On a loss you ran out of time without finishing — show a dash rather than a
+    // bogus solve time (it would just equal their time).
+    youStat = params.youSolved === "1" ? fmtSolve(yourSeconds) : "—";
+    themStat = fmtSolve(theirSeconds);
+    statLabel = "time";
+  }
 
   return (
     <View className="flex-1 bg-white px-6" style={{ paddingTop: top + 48 }}>
@@ -27,18 +51,21 @@ export default function ChallengeResult() {
         className="text-center font-[jost700] text-crossed-gray-900"
         style={{ fontSize: 38 }}
       >
-        {didWin ? "🏆 You won!" : "So close!"}
+        {didWin ? "🏆 You won!" : "You lost"}
       </Text>
       <Text
         className="mt-3 text-center font-[jost600] text-crossed-gray-600"
         style={{ fontSize: 18, lineHeight: 26 }}
       >
         {didWin
-          ? `You beat ${rival} by ${fmtDiff}!`
-          : `${rival} was faster by ${fmtDiff} — get the rematch.`}
+          ? `You beat ${rival}!`
+          : `${rival} won this one — get the rematch!`}
       </Text>
 
-      <View className="mt-9 flex-row justify-center" style={{ gap: 36 }}>
+      <Text className="mt-8 text-center font-[jost600] text-[12px] uppercase tracking-wider text-crossed-gray-400">
+        {statLabel}
+      </Text>
+      <View className="mt-2 flex-row justify-center" style={{ gap: 36 }}>
         <View className="items-center">
           <Text className="font-[jost600] text-[13px] tracking-wider text-crossed-gray-400">
             YOU
@@ -47,7 +74,7 @@ export default function ChallengeResult() {
             className="mt-1 font-[jost700] text-crossed-gray-900"
             style={{ fontSize: 32 }}
           >
-            {fmtSolve(yourSeconds)}
+            {youStat}
           </Text>
         </View>
         <View className="items-center">
@@ -61,7 +88,7 @@ export default function ChallengeResult() {
             className="mt-1 font-[jost700] text-crossed-gray-500"
             style={{ fontSize: 32 }}
           >
-            {fmtSolve(theirSeconds)}
+            {themStat}
           </Text>
         </View>
       </View>

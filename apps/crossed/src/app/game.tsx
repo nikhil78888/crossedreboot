@@ -15,6 +15,17 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 import { UrgencyPulse } from "../components/UrgencyPulse";
 import { recordChallengeResult } from "../lib/challenge-utils";
 import { supabase } from "../lib/supabase";
+import { TriviaQuiz, triviaCorrectCount } from "../lib/trivia";
+
+// The challenger's trivia score, recovered from their ghost timeline (progress %
+// == correct / total). Used to decide a trivia challenge by accuracy.
+const challengerTriviaCorrect = (
+  timeline: { p?: number }[] | null | undefined,
+  total: number
+): number => {
+  const maxP = (timeline ?? []).reduce((m, pt) => Math.max(m, pt?.p ?? 0), 0);
+  return Math.round((maxP / 100) * total);
+};
 
 export default function Game() {
   const router = useRouter();
@@ -51,22 +62,61 @@ export default function Game() {
     : 0;
   const counting = gamePlayState === "PLAYING" && secondsToStart > 0;
 
-  // Challenge race: end the moment the challenger's ghost finishes (their solve
-  // time elapses). If you haven't beaten it by then, you've lost — don't keep
-  // playing past their time.
+  // Challenge race: decide when to end against the challenger's ghost.
   const ghostEnded = useRef(false);
   useEffect(() => {
     if (gamePlayState !== "PLAYING" || !startsAtMs || ghostEnded.current) return;
     const ch = (
-      game?.gameState as { __challenge?: { seconds?: number } } | undefined
+      game?.gameState as
+        | { __challenge?: { seconds?: number; timeline?: { p?: number }[] } }
+        | undefined
     )?.__challenge;
     if (!ch?.seconds) return;
     const elapsed = (now - startsAtMs) / 1000;
+
+    // Trivia is decided by ACCURACY, not the clock. End only when you've already
+    // gotten MORE wrong than the challenger (you can't catch up), or you're tied
+    // on wrong answers and their solve time has elapsed (then the faster finish
+    // wins). If you're ahead on accuracy, keep going until every question is
+    // answered (handled by the Trivia screen's own completion).
+    if (game?.gameVariant === "TRIVIA") {
+      const quiz = (game?.gameState as { __trivia?: TriviaQuiz } | undefined)
+        ?.__trivia;
+      if (!quiz) return;
+      const mine = myProfile?.id
+        ? (game?.gameState?.[myProfile.id] as
+            | { answers?: Record<string, number> }
+            | undefined)
+        : undefined;
+      const total = quiz.questions.length;
+      const answered = Object.keys(mine?.answers ?? {}).length;
+      const myWrong = answered - triviaCorrectCount(quiz, mine?.answers);
+      const theirWrong = total - challengerTriviaCorrect(ch.timeline, total);
+      if (
+        myWrong > theirWrong ||
+        (myWrong === theirWrong && elapsed >= ch.seconds)
+      ) {
+        ghostEnded.current = true;
+        finishGame();
+      }
+      return;
+    }
+
+    // Crossword / word search: a time race — end the moment their solve time
+    // elapses. If you haven't beaten it by then, you've lost.
     if (elapsed >= ch.seconds) {
       ghostEnded.current = true;
       finishGame();
     }
-  }, [now, gamePlayState, startsAtMs, game?.gameState, finishGame]);
+  }, [
+    now,
+    gamePlayState,
+    startsAtMs,
+    game?.gameState,
+    game?.gameVariant,
+    myProfile?.id,
+    finishGame,
+  ]);
 
   useEffect(() => {
     if (!opponentRating && opponent) {
@@ -224,7 +274,8 @@ export default function Game() {
         goBack();
         return;
       }
-      // Challenge ghost race → time-based result (did you beat their time?).
+      // Challenge ghost race → crossword / word search decided by TIME, trivia by
+      // ACCURACY (correct answers, tie broken by time).
       const challengeMeta = (
         game?.gameState as Record<string, unknown> | undefined
       )?.["__challenge"] as
@@ -233,6 +284,7 @@ export default function Game() {
             challengerId?: string | null;
             seconds?: number | null;
             name?: string | null;
+            timeline?: { p?: number }[] | null;
           }
         | undefined;
       if (challengeMeta) {
@@ -258,11 +310,44 @@ export default function Game() {
               )
             : 0);
         const theirSeconds = challengeMeta.seconds ?? 0;
-        // Win = solved strictly faster than the challenger. (Reaching their time
-        // without solving = a loss, which now ends the game.)
-        const beat = solved != null && theirSeconds > 0 && solved < theirSeconds;
-        // Close the loop either way: "X beat your time" on a win, "your time held"
-        // on a loss. Skip only when there's no challenger or it's your own test.
+
+        let beat: boolean;
+        let resultParams: string;
+        if (game?.gameVariant === "TRIVIA") {
+          const quiz = (
+            game?.gameState as { __trivia?: TriviaQuiz } | undefined
+          )?.__trivia;
+          const mine = myProfile?.id
+            ? (game?.gameState?.[myProfile.id] as
+                | { answers?: Record<string, number> }
+                | undefined)
+            : undefined;
+          const total = quiz?.questions.length ?? 0;
+          const youScore = triviaCorrectCount(quiz, mine?.answers);
+          const themScore = challengerTriviaCorrect(
+            challengeMeta.timeline,
+            total
+          );
+          // More correct wins; a tie on correct is broken by the faster solve.
+          beat =
+            youScore > themScore ||
+            (youScore === themScore &&
+              solved != null &&
+              theirSeconds > 0 &&
+              solved < theirSeconds);
+          resultParams = `variant=TRIVIA&youScore=${youScore}&themScore=${themScore}&total=${total}`;
+        } else {
+          // Win = solved strictly faster than the challenger. (Reaching their
+          // time without solving = a loss, which ends the game.)
+          beat = solved != null && theirSeconds > 0 && solved < theirSeconds;
+          resultParams = `variant=${
+            game?.gameVariant ?? "CROSSWORD"
+          }&you=${yourSeconds}&them=${theirSeconds}&youSolved=${
+            solved != null ? 1 : 0
+          }`;
+        }
+        // Close the loop either way (feeds the challenger's results feed). Skip
+        // only when there's no challenger or it's your own test.
         if (
           challengeMeta.challengerId &&
           myProfile?.id &&
@@ -281,9 +366,9 @@ export default function Game() {
           });
         }
         router.replace(
-          `/challenge-result?you=${yourSeconds}&them=${theirSeconds}&name=${encodeURIComponent(
+          `/challenge-result?name=${encodeURIComponent(
             challengeMeta.name ?? "your rival"
-          )}&won=${beat ? 1 : 0}`
+          )}&won=${beat ? 1 : 0}&${resultParams}`
         );
         return;
       }
