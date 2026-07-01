@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Vibration } from "react-native";
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -6,6 +7,10 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+
+// How fast the red flash breathes at each urgency tier (ms per half-cycle). The
+// buzz uses the same cadence so vibration and flash stay in sync.
+const pulseDuration = (pct: number) => (pct >= 97 ? 420 : pct >= 92 ? 620 : 880);
 
 // A red edge-glow that pulses over the whole screen once the OPPONENT is closing
 // in on the finish, so the player feels the pressure to rush. Off until 85%, then
@@ -17,14 +22,31 @@ export const UrgencyPulse = ({ progress }: { progress: number }) => {
 
   useEffect(() => {
     if (active) {
-      const dur = pct >= 97 ? 420 : pct >= 92 ? 620 : 880;
-      pulse.value = withRepeat(withTiming(1, { duration: dur }), -1, true);
+      pulse.value = withRepeat(
+        withTiming(1, { duration: pulseDuration(pct) }),
+        -1,
+        true
+      );
     } else {
       cancelAnimation(pulse);
       pulse.value = withTiming(0, { duration: 300 });
     }
     return () => cancelAnimation(pulse);
   }, [active, pct, pulse]);
+
+  // Buzz once per visual pulse (one full breathe = 2× the half-cycle) so the
+  // phone throbs in time with the red flash and quickens as the opponent nears
+  // the finish. Short pulses feel like a heartbeat, not a constant rumble.
+  useEffect(() => {
+    if (!active) return;
+    const cycle = pulseDuration(pct) * 2;
+    Vibration.vibrate(45);
+    const id = setInterval(() => Vibration.vibrate(45), cycle);
+    return () => {
+      clearInterval(id);
+      Vibration.cancel();
+    };
+  }, [active, pct]);
 
   // A full-screen red wash that breathes — kept low-opacity so the grid stays
   // readable. Floors at a faint tint so it never flickers to fully clear.
