@@ -34,14 +34,16 @@ export const UrgencyPulse = ({ progress }: { progress: number }) => {
     return () => cancelAnimation(pulse);
   }, [active, pct, pulse]);
 
-  // Buzz once per visual pulse (one full breathe = 2× the half-cycle) so the
-  // phone throbs in time with the red flash and quickens as the opponent nears
-  // the finish. Short pulses feel like a heartbeat, not a constant rumble.
+  // Throb in time with the red flash: each beat is a "da-dum" double-pulse
+  // (short-gap-short) rather than one steady buzz, and the beats quicken as the
+  // opponent nears the finish. The pattern is [wait, buzz, wait, buzz] so it
+  // reads as a heartbeat, not a constant rumble.
   useEffect(() => {
     if (!active) return;
     const cycle = pulseDuration(pct) * 2;
-    Vibration.vibrate(45);
-    const id = setInterval(() => Vibration.vibrate(45), cycle);
+    const heartbeat = [0, 35, 110, 55];
+    Vibration.vibrate(heartbeat);
+    const id = setInterval(() => Vibration.vibrate(heartbeat), cycle);
     return () => {
       clearInterval(id);
       Vibration.cancel();
