@@ -17,6 +17,7 @@ import { recordChallengeResult } from "../lib/challenge-utils";
 import { supabase } from "../lib/supabase";
 import { TriviaQuiz, triviaCorrectCount } from "../lib/trivia";
 import { recordGameCompleted, maybeRequestReview } from "../lib/engagement";
+import { ratingForVariant } from "../lib/variant-rating";
 
 // The challenger's trivia score, recovered from their ghost timeline (progress %
 // == correct / total). Used to decide a trivia challenge by accuracy.
@@ -121,10 +122,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!opponentRating && opponent) {
-      const r =
-        game?.gameVariant === "SUDOKU"
-          ? (opponent as { eloRatingSudoku?: number }).eloRatingSudoku
-          : opponent.eloRating;
+      const r = ratingForVariant(opponent, game?.gameVariant);
       if (r) setOpponentRating(r);
     }
   }, [opponent, opponentRating, game?.gameVariant]);
@@ -379,11 +377,13 @@ export default function Game() {
         );
         return;
       }
-      // Word search / trivia don't use the crossword answers pipeline → a
-      // dedicated, variant-agnostic result screen (time, or win/loss for a race).
+      // SOLO word search / trivia use a dedicated, variant-agnostic result
+      // screen (their solo score/time). Ranked/friendly matches fall through to
+      // the SHARED head-to-head results screen (/game-results) so every variant
+      // looks the same after a competitive game.
       if (
-        game?.gameVariant === "WORD_SEARCH" ||
-        game?.gameVariant === "TRIVIA"
+        gameType === "SOLO" &&
+        (game?.gameVariant === "WORD_SEARCH" || game?.gameVariant === "TRIVIA")
       ) {
         const me = myProfile?.id
           ? (
@@ -407,10 +407,7 @@ export default function Game() {
         );
         return;
       }
-      const beforeRating =
-        game?.gameVariant === "SUDOKU"
-          ? (myProfile as { eloRatingSudoku?: number })?.eloRatingSudoku
-          : myProfile?.eloRating;
+      const beforeRating = ratingForVariant(myProfile, game?.gameVariant);
       // The guided intro game (username already set) → a celebratory "enter the
       // app" screen instead of the standard results. preview=1 walks the same
       // screen from an existing account without changing anything.

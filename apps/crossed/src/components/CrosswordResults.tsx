@@ -12,6 +12,14 @@ import { ChallengeButton } from "./ChallengeButton";
 import { Avatar } from "react-native-ui-lib";
 import { Database, Game } from "types-and-validators";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { ratingForVariant } from "../lib/variant-rating";
+
+// Only crossword & sudoku have a reviewable answer grid; word search / trivia
+// don't, so the "view answers" surfaces are hidden for them.
+const hasAnswerGrid = (variant?: string) =>
+  variant === "CROSSWORD" || variant === "SUDOKU";
+const answersLabel = (variant?: string) =>
+  variant === "SUDOKU" ? "Sudoku" : "Crossword";
 
 export const FriendlyGameResult = ({
   gameId,
@@ -28,7 +36,7 @@ export const FriendlyGameResult = ({
   if (!myProfile || !game) {
     return null;
   }
-  const isSudoku = game.gameVariant === "SUDOKU";
+  const showAnswers = hasAnswerGrid(game.gameVariant);
   const myPoints =
     game.scores.find((s) => s.profilesId === myProfile.id)?.score || 0;
   const opponent = game.players.find((p) => p.id !== myProfile.id);
@@ -81,17 +89,6 @@ export const FriendlyGameResult = ({
         <View className="mt-6">
           <ChallengeButton gameId={gameId} />
         </View>
-        <Text className="mt-4 text-center text-[28px] font-[jost800] text-crossed-yellow-300">
-          Checkout the Answers
-        </Text>
-        {/* <View className="mt-5 flex-row space-x-4">
-          <View className="flex-1">
-            <PlayerAnswerButton player={myProfile} game={game} />
-          </View>
-          <View className="flex-1">
-            {opponent && <PlayerAnswerButton player={opponent} game={game} />}
-          </View>
-        </View> */}
         <View className="mt-5">
           <Button
             intent={"primary"}
@@ -107,18 +104,20 @@ export const FriendlyGameResult = ({
             }}
           />
         </View>
-        <View className="mt-5">
-          <Button
-            intent={"primary"}
-            size={"xl"}
-            label={`View ${isSudoku ? "Sudoku" : "Crossword"} Answers`}
-            rounded={"full"}
-            mode={"outline"}
-            onPress={() => {
-              router.push(`/view-answers?gameId=${gameId}`);
-            }}
-          />
-        </View>
+        {showAnswers && (
+          <View className="mt-5">
+            <Button
+              intent={"primary"}
+              size={"xl"}
+              label={`View ${answersLabel(game.gameVariant)} Answers`}
+              rounded={"full"}
+              mode={"outline"}
+              onPress={() => {
+                router.push(`/view-answers?gameId=${gameId}`);
+              }}
+            />
+          </View>
+        )}
         <View className="mt-5">
           <Button
             intent={"primary"}
@@ -278,18 +277,18 @@ const PlayerResultCard = ({
 }) => {
   const router = useRouter();
   const isWinner = player.id === game.winnerId;
-  const isSudoku = game.gameVariant === "SUDOKU";
-  const currentRating = isSudoku
-    ? (player as { eloRatingSudoku?: number }).eloRatingSudoku ??
-      player.eloRating
-    : player.eloRating;
+  const currentRating =
+    ratingForVariant(player, game.gameVariant) ?? player.eloRating;
   const delta = Math.round(
     (currentRating ?? 0) - (parseInt(previousRating, 10) || 0)
   );
+  const canViewAnswers = hasAnswerGrid(game.gameVariant);
   return (
     <TouchableOpacity
+      disabled={!canViewAnswers}
       onPress={() => {
-        router.push(`/view-answers?gameId=${game.id}&playerId=${player.id}`);
+        if (canViewAnswers)
+          router.push(`/view-answers?gameId=${game.id}&playerId=${player.id}`);
       }}
       className="w-full flex-row h-[85px] bg-cr-gray-200 rounded-[20px] px-5 py-3"
     >
