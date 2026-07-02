@@ -16,6 +16,7 @@ import { UrgencyPulse } from "../components/UrgencyPulse";
 import { recordChallengeResult } from "../lib/challenge-utils";
 import { supabase } from "../lib/supabase";
 import { TriviaQuiz, triviaCorrectCount } from "../lib/trivia";
+import { recordGameCompleted, maybeRequestReview } from "../lib/engagement";
 
 // The challenger's trivia score, recovered from their ghost timeline (progress %
 // == correct / total). Used to decide a trivia challenge by accuracy.
@@ -248,6 +249,12 @@ export default function Game() {
         gameType,
         variant: game?.gameVariant,
         won,
+      });
+      // Engagement: count this play, and — on a good note only (a win, or a
+      // self-paced solo finish, never right after losing) — consider asking for
+      // an App Store review. The helper self-limits to players who play often.
+      recordGameCompleted().then(() => {
+        if (!opponent || won) maybeRequestReview();
       });
       // Only log real onboarding completions (placeholder username) to keep the
       // funnel clean — demo/preview runs from an existing account are excluded.

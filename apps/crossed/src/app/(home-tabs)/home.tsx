@@ -20,6 +20,7 @@ import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
 import { usePushRegistration } from "../../hooks/use-push-registration";
+import { NotificationOptInBanner } from "../../components/NotificationOptInBanner";
 import { getRank } from "../../lib/rank";
 import { ratingForVariant } from "../../lib/variant-rating";
 import { useFriends } from "../../hooks/use-friends";
@@ -170,6 +171,9 @@ export default function Home() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Nudge to enable push notifications (for users who never turned them on) */}
+      <NotificationOptInBanner profileId={myProfile?.id} />
 
       {/* Feedback on challenges you sent: who accepted + who won */}
       <ChallengeResultsBanner />

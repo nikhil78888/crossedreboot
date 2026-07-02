@@ -62,43 +62,50 @@ export const usePushRegistration = (profileId?: string) => {
     return () => sub.remove();
   }, [router]);
 
+  // Only capture the token when permission is already granted. Asking for
+  // permission is driven by the in-app NotificationOptInBanner (a contextual
+  // soft prompt), not fired silently here — better conversion and it lets us
+  // route already-denied users to Settings instead of a no-op OS call.
   useEffect(() => {
     if (!profileId || registered.current) return;
-    registered.current = true;
     (async () => {
-      try {
-        if (!Device.isDevice) return; // simulators/emulators can't get a token
-        if (Platform.OS === "android") {
-          await Notifications.setNotificationChannelAsync("default", {
-            name: "Reminders",
-            importance: Notifications.AndroidImportance.DEFAULT,
-          });
-        }
-        let status = (await Notifications.getPermissionsAsync()).status;
-        if (status !== "granted") {
-          status = (await Notifications.requestPermissionsAsync()).status;
-        }
-        if (status !== "granted") return;
-
-        const projectId =
-          Constants.expoConfig?.extra?.eas?.projectId ??
-          Constants.easConfig?.projectId;
-        const token = (
-          await Notifications.getExpoPushTokenAsync(
-            projectId ? { projectId } : undefined
-          )
-        ).data;
-        if (!token) return;
-
-        // expoPushToken isn't in the generated types yet — structural write. The
-        // existing "update your own profile" RLS allows this.
-        await supabase
-          .from("profiles")
-          .update({ expoPushToken: token } as never)
-          .eq("id", profileId);
-      } catch {
-        // best-effort — never block the app on push setup
-      }
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") return;
+      registered.current = true;
+      await registerPushToken(profileId);
     })();
   }, [profileId]);
+};
+
+// Grabs the Expo push token for this device and stores it on the profile so the
+// backend re-engagement job can reach the player. Assumes permission is granted.
+// Returns true on success. Best-effort: never throws.
+export const registerPushToken = async (profileId: string): Promise<boolean> => {
+  try {
+    if (!Device.isDevice) return false; // simulators can't get a token
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "Reminders",
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    }
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId;
+    const token = (
+      await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      )
+    ).data;
+    if (!token) return false;
+    // expoPushToken isn't in the generated types yet — structural write. The
+    // existing "update your own profile" RLS allows this.
+    await supabase
+      .from("profiles")
+      .update({ expoPushToken: token } as never)
+      .eq("id", profileId);
+    return true;
+  } catch {
+    return false;
+  }
 };
