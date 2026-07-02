@@ -340,7 +340,9 @@ export default function Game() {
               solved != null &&
               theirSeconds > 0 &&
               solved < theirSeconds);
-          resultParams = `variant=TRIVIA&youScore=${youScore}&themScore=${themScore}&total=${total}`;
+          resultParams = `variant=TRIVIA&youScore=${youScore}&themScore=${themScore}&total=${total}&you=${yourSeconds}&them=${theirSeconds}&youSolved=${
+            solved != null ? 1 : 0
+          }`;
         } else {
           // Win = solved strictly faster than the challenger. (Reaching their
           // time without solving = a loss, which ends the game.)

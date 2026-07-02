@@ -25,24 +25,51 @@ export default function ChallengeResult() {
   const didWin = params.won === "1";
   const rival = params.name || "your rival";
   const isTrivia = params.variant === "TRIVIA";
+  const yourSeconds = parseInt(params.you ?? "0", 10) || 0;
+  const theirSeconds = parseInt(params.them ?? "0", 10) || 0;
+  const youSolved = params.youSolved === "1";
 
-  // The stat under each name: a score for trivia, a solve time otherwise.
+  // The stat shown under each name, and the subline, reflect how the result was
+  // actually decided.
   let youStat: string;
   let themStat: string;
   let statLabel: string;
+  let subline: string;
+
   if (isTrivia) {
+    // Trivia is decided by accuracy first, with time as the tiebreak. So if the
+    // scores are tied, show the times (that's what decided it); otherwise show
+    // the score.
     const total = parseInt(params.total ?? "0", 10) || 0;
-    youStat = `${parseInt(params.youScore ?? "0", 10) || 0}/${total}`;
-    themStat = `${parseInt(params.themScore ?? "0", 10) || 0}/${total}`;
-    statLabel = "correct";
+    const youScore = parseInt(params.youScore ?? "0", 10) || 0;
+    const themScore = parseInt(params.themScore ?? "0", 10) || 0;
+    const tied = youScore === themScore;
+    if (tied) {
+      statLabel = "time";
+      youStat = youSolved ? fmtSolve(yourSeconds) : "—";
+      themStat = fmtSolve(theirSeconds);
+      const gap = Math.abs(yourSeconds - theirSeconds);
+      const gapStr = gap < 60 ? `${gap}s` : fmtSolve(gap);
+      subline = didWin
+        ? `You both got ${youScore}/${total} — you were faster by ${gapStr}!`
+        : `You both got ${youScore}/${total} — ${rival} was faster.`;
+    } else {
+      statLabel = "correct";
+      youStat = `${youScore}/${total}`;
+      themStat = `${themScore}/${total}`;
+      subline = didWin
+        ? `You got ${youScore}/${total} to ${rival}'s ${themScore}!`
+        : `${rival} got ${themScore}/${total} to your ${youScore}.`;
+    }
   } else {
-    const yourSeconds = parseInt(params.you ?? "0", 10) || 0;
-    const theirSeconds = parseInt(params.them ?? "0", 10) || 0;
-    // On a loss you ran out of time without finishing — show a dash rather than a
-    // bogus solve time (it would just equal their time).
-    youStat = params.youSolved === "1" ? fmtSolve(yourSeconds) : "—";
-    themStat = fmtSolve(theirSeconds);
+    // Crossword / word search: a time race. On a loss you ran out of time without
+    // finishing — show a dash rather than a bogus solve time (it'd equal theirs).
     statLabel = "time";
+    youStat = youSolved ? fmtSolve(yourSeconds) : "—";
+    themStat = fmtSolve(theirSeconds);
+    subline = didWin
+      ? `You beat ${rival}!`
+      : `${rival} won this one — get the rematch!`;
   }
 
   return (
@@ -57,9 +84,7 @@ export default function ChallengeResult() {
         className="mt-3 text-center font-[jost600] text-crossed-gray-600"
         style={{ fontSize: 18, lineHeight: 26 }}
       >
-        {didWin
-          ? `You beat ${rival}!`
-          : `${rival} won this one — get the rematch!`}
+        {subline}
       </Text>
 
       <Text className="mt-8 text-center font-[jost600] text-[12px] uppercase tracking-wider text-crossed-gray-400">
