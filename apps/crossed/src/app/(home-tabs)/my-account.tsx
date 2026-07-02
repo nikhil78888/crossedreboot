@@ -14,6 +14,7 @@ import { useCallback } from "react";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import type { ComponentPropsWithoutRef } from "react";
 import { Image, ImageSource } from "expo-image";
+import { NotificationSettingRow } from "../../components/NotificationSettingRow";
 
 export default function MyAccount() {
   const { user, logout } = useAuth();
@@ -130,6 +131,7 @@ export default function MyAccount() {
         icon={images.account_privacy}
         onPress={() => router.push(`/privacy-policy`)}
       />
+      <NotificationSettingRow profileId={myProfile?.id} />
       {!user.isAnonymous && (
         <AccountPageButton
           icon={images.account_delete}

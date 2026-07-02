@@ -393,12 +393,15 @@ export default function Game() {
             )?.[myProfile.id]
           : undefined;
         const youSecs = me?.solvedInSeconds ?? 0;
+        // Did they actually finish, or just leave/time out? (Leaving a solo game
+        // routes here too — it must not claim "Solved!")
+        const didSolve = me?.solvedInSeconds != null;
         // In a bot race the bot is capped under 100%, so finishing = winning.
-        const raceWon = gameType !== "SOLO" && me?.solvedInSeconds != null;
+        const raceWon = gameType !== "SOLO" && didSolve;
         router.replace(
           `/variant-result?variant=${game.gameVariant}&type=${gameType}&won=${
             raceWon ? 1 : 0
-          }&you=${youSecs}&difficulty=${
+          }&solved=${didSolve ? 1 : 0}&you=${youSecs}&difficulty=${
             game.difficulty ?? "REGULAR"
           }&gameId=${gameId}`
         );

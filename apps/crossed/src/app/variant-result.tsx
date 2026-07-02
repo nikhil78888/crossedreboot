@@ -17,11 +17,12 @@ const LABEL: Record<string, string> = {
 export default function VariantResult() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
-  const { variant, type, won, you, them, difficulty, gameId } =
+  const { variant, type, won, solved, you, them, difficulty, gameId } =
     useLocalSearchParams<{
       variant?: string;
       type?: string;
       won?: string;
+      solved?: string;
       you?: string;
       them?: string;
       difficulty?: string;
@@ -33,11 +34,22 @@ export default function VariantResult() {
   const youSecs = parseInt(you ?? "0", 10) || 0;
   const themSecs = parseInt(them ?? "0", 10) || 0;
   const didWin = won === "1";
+  // Default to solved for older links that don't pass the flag; only "0" (leaving
+  // without finishing) flips it off.
+  const didSolve = solved !== "0";
   const label = LABEL[variant ?? ""] ?? "Puzzle";
 
-  const headline = isSolo ? "✅ Solved!" : didWin ? "🏆 You won!" : "Good race!";
+  const headline = isSolo
+    ? didSolve
+      ? "✅ Solved!"
+      : "👋 You left"
+    : didWin
+    ? "🏆 You won!"
+    : "Good race!";
   const subline = isSolo
-    ? `You finished the ${label.toLowerCase()} in ${fmtSolve(youSecs)}.`
+    ? didSolve
+      ? `You finished the ${label.toLowerCase()} in ${fmtSolve(youSecs)}.`
+      : `You left the ${label.toLowerCase()} before finishing.`
     : didWin
     ? `You beat them${themSecs ? ` — ${fmtSolve(youSecs)} to ${fmtSolve(themSecs)}` : ""}!`
     : "So close — go again.";
