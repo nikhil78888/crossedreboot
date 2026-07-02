@@ -19,6 +19,7 @@ import { IntroGamePrompt } from "../../components/IntroGamePrompt";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
+import { usePushRegistration } from "../../hooks/use-push-registration";
 import { getRank } from "../../lib/rank";
 import { ratingForVariant } from "../../lib/variant-rating";
 import { useFriends } from "../../hooks/use-friends";
@@ -34,6 +35,9 @@ export default function Home() {
     gameId: currentGameId,
   });
   const { myProfile } = useMyProfile();
+  // Register this device for re-engagement push notifications (asks permission
+  // once the player has reached the dashboard, i.e. after onboarding).
+  usePushRegistration(myProfile?.id);
   const { invites, requests } = useFriends();
   const { tournamentInvites, refreshTournamentInvites } =
     useTournamentInvites();
