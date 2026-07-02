@@ -45,7 +45,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   const [sel, setSel] = useState<Cell[]>([]);
   const dragStart = useRef<Cell | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [gridBox, setGridBox] = useState({ w: 0, h: 0 }); // measured grid area
+  const [contentH, setContentH] = useState(0); // measured column height
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timelineRef = useRef<{ t: number; p: number }[]>([]);
   const finishedRef = useRef(false);
@@ -180,16 +180,20 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opponent, puzzle, startAtMsForBot, game?.gameDurationInSeconds]);
 
-  // Fit the grid inside the MEASURED area that sits between the header and the
-  // word list (both of which are laid out first, at their natural heights). The
-  // grid is a fixed-size child centered in a flex-1 box, so it simply shrinks to
-  // whatever space is left — the word list can never be clipped, on any screen or
-  // puzzle size. Before onLayout measures, fall back to a conservative estimate.
+  // Content is laid out top-down (header → grid → word list), grouped near the
+  // top with the slack falling at the bottom. Size the grid width-first so it's
+  // as large as the screen allows, but cap it to a share of the MEASURED column
+  // height so the header + word list always fit without clipping — even on short
+  // screens. Races reserve more (their header is taller).
   const { width, height } = Dimensions.get("window");
   const size = puzzle?.size ?? 9;
-  const boxW = gridBox.w || width - 24;
-  const boxH = gridBox.h || height * 0.42;
-  const cellSize = Math.max(16, Math.floor((Math.min(boxW, boxH) - 2) / size));
+  const availW = width - 24; // px-3 on both sides
+  const availH = contentH || height * 0.7;
+  const gridHeightShare = isRace ? 0.52 : 0.64;
+  const cellSize = Math.max(
+    16,
+    Math.floor(Math.min(availW / size, (availH * gridHeightShare) / size))
+  );
 
   if (!puzzle) {
     return (
@@ -241,7 +245,10 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
   const gridPx = cellSize * size;
 
   return (
-    <View className="flex-1 bg-white px-3 pt-2">
+    <View
+      className="flex-1 bg-white px-3 pt-2"
+      onLayout={(e) => setContentH(e.nativeEvent.layout.height)}
+    >
       {/* Race: the shared head-to-head header (timer + opponent/you bars + the
           red urgency pulse) — identical to crossword. Solo: a count-up clock. */}
       {isRace ? (
@@ -259,17 +266,8 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
         </View>
       )}
 
-      {/* The grid fills the space between the header and the word list; measuring
-          this box is what keeps the grid fit-to-screen with no clipping. */}
-      <View
-        className="flex-1 items-center justify-center"
-        onLayout={(e) =>
-          setGridBox({
-            w: e.nativeEvent.layout.width,
-            h: e.nativeEvent.layout.height,
-          })
-        }
-      >
+      {/* Grid sits right under the header; word list follows directly below. */}
+      <View className="mt-2 items-center">
       <GestureDetector gesture={pan}>
         <View style={{ width: gridPx, height: gridPx }}>
           {puzzle.grid.map((row, r) => (
