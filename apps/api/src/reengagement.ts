@@ -1,10 +1,14 @@
 import { supabase } from "./lib/supabase";
 
 // Re-engagement pushes: nudge players who haven't opened the app in a while to
-// come back. Two flavors — a plain reminder, and a "someone solved a puzzle in
-// X — can you beat it?" hook using a real recent solve time. Rate-limited via
-// lastPushedAt so we never spam, and only sent during a daytime/evening window
-// for the primary (US) market since we don't store per-user timezones yet.
+// come back. The hook is "someone solved a puzzle in X — can you beat it?" and
+// tapping drops them into a ghost race on the EXACT puzzle that solve came from
+// (reusing the challenge system). The original solver is never told — challengeId
+// with a null challengerId means no result is recorded back to anyone.
+//
+// Rate-limited via lastPushedAt so we never spam, and only sent during a
+// daytime/evening window for the primary (US) market since we don't store
+// per-user timezones yet.
 
 const HOUR = 60 * 60 * 1000;
 const INACTIVE_MS = 24 * HOUR; // only nudge players idle >= 24h
@@ -13,16 +17,15 @@ const BATCH = 100; // Expo accepts up to 100 messages per request
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
 // profiles rows we read — expoPushToken/lastPushedAt aren't in the generated
-// Database types yet, so access the table through a loose structural view.
+// Database types yet, so reassert the row shape via .returns().
 type PushRow = { id: string; expoPushToken: string | null };
-const db = supabase as unknown as {
-  from: (t: string) => {
-    select: (c: string) => {
-      eq: (col: string, v: unknown) => {
-        order: (
-          col: string,
-          o: { ascending: boolean }
-        ) => { limit: (n: number) => Promise<{ data: unknown[] | null }> };
+
+// challenges isn't in the generated types — structural view for the insert.
+const challengesTable = supabase as unknown as {
+  from: (t: "challenges") => {
+    insert: (v: Record<string, unknown>) => {
+      select: (c: string) => {
+        single: () => Promise<{ data: { id: string } | null; error: unknown }>;
       };
     };
   };
@@ -40,62 +43,131 @@ const inSendWindow = () => {
   return h >= 17 || h < 1;
 };
 
-// A believable solve time from a recent completed game, so the "beat it" nudge
-// is truthful. Falls back to a snappy default if none is handy.
-const recentSolveTime = async (): Promise<number> => {
-  try {
-    const { data } = await db
-      .from("games")
-      .select("gameState")
-      .eq("playState", "COMPLETED")
-      .order("createdAt", { ascending: false })
-      .limit(30);
-    const times: number[] = [];
-    for (const row of (data ?? []) as { gameState?: unknown }[]) {
-      const gs = row.gameState as Record<string, unknown> | null;
-      if (!gs) continue;
-      for (const [k, v] of Object.entries(gs)) {
-        if (k.startsWith("__")) continue; // __challenge / __trivia / __wordsearch
-        const secs = (v as { solvedInSeconds?: number })?.solvedInSeconds;
-        if (typeof secs === "number" && secs >= 20 && secs <= 900)
-          times.push(secs);
-      }
-    }
-    if (times.length) return times[Math.floor(Math.random() * times.length)];
-  } catch {
-    // fall through
-  }
-  const fallbacks = [47, 58, 63, 72, 85, 94];
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+const nounFor = (variant: string) =>
+  variant === "WORD_SEARCH"
+    ? "word search"
+    : variant === "TRIVIA"
+    ? "trivia round"
+    : "crossword";
+
+type Solve = {
+  variant: string;
+  difficulty: string;
+  seconds: number;
+  timeline: unknown;
+  crosswordsId: string | null;
+  resolvedClues: unknown;
+  puzzle: unknown;
 };
 
-const buildMessage = (
-  token: string,
-  solveTime: number,
-  variant: "beat" | "reminder"
-) => {
-  const content =
-    variant === "beat"
-      ? {
-          title: "Can you beat it? 🏁",
-          body: `Someone just solved a Crossed puzzle in ${fmt(
-            solveTime
-          )}. Think you can go faster?`,
-        }
-      : {
-          title: "Your next puzzle is waiting 🧩",
-          body: "Jump back into Crossed and climb the rankings.",
-        };
+// Find a recent completed game with a clean solve (time + progress timeline) we
+// can rebuild as a challenge. Prefers the fastest solve in each game.
+const pickRecentSolve = async (): Promise<Solve | null> => {
+  const { data } = await supabase
+    .from("games")
+    .select("gameVariant, crosswordsId, resolvedClues, difficulty, gameState")
+    .eq("playState", "COMPLETED")
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  for (const g of data ?? []) {
+    const gs = g.gameState as Record<string, unknown> | null;
+    if (!gs) continue;
+    let best: { seconds: number; timeline: unknown } | null = null;
+    for (const [k, v] of Object.entries(gs)) {
+      if (k.startsWith("__")) continue; // __challenge / __trivia / __wordsearch
+      const entry = v as { solvedInSeconds?: number; timeline?: unknown };
+      const secs = entry?.solvedInSeconds;
+      const tl = entry?.timeline;
+      if (
+        typeof secs === "number" &&
+        secs >= 20 &&
+        secs <= 900 &&
+        Array.isArray(tl) &&
+        tl.length > 0 &&
+        (!best || secs < best.seconds)
+      ) {
+        best = { seconds: secs, timeline: tl };
+      }
+    }
+    if (!best) continue;
+    const variant = g.gameVariant || "CROSSWORD";
+    if (variant === "WORD_SEARCH" || variant === "TRIVIA") {
+      const puzzle =
+        variant === "WORD_SEARCH"
+          ? (gs as { __wordsearch?: unknown }).__wordsearch
+          : (gs as { __trivia?: unknown }).__trivia;
+      if (!puzzle) continue;
+      return {
+        variant,
+        difficulty: (g.difficulty as string) ?? "REGULAR",
+        seconds: best.seconds,
+        timeline: best.timeline,
+        crosswordsId: null,
+        resolvedClues: null,
+        puzzle,
+      };
+    }
+    if (!g.crosswordsId) continue;
+    return {
+      variant: "CROSSWORD",
+      difficulty: (g.difficulty as string) ?? "REGULAR",
+      seconds: best.seconds,
+      timeline: best.timeline,
+      crosswordsId: g.crosswordsId,
+      resolvedClues: g.resolvedClues,
+      puzzle: null,
+    };
+  }
+  return null;
+};
+
+// Persist a system challenge (no challengerId → nobody gets a result). Returns
+// the challenge id to deep-link the push to, or null on failure.
+const createSystemChallenge = async (s: Solve): Promise<string | null> => {
+  try {
+    const { data, error } = await challengesTable
+      .from("challenges")
+      .insert({
+        challengerId: null, // system-generated: never notify anyone
+        challengerName: "the record",
+        gameVariant: s.variant,
+        crosswordsId: s.crosswordsId,
+        difficulty: s.difficulty,
+        resolvedClues: s.resolvedClues ?? null,
+        solveSeconds: s.seconds,
+        timeline: s.timeline ?? null,
+        puzzle: s.puzzle ?? null,
+      })
+      .select("id")
+      .single();
+    if (error || !data?.id) return null;
+    return data.id;
+  } catch {
+    return null;
+  }
+};
+
+const message = (token: string, solve: Solve | null, challengeId: string | null) => {
+  if (solve && challengeId) {
+    return {
+      to: token,
+      sound: "default",
+      title: "Can you beat it? 🏁",
+      body: `Someone solved a Crossed ${nounFor(solve.variant)} in ${fmt(
+        solve.seconds
+      )}. Tap to race the exact puzzle.`,
+      data: { route: `/challenge?id=${challengeId}` },
+    };
+  }
   return {
     to: token,
     sound: "default",
-    ...content,
+    title: "Your next puzzle is waiting 🧩",
+    body: "Jump back into Crossed and climb the rankings.",
     data: { route: "/home" },
   };
 };
 
-// POST a chunk of messages to Expo and return the push tokens that Expo reports
-// as permanently invalid (so we can clear them).
 // Node 20 has a global fetch at runtime; the API's TS lib doesn't declare it.
 const httpFetch = (
   globalThis as unknown as {
@@ -106,15 +178,11 @@ const httpFetch = (
   }
 ).fetch;
 
-const sendChunk = async (
-  messages: { to: string }[]
-): Promise<string[]> => {
+// POST a chunk of messages to Expo; return tokens Expo reports as dead.
+const sendChunk = async (messages: { to: string }[]): Promise<string[]> => {
   const res = await httpFetch(EXPO_PUSH_URL, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(messages),
   });
   const dead: string[] = [];
@@ -142,7 +210,7 @@ const sweep = async () => {
   const inactiveBefore = new Date(now - INACTIVE_MS).toISOString();
   const cooldownBefore = new Date(now - COOLDOWN_MS).toISOString();
 
-  // Eligible: has a token, inactive >= 24h, and not pushed in the last 48h.
+  // Eligible: has a token, inactive >= 24h, not pushed in the last 48h.
   const { data, error } = await supabase
     .from("profiles")
     .select("id, expoPushToken, lastSeenAt, lastPushedAt")
@@ -159,10 +227,12 @@ const sweep = async () => {
   const rows = (data ?? []).filter((r) => r.expoPushToken);
   if (!rows.length) return;
 
-  const solveTime = await recentSolveTime();
-  // Alternate the two message flavors across the batch.
-  const messages = rows.map((r, i) =>
-    buildMessage(r.expoPushToken as string, solveTime, i % 2 ? "reminder" : "beat")
+  // Build one exact-puzzle ghost race for this batch (all pushes share it).
+  const solve = await pickRecentSolve();
+  const challengeId = solve ? await createSystemChallenge(solve) : null;
+
+  const messages = rows.map((r) =>
+    message(r.expoPushToken as string, solve, challengeId)
   );
 
   const dead: string[] = [];
@@ -170,7 +240,7 @@ const sweep = async () => {
     dead.push(...(await sendChunk(messages.slice(i, i + BATCH))));
   }
 
-  // Mark everyone we just messaged so the cooldown applies.
+  // Apply the cooldown to everyone we just messaged.
   const sentIds = rows.map((r) => r.id);
   await supabase
     .from("profiles")
@@ -187,13 +257,13 @@ const sweep = async () => {
       .in("expoPushToken", dead);
   }
   console.log(
-    `[reengagement] pushed ${sentIds.length}, cleared ${dead.length} dead tokens`
+    `[reengagement] pushed ${sentIds.length} (challenge=${
+      challengeId ?? "none"
+    }), cleared ${dead.length} dead tokens`
   );
 };
 
-// Runs hourly; the send window + cooldown keep it from over-notifying. Idempotent
-// enough for multiple replicas: the worst case is a rare double-send in the
-// window between a chunk send and the lastPushedAt update.
+// Runs hourly; the send window + cooldown keep it from over-notifying.
 export const watchReengagement = () => {
   const run = () =>
     sweep().catch((error) => console.log({ reengagementError: error }));

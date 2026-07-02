@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 
@@ -16,26 +17,48 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Remembers the last push we already routed from, so a normal cold launch (which
+// still reports the last tapped notification) doesn't re-open an old target.
+const HANDLED_KEY = "push:lastHandledId";
+
+const routeOf = (
+  resp: Notifications.NotificationResponse | null
+): string | undefined =>
+  (resp?.notification.request.content.data as { route?: string } | undefined)
+    ?.route;
+
 // Registers this device for push notifications and stores the Expo push token on
 // the player's profile so the backend re-engagement job can reach them. Also
-// routes into the app when a notification is tapped. Best-effort throughout —
-// permission denial or a simulator (no token) simply no-ops; nothing here can
-// block the app. Called from Home so it only runs for a signed-in player who has
-// finished onboarding (value first, then the permission prompt).
+// routes into the app when a notification is tapped — a "beat this time" push
+// deep-links straight into a ghost race on the exact puzzle. Best-effort
+// throughout: permission denial or a simulator (no token) simply no-ops. Called
+// from Home so the permission prompt lands after onboarding (value first).
 export const usePushRegistration = (profileId?: string) => {
   const router = useRouter();
   const registered = useRef(false);
 
-  // Tap a push → open the app to wherever the payload points (defaults home).
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data as
-          | { route?: string }
-          | undefined;
-        router.replace((data?.route as never) ?? ("/home" as never));
-      }
+    const go = async (
+      resp: Notifications.NotificationResponse | null,
+      coldStart: boolean
+    ) => {
+      const route = routeOf(resp);
+      const id = resp?.notification.request.identifier;
+      if (!route || !id) return;
+      // On cold start we only act on a notification we haven't routed before.
+      if (coldStart && (await AsyncStorage.getItem(HANDLED_KEY)) === id) return;
+      await AsyncStorage.setItem(HANDLED_KEY, id);
+      router.replace(route as never);
+    };
+
+    // Warm taps (app already running).
+    const sub = Notifications.addNotificationResponseReceivedListener((resp) =>
+      go(resp, false)
     );
+    // A tap that cold-launched the app.
+    Notifications.getLastNotificationResponseAsync()
+      .then((resp) => go(resp, true))
+      .catch(() => undefined);
     return () => sub.remove();
   }, [router]);
 
