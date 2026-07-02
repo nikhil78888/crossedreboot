@@ -312,17 +312,27 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
       </GestureDetector>
       </View>
 
+      {/* Put flex props in `style`, not className: a `style` prop clobbers
+          NativeWind layout classes, which silently dropped flex-wrap and let the
+          word list run off both edges of the screen. */}
       <View
-        className="mt-3 flex-row flex-wrap justify-center"
-        style={{ gap: 7 }}
+        className="mt-3"
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 7,
+        }}
       >
         {puzzle.words.map((w) => {
           const got = found.includes(w);
           return (
             <View
               key={w}
-              className="rounded-full px-2.5 py-1"
               style={{
+                borderRadius: 9999,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
                 backgroundColor: got
                   ? colors["crossed-green"]["100"]
                   : colors["crossed-gray"]["50"],
