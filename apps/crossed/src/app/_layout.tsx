@@ -37,7 +37,6 @@ import {
 import { Besley_500Medium } from "@expo-google-fonts/besley";
 import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
-import { Alert } from "react-native";
 import { useAuth } from "../hooks/use-auth";
 import { branch } from "../lib/branch";
 import { setPendingChallenge } from "../lib/intro-flag";
@@ -140,20 +139,12 @@ export default function IndexLayout() {
   useEffect(() => {
     const checkForUpdates = async () => {
       try {
+        // Silently pull OTA updates: download in the background and let it apply
+        // on the next app launch. No popup, no mid-session reload — the player is
+        // never interrupted and is at most one launch behind the latest.
         const update = await Updates.checkForUpdateAsync();
-
-        if (update.isAvailable) {
-          const updateResult = await Updates.fetchUpdateAsync();
-          if (updateResult) {
-            Alert.alert(
-              "New Stuff Alert!",
-              "A new update is available. Please reload the app to enjoy a better experience.",
-              [{ text: "Reload", onPress: () => Updates.reloadAsync() }]
-            );
-          }
-        }
+        if (update.isAvailable) await Updates.fetchUpdateAsync();
       } catch (error) {
-        // You can also add an alert() to see the error message in case of an error when fetching updates.
         console.info(`Error fetching latest Expo update: ${error}`);
       }
     };
