@@ -170,22 +170,34 @@ export const wordSearchConfig = (difficulty: "REGULAR" | "HARD") =>
 export const generateWordSearch = (
   difficulty: "REGULAR" | "HARD",
   seed: number,
-  themeName?: string
+  themeName?: string,
+  // Themes recently shown to this player (avoided so the category varies), and
+  // words they've already seen (preferred to be skipped). Both keep successive
+  // puzzles from repeating. Fall back gracefully once everything's been seen.
+  excludeThemes?: string[],
+  excludeWords?: string[]
 ): WordSearchPuzzle => {
   const rng = makeRng(seed);
   const themes = Object.keys(THEMES);
-  const theme = themeName ?? themes[Math.floor(rng() * themes.length)];
+  let choices = themes;
+  if (!themeName && excludeThemes && excludeThemes.length) {
+    const fresh = themes.filter((t) => !excludeThemes.includes(t));
+    if (fresh.length) choices = fresh; // if all are recent, allow any
+  }
+  const theme = themeName ?? choices[Math.floor(rng() * choices.length)];
   const { size, count, dirs } = wordSearchConfig(difficulty);
 
-  // Pick `count` distinct words that fit the grid, longest first for easier placement.
-  const pool = [...THEMES[theme]]
-    .filter((w) => w.length <= size)
-    .sort((a, b) => b.length - a.length);
-  // Shuffle within length buckets via the rng.
+  // Words that fit the grid, shuffled, then ordered UNSEEN-first (for variety)
+  // and longest-first within each group (for easier placement).
+  const seen = new Set(excludeWords ?? []);
+  const pool = [...THEMES[theme]].filter((w) => w.length <= size);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
+  pool.sort(
+    (a, b) => (seen.has(a) ? 1 : 0) - (seen.has(b) ? 1 : 0) || b.length - a.length
+  );
 
   const grid: (string | null)[][] = Array.from({ length: size }, () =>
     Array.from({ length: size }, () => null)

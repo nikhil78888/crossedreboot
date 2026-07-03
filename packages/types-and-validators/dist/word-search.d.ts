@@ -21,7 +21,7 @@ export declare const wordSearchConfig: (difficulty: "REGULAR" | "HARD") => {
         dc: number;
     }[];
 };
-export declare const generateWordSearch: (difficulty: "REGULAR" | "HARD", seed: number, themeName?: string) => WordSearchPuzzle;
+export declare const generateWordSearch: (difficulty: "REGULAR" | "HARD", seed: number, themeName?: string, excludeThemes?: string[], excludeWords?: string[]) => WordSearchPuzzle;
 export declare const matchSelection: (puzzle: WordSearchPuzzle, selection: Cell[]) => string | null;
 export declare const wordSearchProgress: (puzzle: WordSearchPuzzle | null | undefined, found: string[] | null | undefined) => number;
 //# sourceMappingURL=word-search.d.ts.map

@@ -1,5 +1,6 @@
 import useSWRMutation from "swr/mutation";
 import useSWRSubscription, { SWRSubscriptionOptions } from "swr/subscription";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "../lib/supabase";
 import { useMyProfile } from "./use-my-profile";
 import { Game } from "types-and-validators";
@@ -122,6 +123,51 @@ export const fixType = (game: any): Game => {
   };
 };
 
+// Word search variety: remember the last few themes and the recently-seen words
+// on-device so successive puzzles don't repeat the category or the same words.
+const WS_THEMES_KEY = "ws:recentThemes";
+const WS_WORDS_KEY = "ws:seenWords";
+const WS_THEME_MEMORY = 5; // avoid the last N themes
+const WS_WORD_MEMORY = 400; // remember the last N words shown
+
+const getWordSearchHistory = async (): Promise<{
+  themes: string[];
+  words: string[];
+}> => {
+  try {
+    const [t, w] = await Promise.all([
+      AsyncStorage.getItem(WS_THEMES_KEY),
+      AsyncStorage.getItem(WS_WORDS_KEY),
+    ]);
+    return {
+      themes: t ? (JSON.parse(t) as string[]) : [],
+      words: w ? (JSON.parse(w) as string[]) : [],
+    };
+  } catch {
+    return { themes: [], words: [] };
+  }
+};
+
+const recordWordSearchHistory = async (theme: string, words: string[]) => {
+  try {
+    const prev = await getWordSearchHistory();
+    const themes = [theme, ...prev.themes.filter((t) => t !== theme)].slice(
+      0,
+      WS_THEME_MEMORY
+    );
+    const seen = [
+      ...words,
+      ...prev.words.filter((w) => !words.includes(w)),
+    ].slice(0, WS_WORD_MEMORY);
+    await AsyncStorage.multiSet([
+      [WS_THEMES_KEY, JSON.stringify(themes)],
+      [WS_WORDS_KEY, JSON.stringify(seen)],
+    ]);
+  } catch {
+    // best-effort — variety tracking must never block starting a game
+  }
+};
+
 // Trivia "seen question" log (parallel to the crossword seenClues system).
 // The table isn't in the generated supabase types, so access it structurally.
 const seenTriviaTable = () =>
@@ -199,7 +245,17 @@ const puzzleFieldsForNewGame = async (
   const isHard = difficulty === "HARD";
   if (variant === "WORD_SEARCH") {
     const seed = Math.floor(Math.random() * 0xffffffff) || 1;
-    const puzzle = generateWordSearch(difficulty, seed);
+    // Avoid recently-shown themes and words so successive puzzles stay varied.
+    const { themes: recentThemes, words: seenWords } =
+      await getWordSearchHistory();
+    const puzzle = generateWordSearch(
+      difficulty,
+      seed,
+      undefined,
+      recentThemes,
+      seenWords
+    );
+    void recordWordSearchHistory(puzzle.theme, puzzle.words);
     return {
       fields: { gameVariant: "WORD_SEARCH", difficulty },
       gameState: { __wordsearch: puzzle } as unknown as Json,

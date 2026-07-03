@@ -159,20 +159,31 @@ var wordSearchConfig = function (difficulty) {
         : { size: 9, count: 7, dirs: DIRS_EASY };
 };
 exports.wordSearchConfig = wordSearchConfig;
-var generateWordSearch = function (difficulty, seed, themeName) {
+var generateWordSearch = function (difficulty, seed, themeName, 
+// Themes recently shown to this player (avoided so the category varies), and
+// words they've already seen (preferred to be skipped). Both keep successive
+// puzzles from repeating. Fall back gracefully once everything's been seen.
+excludeThemes, excludeWords) {
     var _a;
     var rng = makeRng(seed);
     var themes = Object.keys(THEMES);
-    var theme = themeName !== null && themeName !== void 0 ? themeName : themes[Math.floor(rng() * themes.length)];
+    var choices = themes;
+    if (!themeName && excludeThemes && excludeThemes.length) {
+        var fresh = themes.filter(function (t) { return !excludeThemes.includes(t); });
+        if (fresh.length)
+            choices = fresh; // if all are recent, allow any
+    }
+    var theme = themeName !== null && themeName !== void 0 ? themeName : choices[Math.floor(rng() * choices.length)];
     var _b = (0, exports.wordSearchConfig)(difficulty), size = _b.size, count = _b.count, dirs = _b.dirs;
-    // Pick `count` distinct words that fit the grid, longest first for easier placement.
-    var pool = __spreadArray([], THEMES[theme], true).filter(function (w) { return w.length <= size; })
-        .sort(function (a, b) { return b.length - a.length; });
-    // Shuffle within length buckets via the rng.
+    // Words that fit the grid, shuffled, then ordered UNSEEN-first (for variety)
+    // and longest-first within each group (for easier placement).
+    var seen = new Set(excludeWords !== null && excludeWords !== void 0 ? excludeWords : []);
+    var pool = __spreadArray([], THEMES[theme], true).filter(function (w) { return w.length <= size; });
     for (var i = pool.length - 1; i > 0; i--) {
         var j = Math.floor(rng() * (i + 1));
         _a = [pool[j], pool[i]], pool[i] = _a[0], pool[j] = _a[1];
     }
+    pool.sort(function (a, b) { return (seen.has(a) ? 1 : 0) - (seen.has(b) ? 1 : 0) || b.length - a.length; });
     var grid = Array.from({ length: size }, function () {
         return Array.from({ length: size }, function () { return null; });
     });
