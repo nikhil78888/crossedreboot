@@ -68,6 +68,18 @@ export const extractWordSlots = (
 const key = (word: string, clue: string) => `${word}|||${clue}`;
 const rand = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
+// One-word clues ("Daddy", "Brew") should be RARE — good clues are descriptive.
+// Pick from the best available tier (3+ words, then 2, then whatever's left) so a
+// single-word clue is only ever used when the word has nothing richer unseen.
+const wordCount = (c: string) => c.trim().split(/\s+/).filter(Boolean).length;
+const pickTiered = (list: string[]): string | undefined => {
+  if (!list.length) return undefined;
+  const rich = list.filter((c) => wordCount(c) >= 3);
+  const two = list.filter((c) => wordCount(c) === 2);
+  const tier = rich.length ? rich : two.length ? two : list;
+  return rand(tier);
+};
+
 // Resolve a crossword's clues to ones the player hasn't seen, log what they were
 // shown, and return the new clues object (or null to use the baked clues).
 export const resolveAndLogClues = async (
@@ -126,11 +138,9 @@ export const resolveAndLogClues = async (
         if (!candidates.length && bakedClue) candidates = [bakedClue];
         candidates = Array.from(new Set(candidates.filter(Boolean)));
         const unseen = candidates.filter((c) => !seen.has(key(slot.word, c)));
-        const chosen = unseen.length
-          ? rand(unseen)
-          : candidates.length
-          ? rand(candidates)
-          : bakedClue;
+        // Prefer an unseen richer clue; fall back to any richer clue; then baked.
+        const chosen =
+          pickTiered(unseen) ?? pickTiered(candidates) ?? bakedClue;
         out[direction].push({ number: slot.number, clue: chosen });
         if (chosen) {
           chosenPairs.push({ profilesId: profileId, word: slot.word, clue: chosen });

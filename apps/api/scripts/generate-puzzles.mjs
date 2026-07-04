@@ -569,12 +569,19 @@ function buildPuzzle(pattern, grid, dict) {
   }
 
   // clue lookup by word. A word may have several clues in the bank — pick one
-  // at random so the same answer varies across puzzles.
+  // at random for variety, but PREFER descriptive clues: one-word clues ("Daddy",
+  // "Brew") should be rare, so we only fall back to them when the word has nothing
+  // richer. Fill-in-the-blanks and hyphenated compounds count as descriptive.
+  const wordsIn = (c) => c.trim().split(/\s+/).filter(Boolean).length;
+  const isRich = (c) => wordsIn(c) >= 2 || /_/.test(c) || /-/.test(c);
   const clueOf = (word) => {
     const pool = dict[word.length] || [];
     const hit = pool.find((e) => e.word === word);
     if (!hit) return null;
-    return Array.isArray(hit.clue) ? hit.clue[rand(hit.clue.length)] : hit.clue;
+    const list = Array.isArray(hit.clue) ? hit.clue : [hit.clue];
+    const rich = list.filter(isRich);
+    const tier = rich.length ? rich : list;
+    return tier[rand(tier.length)];
   };
 
   const clues = { Across: [], Down: [] };
