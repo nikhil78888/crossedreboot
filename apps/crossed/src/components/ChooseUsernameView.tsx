@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormTextInput } from "./FormTextInput";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Logo } from "./Logo";
-import { setPendingIntro } from "../lib/intro-flag";
+import { setPendingIntro, consumePendingIntro } from "../lib/intro-flag";
 
 // The "Get Started — choose a username" screen. Shared by the real (public)
 // route and the in-app new-user PREVIEW so the screen + copy can't drift.
@@ -92,12 +92,16 @@ const UsernameForm = ({
       onPreviewNext?.();
       return;
     }
+    // Flag the intro BEFORE signing in: creating the account flips `user`, which
+    // makes the root auth guard redirect this screen to /home — and that can
+    // happen before this function's next line runs. Setting it first guarantees
+    // /home sees the flag on its first render (fixes "landed on home, then got
+    // yanked into onboarding 30s later"). Cleared if sign-in fails.
+    setPendingIntro(true);
     try {
       await setDisplayName({ username: data.username });
-      // New player is signed in; flag the intro so /home prompts it (the root
-      // auth guard redirects this public screen to /home).
-      setPendingIntro(true);
     } catch (error: unknown) {
+      consumePendingIntro();
       const code = (error as { code?: string })?.code;
       setError("root", {
         message:

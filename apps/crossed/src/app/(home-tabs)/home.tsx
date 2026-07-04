@@ -77,6 +77,13 @@ export default function Home() {
   const [showIntroPrompt, setShowIntroPrompt] = useState(peekPendingIntro());
   const [introLaunching, setIntroLaunching] = useState(false);
 
+  // Consume the one-shot intro flag on mount: the initial render above already
+  // captured it, so clearing it now means a later remount can't yank the player
+  // back into onboarding after they've reached the dashboard.
+  useEffect(() => {
+    if (peekPendingIntro()) consumePendingIntro();
+  }, []);
+
   useEffect(() => {
     if (!myProfile?.id || challengeLaunched.current) return;
     const challengeId = consumePendingChallenge();

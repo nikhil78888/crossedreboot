@@ -68,11 +68,17 @@ export const usePushRegistration = (profileId?: string) => {
   // route already-denied users to Settings instead of a no-op OS call.
   useEffect(() => {
     if (!profileId || registered.current) return;
+    registered.current = true;
     (async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== "granted") return;
-      registered.current = true;
-      await registerPushToken(profileId);
+      const perm = await Notifications.getPermissionsAsync();
+      let status = perm.status;
+      // Ask on the first app open (as soon as they reach the dashboard) rather
+      // than waiting for the banner tap. If already asked/denied the OS won't
+      // re-prompt (no-op) and the banner routes them to Settings instead.
+      if (status !== "granted" && perm.canAskAgain) {
+        status = (await Notifications.requestPermissionsAsync()).status;
+      }
+      if (status === "granted") await registerPushToken(profileId);
     })();
   }, [profileId]);
 };

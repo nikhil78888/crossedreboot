@@ -839,7 +839,11 @@ const CrosswordCell = ({
           keyboardType="ascii-capable"
           textAlign="center"
           pointerEvents="box-only"
-          style={{ fontSize: textInputFontSize }}
+          // Hide the field's own text: the native input briefly shows the raw
+          // (lowercase) keystroke before React re-renders the controlled value,
+          // which caused a "lowercase flash". The letter is drawn by the overlay
+          // Text below instead, so only the committed uppercase value is visible.
+          style={{ fontSize: textInputFontSize, color: "transparent" }}
           selectTextOnFocus={false}
           onKeyPress={(e) => {
             const regex = /^(?:[a-zA-Z]|Backspace)$/;
@@ -858,7 +862,21 @@ const CrosswordCell = ({
           editable={!disabled}
           showSoftInputOnFocus={!disabled}
         />
-        {/* {disabled && <View className="absolute inset-0 h-full w-full" />} */}
+        {/* The visible letter — always the committed uppercase value, so there's
+            no lowercase flash from the native input while typing. */}
+        {!!value && (
+          <View
+            pointerEvents="none"
+            className="absolute inset-0 items-center justify-center"
+          >
+            <Text
+              className="font-semibold"
+              style={{ fontSize: textInputFontSize }}
+            >
+              {value}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );

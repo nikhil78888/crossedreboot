@@ -138,6 +138,14 @@ const isValidPattern = (g) => {
       if (across > MAX_SLOT || down > MAX_SLOT) return false;
     }
   }
+  // No solid black rows/columns — a whole line of black squares is nonsensical.
+  for (let r = 0; r < SIZE; r++)
+    if (g[r].every((x) => x !== 1)) return false;
+  for (let c = 0; c < SIZE; c++) {
+    let allBlack = true;
+    for (let r = 0; r < SIZE; r++) if (g[r][c] === 1) { allBlack = false; break; }
+    if (allBlack) return false;
+  }
   // connectivity
   let start = null;
   for (let r = 0; r < SIZE && !start; r++)
@@ -217,6 +225,14 @@ const violations = (g) => {
       if (a < 3 || a > MAX_SLOT) v++;
       if (d < 3 || d > MAX_SLOT) v++;
     }
+  }
+  // Heavily penalize solid black rows/columns so the climber never "solves" a
+  // stubborn line by blacking it out entirely.
+  for (let r = 0; r < SIZE; r++) if (g[r].every((x) => x !== 1)) v += 12;
+  for (let c = 0; c < SIZE; c++) {
+    let allBlack = true;
+    for (let r = 0; r < SIZE; r++) if (g[r][c] === 1) { allBlack = false; break; }
+    if (allBlack) v += 12;
   }
   return v;
 };
@@ -329,6 +345,15 @@ const clueScore = (clue, freqRank) => {
 // A word is only kept if it has at least one clue this clean.
 const MAX_CLUE_SCORE = 24;
 
+// Reject broken harvested clues: cross-references to other entries ("See 42",
+// "11d-27a-5d", "11-Across") that make no sense in a freshly generated grid.
+const isBadClue = (c) =>
+  /\b\d{1,3}\s*[ad]\b/i.test(c) ||
+  /\bsee\s+\d/i.test(c) ||
+  /\d+\s*[- ]\s*(across|down)\b/i.test(c) ||
+  /\b(across|down)\b/i.test(c) ||
+  /\d[ad]-\d/i.test(c);
+
 // Never allow offensive/slur/adult/crude words in the fill (the frequency list
 // and dictionary include some). Block-list + a couple of stem checks.
 const BLOCKLIST = new Set([
@@ -387,7 +412,9 @@ function loadDict(freqRank, dictWords) {
       // keep only clean, non-trivia, non-cryptic clues
       clues = (Array.isArray(rawClues) ? rawClues : [rawClues])
         .map(stripClue)
-        .filter((c) => c && clueScore(c, freqRank) <= MAX_CLUE_SCORE);
+        .filter(
+          (c) => c && !isBadClue(c) && clueScore(c, freqRank) <= MAX_CLUE_SCORE
+        );
       if (!clues.length) return; // no clean clue -> drop the word
     }
     seen.add(w);
