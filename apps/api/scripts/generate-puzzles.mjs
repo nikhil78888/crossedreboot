@@ -587,7 +587,7 @@ async function insertPuzzle(p) {
     solution: p.solution,
     clues: p.clues,
     usedWords: p.usedWords,
-    source: "fullchecked-v1",
+    source: "wizium",
     difficulty: 2,
     isPublished: true,
     category: "general",
