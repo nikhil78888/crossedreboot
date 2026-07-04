@@ -54,7 +54,7 @@ const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
 // Bigger boards need a deeper word pool to fill, so they get more leeway on
 // commonness (their long answers can be slightly less common). 5x5 stays the
 // strictest/easiest since it's the most-played size.
-const FREQ_SIZE_FACTOR = SIZE <= 5 ? 1 : SIZE <= 7 ? 1.25 : 1.5;
+const FREQ_SIZE_FACTOR = SIZE <= 5 ? 1 : SIZE <= 7 ? 1.8 : 2.6;
 const maxRankForLen = (len) =>
   Math.round(
     FREQ_SIZE_FACTOR *
@@ -205,71 +205,59 @@ const safeBlacken = (g, r, c) => {
   );
 };
 
-// Count fully-checked / min-3 / max-length violations across the grid (0 = a
-// valid fully-checked min-3 layout, ignoring connectivity which is checked last).
-const violations = (g) => {
-  let v = 0;
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      if (g[r][c] !== 1) continue;
-      const a = runLen(g, r, c, 0, 1) + runLen(g, r, c, 0, -1) - 1;
-      const d = runLen(g, r, c, 1, 0) + runLen(g, r, c, -1, 0) - 1;
-      if (a < 3 || a > MAX_SLOT) v++;
-      if (d < 3 || d > MAX_SLOT) v++;
-    }
-  }
-  return v;
-};
-
-// Hill-climb a random layout toward zero violations: seed random black squares,
-// then repeatedly flip a cell if it doesn't increase violations (with occasional
-// worse-accepting jitter to escape local minima). Reliably finds valid
-// fully-checked min-3 grids at every size, including the tight 8x8 / 9x9.
-const hillClimbPattern = () => {
-  const density =
-    SIZE <= 5 ? 0.1 : SIZE <= 6 ? 0.13 : SIZE <= 7 ? 0.15 : SIZE <= 8 ? 0.18 : SIZE <= 9 ? 0.2 : 0.24;
-  const target = Math.round(SIZE * SIZE * density);
-  for (let restart = 0; restart < 40; restart++) {
+// Constructive fully-checked pattern: start all-white, then repeatedly break the
+// longest over-length word by blackening an interior cell (with its 180°-symmetric
+// partner) ONLY where doing so keeps every cell crossed both ways. This lands on
+// a valid fully-checked grid almost every time, unlike random-and-validate.
+const GP = { stuck: 0, invalid: 0 };
+const generatePattern = () => {
+  for (let attempt = 0; attempt < 400; attempt++) {
     const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(1));
-    let placed = 0, guard = 0;
-    while (placed < target && guard++ < 500) {
-      const r = rand(SIZE), c = rand(SIZE);
-      if (g[r][c] === 1) { g[r][c] = 0; placed++; }
+    let stuck = false;
+    for (let guard = 0; guard < 4000; guard++) {
+      const longRuns = allRuns(g).filter((run) => run.length > MAX_SLOT);
+      if (!longRuns.length) break;
+      longRuns.sort((a, b) => b.length - a.length);
+      const run = longRuns[0];
+      const L = run.length;
+      // Split points that leave both halves length 3..MAX_SLOT (prefer), else any
+      // that leave both halves >= 3.
+      let cands = [];
+      for (let p = 3; p <= L - 4; p++)
+        if (p <= MAX_SLOT && L - 1 - p <= MAX_SLOT) cands.push(p);
+      if (!cands.length) for (let p = 3; p <= L - 4; p++) cands.push(p);
+      shuffle(cands);
+      let done = false;
+      for (const p of cands) {
+        const [r, c] = run[p];
+        if (!safeBlacken(g, r, c)) continue;
+        g[r][c] = 0;
+        done = true;
+        break;
+      }
+      if (!done) { stuck = true; break; }
     }
-    let v = violations(g);
-    for (let iter = 0; iter < 4000 && v > 0; iter++) {
+    if (stuck) { GP.stuck++; continue; }
+
+    // Add extra safe black pairs up to a target density so words are a mix of
+    // lengths and the grid actually fills — an all-white "word square" is nearly
+    // impossible to fill from the bank. safeBlacken keeps it fully checked.
+    const densityTarget =
+      SIZE <= 5 ? 0.1 : SIZE <= 6 ? 0.13 : SIZE <= 7 ? 0.16 : SIZE <= 8 ? 0.24 : SIZE <= 9 ? 0.26 : 0.26;
+    let black = g.reduce((n, row) => n + row.filter((x) => x === 0).length, 0);
+    const targetBlack = Math.round(SIZE * SIZE * densityTarget);
+    let guard2 = 0;
+    while (black < targetBlack && guard2++ < 3000) {
       const r = rand(SIZE), c = rand(SIZE);
-      g[r][c] = g[r][c] === 1 ? 0 : 1;
-      const nv = violations(g);
-      if (nv <= v || rand(100) < 4) v = nv; // accept improving / equal / rare worse
-      else g[r][c] = g[r][c] === 1 ? 0 : 1; // revert
+      if (g[r][c] !== 1) continue;
+      if (!safeBlacken(g, r, c)) continue;
+      g[r][c] = 0;
+      black += 1;
     }
-    if (v === 0 && isValidPattern(g)) return g;
+    if (isValidPattern(g)) return g;
+    GP.invalid++;
   }
   return null;
-};
-
-// Find a set of distinct valid layouts once, then reuse them across puzzles (the
-// fill + clue-resolver provide the variety). This is far faster and more reliable
-// than searching for a fresh layout per puzzle.
-let TEMPLATES = null;
-const generatePattern = () => {
-  if (!TEMPLATES) {
-    TEMPLATES = [];
-    const want = SIZE <= 6 ? 10 : 18;
-    const seen = new Set();
-    for (let t = 0; t < want * 60 && TEMPLATES.length < want; t++) {
-      const g = hillClimbPattern();
-      if (!g) continue;
-      const key = JSON.stringify(g);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      TEMPLATES.push(g);
-    }
-    console.log(`  built ${TEMPLATES.length} fully-checked layout templates`);
-  }
-  if (!TEMPLATES.length) return null;
-  return TEMPLATES[rand(TEMPLATES.length)].map((row) => row.slice());
 };
 
 // English dictionary headwords (lowercase common words, basically no modern
@@ -355,51 +343,34 @@ const isBlocked = (w) => BLOCKLIST.has(w);
 // makes fully-checked grids fillable at every size. A word may carry several
 // clues (array) — the generator picks one per puzzle and the serve-time resolver
 // still swaps in unseen ones.
-function loadDict(freqRank, dictWords) {
+function loadDict(freqRank) {
   const bank = JSON.parse(
     fs.readFileSync(path.join(process.cwd(), "scripts/wordclues-bank.json"), "utf8")
   );
-  // hand-curated clues (best quality, always trusted)
-  const curatedClue = {};
-  for (let len = 3; len <= MAX_DICT_LEN; len++)
-    for (const [w, clue] of Object.entries(CURATED[len] || {}))
-      curatedClue[w.toUpperCase()] = clue;
-  const curatedSet = new Set(Object.keys(curatedClue));
-
   const dict = {};
   for (let len = 3; len <= MAX_DICT_LEN; len++) dict[len] = [];
   const seen = new Set();
-  const add = (word, rawClues) => {
+  const add = (word, clue) => {
     const w = word.toUpperCase();
     const len = w.length;
-    if (len < 3 || len > MAX_DICT_LEN || seen.has(w)) return;
-    if (!/^[A-Z]+$/.test(w) || isBlocked(w)) return;
-    const isCurated = curatedSet.has(w);
-    // Must be a real dictionary headword (excludes proper nouns / abbreviations
-    // like ONO, EDO, ODA, ISO) — curated words are pre-vetted and exempt.
-    if (!isCurated && !dictWords.has(w)) return;
+    if (len < 3 || len > MAX_DICT_LEN) return;
+    if (!/^[A-Z]+$/.test(w) || isBlocked(w) || seen.has(w)) return;
     const rank = freqRank.get(w);
-    if (!isCurated && (rank === undefined || rank > maxRankForLen(len))) return;
-    let clues;
-    if (isCurated) {
-      clues = curatedClue[w]; // trust the hand-authored clue(s)
-    } else {
-      // keep only clean, non-trivia, non-cryptic clues
-      clues = (Array.isArray(rawClues) ? rawClues : [rawClues])
-        .map(stripClue)
-        .filter((c) => c && clueScore(c, freqRank) <= MAX_CLUE_SCORE);
-      if (!clues.length) return; // no clean clue -> drop the word
-    }
+    if (rank === undefined || rank > maxRankForLen(len)) return; // common only
+    if (!clue || (Array.isArray(clue) && !clue.length)) return;
     seen.add(w);
-    dict[len].push({ word: w, clue: clues });
+    dict[len].push({ word: w, clue });
   };
-  // wordClues bank (curated words picked up here get their curated clue)
-  for (const [w, v] of Object.entries(bank))
-    add(w, v.REGULAR && v.REGULAR.length ? v.REGULAR : v.HARD);
-  // add any curated words the bank missed
-  for (const w of curatedSet) add(w, curatedClue[w]);
+  // harvested bank: prefer REGULAR clues, fall back to HARD
+  for (const [w, v] of Object.entries(bank)) {
+    const clues = v.REGULAR && v.REGULAR.length ? v.REGULAR : v.HARD;
+    add(w, clues);
+  }
+  // union the hand-curated bank for anything the harvest missed
   for (let len = 3; len <= MAX_DICT_LEN; len++)
-    console.log(`  dict[${len}] = ${dict[len].length} clean words`);
+    for (const [w, clue] of Object.entries(CURATED[len] || {})) add(w, clue);
+  for (let len = 3; len <= MAX_DICT_LEN; len++)
+    console.log(`  dict[${len}] = ${dict[len].length} common words`);
   return dict;
 }
 
@@ -614,25 +585,23 @@ async function insertPuzzle(p) {
 
 // ---- main ----
 (async () => {
-  console.log("Loading frequency + dictionary…");
-  const [freqRank, dictWords] = await Promise.all([
-    loadFreq(),
-    loadDictionaryWords(),
-  ]);
+  console.log("Loading frequency list…");
+  const freqRank = await loadFreq();
   console.log("Loading word/clue bank…");
-  const dict = loadDict(freqRank, dictWords);
+  const dict = loadDict(freqRank);
   const index = buildIndex(dict);
   let made = 0, attempts = 0;
+  const dbg = { patternNull: 0, fillNull: 0, notClued: 0 };
   const seen = new Set(); // dedupe identical grids
   const attemptCap = COUNT * (SIZE >= 8 ? 400 : SIZE >= 6 ? 300 : 200);
   while (made < COUNT && attempts < attemptCap) {
     attempts++;
     const pattern = generatePattern();
-    if (!pattern) continue;
+    if (!pattern) { dbg.patternNull++; continue; }
     const filled = fillGrid(pattern, dict, index);
-    if (!filled) continue;
+    if (!filled) { dbg.fillNull++; continue; }
     const p = buildPuzzle(pattern, filled.grid, dict);
-    if (!p.allClued) continue; // skip puzzles missing any clue
+    if (!p.allClued) { dbg.notClued++; continue; } // skip puzzles missing any clue
     const key = JSON.stringify(p.solution);
     if (seen.has(key)) continue; // skip duplicates
     seen.add(key);
@@ -648,4 +617,5 @@ async function insertPuzzle(p) {
     }
   }
   console.log(`\nDone. Generated ${made} puzzles in ${attempts} attempts${DRY_RUN ? " (dry run, nothing inserted)" : " and inserted them"}.`);
+  console.log(`  [debug] patternNull=${dbg.patternNull} fillNull=${dbg.fillNull} notClued=${dbg.notClued}`);
 })();
