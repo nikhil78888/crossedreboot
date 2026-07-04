@@ -62,8 +62,8 @@ const usernameFormSchema = z.object({
     .nonempty({ message: "Please pick a Username" })
     .min(6, { message: "Username must be at least 6 characters" })
     .regex(
-      new RegExp(/^([a-z0-9]+\.)*[a-z0-9]+$/),
-      "Username may contain lowercase letters, numbers, and dots(.)"
+      new RegExp(/^([a-zA-Z0-9]+\.)*[a-zA-Z0-9]+$/),
+      "Username may contain letters, numbers, and dots(.)"
     ),
 });
 
