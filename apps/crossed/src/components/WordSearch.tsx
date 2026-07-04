@@ -92,12 +92,15 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
           timeline: timelineRef.current,
         },
       };
-      supabase
-        .from("games")
-        .update({ gameState: mergedDone as never })
-        .eq("id", gameId)
-        .then();
-      finishGame();
+      // Await the winning write before finishing so server scoring can't read a
+      // stale (debounced) progress value and dock the perfect score.
+      void (async () => {
+        await supabase
+          .from("games")
+          .update({ gameState: mergedDone as never })
+          .eq("id", gameId);
+        finishGame();
+      })();
       return;
     }
     if (writeTimer.current) clearTimeout(writeTimer.current);

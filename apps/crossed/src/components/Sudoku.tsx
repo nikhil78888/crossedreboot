@@ -203,12 +203,16 @@ export const SudokuGrid = ({
         ...(game.gameState ?? {}),
         [myProfile.id]: { ...gameState, solvedInSeconds: solveSeconds },
       };
-      supabase
-        .from("games")
-        .update({ gameState: mergedDone as never })
-        .eq("id", gameId)
-        .then();
-      finishGame();
+      // Await the winning write before finishing: the server scores from the DB
+      // gameState, so a fire-and-forget write can lose the race and score a
+      // stale (debounced) progress value instead of the full 100.
+      void (async () => {
+        await supabase
+          .from("games")
+          .update({ gameState: mergedDone as never })
+          .eq("id", gameId);
+        finishGame();
+      })();
       return;
     }
     if (progressTimer.current) clearTimeout(progressTimer.current);
@@ -361,9 +365,14 @@ export const SudokuGrid = ({
                         alignItems: "center",
                         justifyContent: "center",
                         backgroundColor: showResults ? "#ffffff" : cellBg(r, c),
-                        borderRightWidth: c % 3 === 2 && c !== 8 ? 2 : 0.5,
-                        borderBottomWidth: r % 3 === 2 && r !== 8 ? 2 : 0.5,
-                        borderColor: "#9ca3af",
+                        // Internal grid lines drawn as each cell's left/top border
+                        // (the container draws the outer frame). Thick black on the
+                        // 3x3 box boundaries, thin gray between cells. 1px min so
+                        // lines never drop out on high-density screens.
+                        borderLeftWidth: c === 0 ? 0 : c % 3 === 0 ? 2 : 1,
+                        borderTopWidth: r === 0 ? 0 : r % 3 === 0 ? 2 : 1,
+                        borderLeftColor: c % 3 === 0 ? "#111827" : "#cbd5e1",
+                        borderTopColor: r % 3 === 0 ? "#111827" : "#cbd5e1",
                       }}
                     >
                       {value !== EMPTY ? (

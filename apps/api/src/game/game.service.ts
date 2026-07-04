@@ -27,10 +27,38 @@ export const createRankedMatch = async (
   // matched players race the exact same one.
   if (gameVariant === "WORD_SEARCH" || gameVariant === "TRIVIA") {
     const seed = Math.floor(Math.random() * 0xffffffff) || 1;
-    const gameState =
-      gameVariant === "WORD_SEARCH"
-        ? { __wordsearch: generateWordSearch(difficulty, seed) }
-        : { __trivia: generateTrivia(isHard ? "hard" : "easy", seed) };
+    let gameState: { __wordsearch?: unknown; __trivia?: unknown };
+    if (gameVariant === "WORD_SEARCH") {
+      gameState = { __wordsearch: generateWordSearch(difficulty, seed) };
+    } else {
+      // Ranked trivia: REGULAR = medium tier (never easy), HARD = hard. Exclude
+      // questions the creating player has already seen so ranked doesn't repeat.
+      let excludeIds: string[] = [];
+      try {
+        const { data: seen } = await (
+          supabase as unknown as {
+            from: (t: string) => {
+              select: (c: string) => {
+                eq: (
+                  col: string,
+                  v: string
+                ) => { limit: (n: number) => Promise<{ data: { questionId: string }[] | null }> };
+              };
+            };
+          }
+        )
+          .from("seen_trivia")
+          .select("questionId")
+          .eq("profilesId", playerOneId)
+          .limit(500);
+        excludeIds = (seen ?? []).map((r) => r.questionId);
+      } catch {
+        // best-effort
+      }
+      gameState = {
+        __trivia: generateTrivia(isHard ? "hard" : "medium", seed, undefined, excludeIds),
+      };
+    }
     const duration = gameVariant === "TRIVIA" ? 240 : isHard ? 420 : 300;
     const { data: game, error: createGameError } = await supabase
       .from("games")

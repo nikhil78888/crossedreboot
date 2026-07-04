@@ -357,12 +357,17 @@ export const CrosswordGrid = ({
           timeline: timelineRef.current,
         },
       };
-      supabase
-        .from("games")
-        .update({ gameState: mergedDone as never })
-        .eq("id", gameId)
-        .then(); // write the winning state NOW (scoring reads it)
-      finishGame();
+      // The server's finish-game handler reads gameState from the DB to compute
+      // the score. AWAIT the winning-state write before finishing so scoring can
+      // never read a stale (debounced, e.g. 97%) progress write — the cause of
+      // "sometimes I get 97 instead of 100 when everything's right".
+      void (async () => {
+        await supabase
+          .from("games")
+          .update({ gameState: mergedDone as never })
+          .eq("id", gameId);
+        finishGame();
+      })();
       return;
     }
     // Otherwise debounce the progress write (drives the opponent's bar).

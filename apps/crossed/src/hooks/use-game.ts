@@ -264,7 +264,9 @@ const puzzleFieldsForNewGame = async (
   }
   if (variant === "TRIVIA") {
     const seed = Math.floor(Math.random() * 0xffffffff) || 1;
-    const level = triviaLevel ?? (isHard ? "hard" : "easy");
+    // triviaLevel is the exact tier for solo/friendly. When absent (ranked bot
+    // fallback), REGULAR = medium (never easy — ranked should be a challenge).
+    const level = triviaLevel ?? (isHard ? "hard" : "medium");
     // Don't repeat questions this player has already seen until the bank is
     // exhausted. seen_trivia isn't in the generated types — cast structurally.
     const seenIds = await fetchSeenTrivia(profileId);
@@ -513,9 +515,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
   const { trigger: playAgainFriendly, isMutating: playingAgain } =
     useSWRMutation("play-again-friendly", async () => {
       if (!gameId || !myProfile) return;
-      // Rematch in the same variant + difficulty as the game that just finished.
-      const variant: GameVariant =
-        game?.gameVariant === "SUDOKU" ? "SUDOKU" : "CROSSWORD";
+      // Rematch in the SAME variant + difficulty as the game that just finished
+      // (was hardcoding crossword for word search / trivia).
+      const variant: GameVariant = (game?.gameVariant as GameVariant) ?? "CROSSWORD";
       const difficulty: GameDifficulty =
         game?.difficulty === "HARD" ? "HARD" : "REGULAR";
       const picked = await puzzleFieldsForNewGame(
@@ -531,6 +533,8 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         .from("games")
         .insert({
           ...picked.fields,
+          // Word search / trivia carry their puzzle inline in gameState.
+          ...(picked.gameState ? { gameState: picked.gameState } : {}),
           gameType: "FRIENDLY",
           playState: "WAITING_FOR_OPPONENT",
           gameDurationInSeconds: picked.durationInSeconds,
