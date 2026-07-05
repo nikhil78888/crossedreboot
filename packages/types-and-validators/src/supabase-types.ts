@@ -314,6 +314,7 @@ export interface Database {
           profilesId: string
           rating: number
           joinedAt: string
+          lastSeenAt: string
           gameVariant: string
           difficulty: string
         }
@@ -321,6 +322,7 @@ export interface Database {
           profilesId: string
           rating?: number
           joinedAt?: string
+          lastSeenAt?: string
           gameVariant?: string
           difficulty?: string
         }
@@ -328,6 +330,7 @@ export interface Database {
           profilesId?: string
           rating?: number
           joinedAt?: string
+          lastSeenAt?: string
           gameVariant?: string
           difficulty?: string
         }

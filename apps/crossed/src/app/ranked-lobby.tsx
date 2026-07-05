@@ -25,13 +25,24 @@ export default function RankedLobby() {
   const difficulty: "REGULAR" | "HARD" =
     difficultyParam === "HARD" ? "HARD" : "REGULAR";
   const { myProfile } = useMyProfile();
-  const { leaveLobby } = useOnlineStatus();
+  const { leaveLobby, heartbeat } = useOnlineStatus();
   const { gameId } = useRankedGame();
   const { game, createRankedBotMatch } = useGame({ gameId });
   const [secondsToStart, setSecondsToStart] = useState(0);
 
   const gameStartingAt = game?.startedAt;
   const playState = game?.playState;
+
+  // Heartbeat: keep our queue row "live" so the matcher will pair us. If this
+  // stops (backgrounded/crashed), the row goes stale and we become unmatchable —
+  // so we can never be matched into a game we've walked away from.
+  useEffect(() => {
+    if (playState === "PLAYING") return;
+    const h = setInterval(() => {
+      heartbeat();
+    }, 4000);
+    return () => clearInterval(h);
+  }, [playState, heartbeat]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,13 +51,14 @@ export default function RankedLobby() {
         // matcher already paired us with a human (it deleted our row first), so
         // we must NOT spin up a bot — we just wait and useRankedGame routes us
         // into the real match. This closes the race that put a player into BOTH
-        // a human match and a bot match at once.
+        // a human match and a bot match at once. 18s (> the 12s server force-pair
+        // + realtime lag) so a real human match reliably wins the race.
         leaveLobby().then((claimed) => {
           if (!claimed.length) return;
           createRankedBotMatch({ variant, difficulty });
         });
       }
-    }, 15000);
+    }, 18000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playState, leaveLobby, createRankedBotMatch, variant, difficulty]);

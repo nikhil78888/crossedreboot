@@ -47,6 +47,10 @@ export const useOnlineStatus = () => {
         gameVariant === "SUDOKU"
           ? (myProfile as { eloRatingSudoku?: number }).eloRatingSudoku ?? 1000
           : myProfile.eloRating ?? 1000;
+      // Note: lastSeenAt is intentionally NOT sent here — the column defaults to
+      // now() on insert, and the heartbeat keeps it fresh. Omitting it keeps this
+      // insert working even if the OTA reaches a device before the heartbeat
+      // migration has been applied (order-independent rollout).
       await supabase.from("rankedQueue").upsert(
         {
           profilesId: myProfile.id,
@@ -61,8 +65,25 @@ export const useOnlineStatus = () => {
     [myProfile]
   );
 
+  // Liveness ping while waiting in the lobby. The matcher only pairs rows with a
+  // recent lastSeenAt, so if this stops (app backgrounded, crashed, killed) the
+  // player stops being matchable within seconds — no no-show for an opponent.
+  // Does NOT touch joinedAt, so the rating window keeps widening as they wait.
+  const heartbeat = useCallback(async () => {
+    if (!myProfile) return;
+    try {
+      await supabase
+        .from("rankedQueue")
+        .update({ lastSeenAt: new Date().toISOString() })
+        .eq("profilesId", myProfile.id);
+    } catch {
+      // best-effort
+    }
+  }, [myProfile]);
+
   return {
     leaveLobby,
     joinLobby,
+    heartbeat,
   };
 };

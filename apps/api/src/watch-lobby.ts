@@ -15,8 +15,17 @@ const RATING_WINDOW_GROWTH_PER_SEC = 80;
 const ratingWindow = (waitMs: number) =>
   RATING_WINDOW_START + (waitMs / 1000) * RATING_WINDOW_GROWTH_PER_SEC;
 
-// Drop queue rows this old (a client that crashed without leaving the lobby).
-const STALE_MS = 90_000;
+// A row is only matchable if it was seen this recently. Heartbeating clients
+// refresh lastSeenAt every ~4s so they stay live as long as they're waiting; a
+// backgrounded/crashed client stops refreshing and becomes unmatchable within
+// this window (down from the old 90s), so it can't no-show its opponent. Old
+// clients that don't heartbeat yet have lastSeenAt = join time, so they stay
+// matchable for their whole ~18s wait — this window must stay comfortably above
+// that so we never regress them to bots.
+const STALE_MS = 30_000;
+// After this wait, pair two same-segment players regardless of rating gap, so a
+// real match always beats the client's ~18s bot fallback (see pairing loop).
+const FORCE_PAIR_MS = 12_000;
 // How many matches to create concurrently (bounds DB load during a big burst).
 const CREATE_CONCURRENCY = 25;
 // This process's id + how long it holds matchmaking leadership per acquisition.
@@ -56,16 +65,20 @@ const tryMatch = async () => {
 
     const now = Date.now();
 
-    // Sweep stale entries in one batched delete.
+    // Sweep entries not seen within the window (client backgrounded/crashed/
+    // killed) so we never pair against someone who has walked away.
     await supabase
       .from("rankedQueue")
       .delete()
-      .lt("joinedAt", new Date(now - STALE_MS).toISOString());
+      .lt("lastSeenAt", new Date(now - STALE_MS).toISOString());
 
     const { data: rows } = await supabase.from("rankedQueue").select("*");
-    const fresh = (rows ?? []).filter(
-      (r) => now - new Date(r.joinedAt).getTime() <= STALE_MS
-    );
+    // Only pair players seen recently — a stale row means the player is gone, and
+    // matching them would strand their opponent in a no-show.
+    const fresh = (rows ?? []).filter((r) => {
+      const lastSeen = r.lastSeenAt ?? r.joinedAt; // pre-migration rows
+      return now - new Date(lastSeen).getTime() <= STALE_MS;
+    });
     if (fresh.length < 2) return;
 
     // Authoritative ratings come from profiles, never the client-supplied queue
@@ -114,7 +127,13 @@ const tryMatch = async () => {
         const b = seg[i + 1];
         const gap = Math.abs(a.rating - b.rating);
         const waitMs = now - Math.min(a.joinedAt, b.joinedAt);
-        if (gap <= ratingWindow(waitMs)) {
+        // Once either player has waited past the force-pair threshold, pair them
+        // with their nearest-rating neighbour REGARDLESS of the window. Otherwise
+        // two real players whose ratings differ by more than the window has grown
+        // both time out to bots at ~15s — a human match lost to two bot matches.
+        const forced =
+          now - a.joinedAt >= FORCE_PAIR_MS || now - b.joinedAt >= FORCE_PAIR_MS;
+        if (gap <= ratingWindow(waitMs) || forced) {
           pairs.push([a, b]);
           i += 2;
         } else {
