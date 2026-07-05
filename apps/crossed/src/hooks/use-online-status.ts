@@ -51,7 +51,7 @@ export const useOnlineStatus = () => {
       // now() on insert, and the heartbeat keeps it fresh. Omitting it keeps this
       // insert working even if the OTA reaches a device before the heartbeat
       // migration has been applied (order-independent rollout).
-      await supabase.from("rankedQueue").upsert(
+      const { error } = await supabase.from("rankedQueue").upsert(
         {
           profilesId: myProfile.id,
           rating,
@@ -61,6 +61,10 @@ export const useOnlineStatus = () => {
         },
         { onConflict: "profilesId" }
       );
+      // THROW on failure so the caller doesn't send the player into the lobby
+      // with no queue row — where they'd never be matched and (since the bot
+      // fallback only fires when it can claim its own row) never get a bot either.
+      if (error) throw error;
     },
     [myProfile]
   );
