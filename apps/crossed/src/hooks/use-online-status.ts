@@ -14,15 +14,24 @@ received — so two real players were never matched.
 export const useOnlineStatus = () => {
   const { myProfile } = useMyProfile();
 
-  const leaveLobby = useCallback(async () => {
-    if (!myProfile) return;
+  // Delete our queue row and RETURN what was removed. The removed rows act as an
+  // atomic claim: the server matcher pairs two players by deleting BOTH their
+  // rows in one statement and only proceeds if it got both. A Postgres row delete
+  // returns to exactly one caller, so if the matcher already claimed us, our
+  // delete comes back empty — which tells the bot-fallback we were matched and it
+  // must NOT create a bot game (the cause of "matched to a human AND a bot").
+  const leaveLobby = useCallback(async (): Promise<{ profilesId: string }[]> => {
+    if (!myProfile) return [];
     try {
-      await supabase
+      const { data } = await supabase
         .from("rankedQueue")
         .delete()
-        .eq("profilesId", myProfile.id);
+        .eq("profilesId", myProfile.id)
+        .select("profilesId");
+      return data ?? [];
     } catch (error) {
       console.info(`Error leaving lobby ${error}`);
+      return [];
     }
   }, [myProfile]);
 

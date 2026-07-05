@@ -36,7 +36,13 @@ export default function RankedLobby() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (playState !== "PLAYING") {
-        leaveLobby().then(() => {
+        // Atomically claim our own queue row. If it comes back empty, the server
+        // matcher already paired us with a human (it deleted our row first), so
+        // we must NOT spin up a bot — we just wait and useRankedGame routes us
+        // into the real match. This closes the race that put a player into BOTH
+        // a human match and a bot match at once.
+        leaveLobby().then((claimed) => {
+          if (!claimed.length) return;
           createRankedBotMatch({ variant, difficulty });
         });
       }

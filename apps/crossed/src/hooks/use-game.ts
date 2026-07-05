@@ -623,6 +623,23 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       "create-ranked-bot-game",
       async (_key, { arg }: { arg?: NewGameArg } = {}) => {
         if (!myProfile) return;
+
+        // Guard against double-matching: if the server matcher already paired us
+        // into a live ranked game (created in the last 2 min), join THAT instead
+        // of creating a bot game. This is a second line of defense behind the
+        // atomic queue-row claim in the lobby's bot fallback.
+        const since = new Date(Date.now() - 120_000).toISOString();
+        const { data: existing } = await supabase
+          .from("games")
+          .select("id, profiles!gamePlayers!inner(id)")
+          .eq("gameType", "RANKED")
+          .eq("playState", "PLAYING")
+          .gte("createdAt", since)
+          .filter("profiles.id", "eq", myProfile.id)
+          .order("createdAt", { ascending: false })
+          .limit(1);
+        if (existing && existing.length) return existing[0].id;
+
         const variant = arg?.variant ?? "CROSSWORD";
         const picked = await puzzleFieldsForNewGame(
           variant,
