@@ -74,10 +74,16 @@ export const createRankedMatch = async (
       .select("*")
       .single();
     if (createGameError) throw createGameError;
-    await supabase.from("gamePlayers").insert([
+    const { error: playersError } = await supabase.from("gamePlayers").insert([
       { gamesId: game.id, profilesId: playerOneId },
       { gamesId: game.id, profilesId: playerTwoId },
     ]);
+    if (playersError) {
+      // Roll back the just-created game so a failed player insert can't leave an
+      // orphan stuck PLAYING with fewer than two players; the matcher re-queues.
+      await supabase.from("games").delete().eq("id", game.id);
+      throw playersError;
+    }
     return game;
   }
   if (gameVariant === "SUDOKU") {
@@ -106,10 +112,16 @@ export const createRankedMatch = async (
       .select("*")
       .single();
     if (createGameError) throw createGameError;
-    await supabase.from("gamePlayers").insert([
+    const { error: playersError } = await supabase.from("gamePlayers").insert([
       { gamesId: game.id, profilesId: playerOneId },
       { gamesId: game.id, profilesId: playerTwoId },
     ]);
+    if (playersError) {
+      // Roll back the just-created game so a failed player insert can't leave an
+      // orphan stuck PLAYING with fewer than two players; the matcher re-queues.
+      await supabase.from("games").delete().eq("id", game.id);
+      throw playersError;
+    }
     return game;
   }
 
@@ -154,10 +166,16 @@ export const createRankedMatch = async (
     throw createGameError;
   }
 
-  await supabase.from("gamePlayers").insert([
+  const { error: playersError } = await supabase.from("gamePlayers").insert([
     { gamesId: game.id, profilesId: playerOneId },
     { gamesId: game.id, profilesId: playerTwoId },
   ]);
+  if (playersError) {
+    // Roll back the just-created game so a failed player insert can't leave an
+    // orphan stuck PLAYING with fewer than two players; the matcher re-queues.
+    await supabase.from("games").delete().eq("id", game.id);
+    throw playersError;
+  }
 
   return game;
 };
