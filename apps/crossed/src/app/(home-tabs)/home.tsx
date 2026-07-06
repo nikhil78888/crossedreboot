@@ -19,6 +19,7 @@ import { IntroGamePrompt } from "../../components/IntroGamePrompt";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
+import { supabase } from "../../lib/supabase";
 import { usePushRegistration } from "../../hooks/use-push-registration";
 import { NotificationOptInBanner } from "../../components/NotificationOptInBanner";
 import { getRank } from "../../lib/rank";
@@ -83,6 +84,27 @@ export default function Home() {
   useEffect(() => {
     if (peekPendingIntro()) consumePendingIntro();
   }, []);
+
+  // Durable new-user intro. The in-memory pendingIntro flag above is lost if the
+  // app reloads between signup and reaching Home (e.g. a fresh install applying
+  // its first OTA), which silently skips the intro. So ALSO show the warm-up to
+  // any signed-in player who hasn't joined a single game yet — the true "brand
+  // new" signal — so the intro reliably pops up for new users. Once they've
+  // played anything, the count is > 0 and this never fires again.
+  useEffect(() => {
+    if (!myProfile?.id || peekPendingChallenge()) return;
+    let active = true;
+    (async () => {
+      const { count } = await supabase
+        .from("gamePlayers")
+        .select("gamesId", { count: "exact", head: true })
+        .eq("profilesId", myProfile.id);
+      if (active && (count ?? 1) === 0) setShowIntroPrompt(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [myProfile?.id]);
 
   useEffect(() => {
     if (!myProfile?.id || challengeLaunched.current) return;

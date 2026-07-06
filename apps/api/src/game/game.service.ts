@@ -361,11 +361,10 @@ export const applyRankedRatings = async (
   const botIds = new Set(
     players.filter((p) => p.type === "BOT").map((p) => p.id)
   );
-  // A RANKED game against a bot is a lobby fallback, not a real result — it must
-  // NOT move the human's rating, or a player (or a modified client spamming the
-  // bot-match creation) could farm the ladder by beating always-capped bots.
-  // Tournaments still rate bot fills (bracket entry is gated, not spammable).
-  if (game.gameType === "RANKED" && botIds.size > 0) return;
+  // Per product decision: EVERY ranked match counts toward rating, including
+  // games against the bot fallback (with a small human base almost all ranked
+  // games are vs bots, so not counting them would leave the ladder static). The
+  // human's rating still moves; the bot's fixed anchor rating is never written.
   const toPlayer = (p: (typeof players)[number]): RankedPlayer => {
     const rec = p as unknown as Record<string, number>;
     return {

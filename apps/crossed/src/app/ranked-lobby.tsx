@@ -25,7 +25,7 @@ export default function RankedLobby() {
   const difficulty: "REGULAR" | "HARD" =
     difficultyParam === "HARD" ? "HARD" : "REGULAR";
   const { myProfile } = useMyProfile();
-  const { leaveLobby, heartbeat } = useOnlineStatus();
+  const { leaveLobby, joinLobby, heartbeat } = useOnlineStatus();
   const { gameId } = useRankedGame();
   const { game, createRankedBotMatch } = useGame({ gameId });
   const [secondsToStart, setSecondsToStart] = useState(0);
@@ -44,24 +44,49 @@ export default function RankedLobby() {
     return () => clearInterval(h);
   }, [playState, heartbeat]);
 
+  // Bot fallback. After 18s (> the 12s server force-pair + realtime lag, so a
+  // real human match reliably wins the race) we start trying to drop into a bot
+  // game, and KEEP retrying every 6s until we either match or get a bot — so a
+  // player can never get stranded on "finding player" for minutes.
+  //
+  // Each attempt atomically claims our OWN queue row: an empty result means the
+  // matcher already paired us (routing takes over) or the row was transiently
+  // gone (a failed pairing re-queued us) — in the latter case the next retry
+  // finds the row back and creates the bot. A Postgres row delete returns to
+  // exactly one caller, so this can never double-match us into a human + bot.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (playState !== "PLAYING") {
-        // Atomically claim our own queue row. If it comes back empty, the server
-        // matcher already paired us with a human (it deleted our row first), so
-        // we must NOT spin up a bot — we just wait and useRankedGame routes us
-        // into the real match. This closes the race that put a player into BOTH
-        // a human match and a bot match at once. 18s (> the 12s server force-pair
-        // + realtime lag) so a real human match reliably wins the race.
-        leaveLobby().then((claimed) => {
-          if (!claimed.length) return;
-          createRankedBotMatch({ variant, difficulty });
-        });
+    if (playState === "PLAYING") return;
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const attempt = async () => {
+      // `cancelled` is flipped by this effect's cleanup, which runs the moment
+      // playState changes to PLAYING (we got matched) — so a stale in-flight
+      // attempt can't fire a bot after we've been paired.
+      if (cancelled) return;
+      const claimed = await leaveLobby();
+      if (cancelled) return;
+      if (!claimed.length) return; // matched, or transiently re-queued — retry later
+      const id = await createRankedBotMatch({ variant, difficulty });
+      if (id) {
+        cancelled = true;
+        if (interval) clearInterval(interval);
+        return;
       }
+      // Bot creation failed (e.g. no puzzle available) — re-queue so the next
+      // attempt can retry rather than leaving the player stuck.
+      if (!cancelled) await joinLobby(variant, difficulty);
+    };
+    const start = setTimeout(() => {
+      attempt();
+      interval = setInterval(attempt, 6000);
     }, 18000);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playState, leaveLobby, createRankedBotMatch, variant, difficulty]);
+  }, [playState, leaveLobby, joinLobby, createRankedBotMatch, variant, difficulty]);
 
   useEffect(() => {
     if (playState === "PLAYING") {
