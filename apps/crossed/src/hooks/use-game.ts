@@ -42,6 +42,26 @@ export const SUDOKU_DURATION_SECONDS = 900;
 // Last bot used for an intro race, so "Play again" faces a different opponent.
 let lastIntroBotId: string | undefined;
 
+// Hand-picked 5x5 crosswords for the first-time warm-up: every one uses only
+// common, everyday words with plain clues (no names, abbreviations, or obscure
+// crosswordese), so a brand-new player can reliably solve it and win. Pinned by
+// id because the crosswords.category column is a fixed enum we can't extend to
+// "intro" without a migration.
+const INTRO_CROSSWORD_IDS = [
+  "62990901-a942-463a-b8b6-bce26e5e3339",
+  "eba36bca-781e-488b-a3d6-71830ba142f0",
+  "8732b1c2-1a25-4dfd-9f5d-869a5bb0052c",
+  "b2215260-e36a-49a5-a6b8-9f65a4f88779",
+  "75900e17-a3e7-48c6-9fc1-ff98b60cc41c",
+  "5a6a4bfe-6d53-425b-972b-29782912effc",
+  "6da5d76a-1127-48aa-8c22-3a38b5b3167b",
+  "26fed928-90b6-4926-b974-84fe45a1f48f",
+  "77a6ef5d-66d7-46ca-b7f2-170344f348c5",
+  "ab43982b-8daa-4a8d-8864-b558a41331aa",
+  "7abee915-40d1-4e14-80fd-0dfe54771f0f",
+  "8bdb7156-5447-474e-af3d-b77782c1b652",
+];
+
 // A solution grid is letters (crossword) or 1-9 ints (sudoku); null = blank.
 type SolutionGrid = (string | number | null)[][];
 
@@ -730,11 +750,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       "create-guided-match",
       async (_key, { arg }: { arg?: { source?: string } } = {}) => {
         if (!myProfile) return;
-        // Guarantee an easy 5x5 for the first race so it's quick and winnable.
-        // The normal picker weights bigger grids up, which made the intro often
-        // fall back to a harder puzzle. Pull straight from the published 5x5 pool
-        // (a brand-new player has played none); fall back to the RLS-safe picker
-        // only if somehow no 5x5 exists.
+        // First race = one of the hand-picked easy 5x5s (all common words), so a
+        // new player reliably solves and wins it. Fall back to any published 5x5,
+        // then the RLS-safe picker, if a pinned puzzle can't be fetched.
         let cw:
           | {
               id: string;
@@ -744,19 +762,31 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               clues: unknown;
             }
           | undefined;
-        const { data: fives } = await supabase
+        const introId =
+          INTRO_CROSSWORD_IDS[
+            Math.floor(Math.random() * INTRO_CROSSWORD_IDS.length)
+          ];
+        const { data: pinned } = await supabase
           .from("crosswords")
           .select("id, size, puzzle, solution, clues")
-          .eq("size", 5)
-          .eq("isPublished", true)
-          .limit(100);
-        if (fives && fives.length) {
-          cw = fives[Math.floor(Math.random() * fives.length)] as typeof cw;
-        } else {
-          const { data } = await supabase.rpc("get_available_crossword", {
-            profileid: myProfile.id,
-          });
-          cw = data?.[0] as typeof cw;
+          .eq("id", introId)
+          .limit(1);
+        cw = pinned?.[0] as typeof cw;
+        if (!cw?.id) {
+          const { data: fives } = await supabase
+            .from("crosswords")
+            .select("id, size, puzzle, solution, clues")
+            .eq("size", 5)
+            .eq("isPublished", true)
+            .limit(100);
+          if (fives && fives.length) {
+            cw = fives[Math.floor(Math.random() * fives.length)] as typeof cw;
+          } else {
+            const { data } = await supabase.rpc("get_available_crossword", {
+              profileid: myProfile.id,
+            });
+            cw = data?.[0] as typeof cw;
+          }
         }
         if (!cw?.id) return;
         const resolvedClues = await resolveAndLogClues(
