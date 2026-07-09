@@ -39,14 +39,11 @@ const CrosswordContext = createContext<CrosswordContextType>(null!);
 export const CrosswordGrid = ({
   gameId,
   showResults,
-  isIntro,
 }: {
   gameId: string;
   showResults?: {
     playerId?: string;
   };
-  // The first-time guided warm-up: cap the bot low so a new player always wins.
-  isIntro?: boolean;
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
@@ -196,13 +193,10 @@ export const CrosswordGrid = ({
               : 0;
             const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
             const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-            // First-time warm-up: cap the bot LOW and DON'T rubber-band to the
-            // player, so a new player wins comfortably even if they leave part of
-            // the grid blank. Otherwise the bot tracks ~18% ahead and beats
-            // anyone who doesn't finish — the reason new players were losing it.
-            const targetFrac = isIntro
-              ? 0.4
-              : Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+            const targetFrac = Math.min(
+              0.9,
+              Math.max(earlyFloor, playerFrac + lead)
+            );
             totalBotFillableCells = Math.max(
               1,
               Math.floor(totalFillableCells * targetFrac)

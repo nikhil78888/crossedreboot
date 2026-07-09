@@ -560,7 +560,7 @@ export default function Game() {
       ) : isSudoku ? (
         <SudokuGrid gameId={gameId as string} />
       ) : (
-        <CrosswordGrid gameId={gameId as string} isIntro={isIntro} />
+        <CrosswordGrid gameId={gameId as string} />
       )}
       <UrgencyPulse progress={opponentProgress} />
     </View>
