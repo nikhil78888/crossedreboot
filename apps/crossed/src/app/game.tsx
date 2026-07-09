@@ -462,6 +462,8 @@ export default function Game() {
   const isSudoku = game?.gameVariant === "SUDOKU";
   const isWordSearch = game?.gameVariant === "WORD_SEARCH";
   const isTrivia = game?.gameVariant === "TRIVIA";
+  // The guided first-time warm-up (vs a weak bot) — drives the beatable intro.
+  const isIntro = guided === "1";
 
   // Don't render the board until the full puzzle payload is present. Word search
   // and trivia carry their puzzle inline in gameState (no content join).
@@ -483,7 +485,6 @@ export default function Game() {
   // Pre-game countdown so both players start together.
   if (counting) {
     // The guided intro is a warm-up vs a bot — don't bill it as a real opponent.
-    const isIntro = guided === "1";
     const isRace =
       isIntro || gameType === "RANKED" || gameType === "TOURNAMENT";
     return (
@@ -559,7 +560,7 @@ export default function Game() {
       ) : isSudoku ? (
         <SudokuGrid gameId={gameId as string} />
       ) : (
-        <CrosswordGrid gameId={gameId as string} />
+        <CrosswordGrid gameId={gameId as string} isIntro={isIntro} />
       )}
       <UrgencyPulse progress={opponentProgress} />
     </View>

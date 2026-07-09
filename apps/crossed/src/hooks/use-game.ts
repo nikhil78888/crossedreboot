@@ -730,8 +730,11 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       "create-guided-match",
       async (_key, { arg }: { arg?: { source?: string } } = {}) => {
         if (!myProfile) return;
-        // Pin the intro to an easy 5x5 for a quick, winnable first race: pull
-        // from the normal (RLS-safe) picker, retrying for a 5x5, else fall back.
+        // Guarantee an easy 5x5 for the first race so it's quick and winnable.
+        // The normal picker weights bigger grids up, which made the intro often
+        // fall back to a harder puzzle. Pull straight from the published 5x5 pool
+        // (a brand-new player has played none); fall back to the RLS-safe picker
+        // only if somehow no 5x5 exists.
         let cw:
           | {
               id: string;
@@ -741,17 +744,19 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               clues: unknown;
             }
           | undefined;
-        for (let i = 0; i < 6; i++) {
+        const { data: fives } = await supabase
+          .from("crosswords")
+          .select("id, size, puzzle, solution, clues")
+          .eq("size", 5)
+          .eq("isPublished", true)
+          .limit(100);
+        if (fives && fives.length) {
+          cw = fives[Math.floor(Math.random() * fives.length)] as typeof cw;
+        } else {
           const { data } = await supabase.rpc("get_available_crossword", {
             profileid: myProfile.id,
           });
-          const c = data?.[0];
-          if (!c?.id) continue;
-          if (!cw) cw = c; // fallback to whatever we first got
-          if (c.size === 5) {
-            cw = c;
-            break;
-          }
+          cw = data?.[0] as typeof cw;
         }
         if (!cw?.id) return;
         const resolvedClues = await resolveAndLogClues(
