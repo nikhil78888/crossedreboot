@@ -5,8 +5,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
+import { useGameGate } from "../hooks/use-subscription";
 import { useOnlineStatus } from "../hooks/use-online-status";
 import { TRIVIA_CATEGORIES, type Difficulty } from "../lib/trivia";
+import { events, trackEvent } from "../lib/track-event";
 import colors from "../lib/colors";
 
 const LEVELS: { key: Difficulty; label: string }[] = [
@@ -30,6 +32,7 @@ export default function TriviaSetup() {
     creatingFriendlyGame,
   } = useGame({ gameId: undefined });
   const { joinLobby } = useOnlineStatus();
+  const { checkCanPlay } = useGameGate();
   const [category, setCategory] = useState<string>("Any");
   const [level, setLevel] = useState<Difficulty>("easy");
   const [joiningLobby, setJoiningLobby] = useState(false);
@@ -41,8 +44,20 @@ export default function TriviaSetup() {
     triviaLevel: level,
   };
 
+  // Trivia goes through this screen instead of /select-difficulty, so it needs
+  // the same daily-limit gate — otherwise trivia is a free-play loophole that
+  // still burns the player's daily budget.
+  const blockedByGate = async (mode: string) => {
+    const gate = await checkCanPlay();
+    if (gate.allowed) return false;
+    trackEvent(events.GATE_BLOCKED, { mode, variant: "TRIVIA" });
+    router.replace("/upgrade-to-pro");
+    return true;
+  };
+
   const start = async () => {
     try {
+      if (await blockedByGate("SOLO")) return;
       const id = await createSoloGame(opts);
       if (id) router.replace(`/game?gameId=${id}`);
     } catch {
@@ -52,6 +67,7 @@ export default function TriviaSetup() {
 
   const friendly = async () => {
     try {
+      if (await blockedByGate("FRIENDLY")) return;
       const id = await createFriendlyGame(opts);
       if (id) router.replace(`/invite-friend?gameId=${id}`);
     } catch {
@@ -63,6 +79,7 @@ export default function TriviaSetup() {
     // Real matchmaking via the lobby (search a human, bot fallback) — same as
     // crossword. Ranked is standardized difficulty; category isn't matchmade.
     try {
+      if (await blockedByGate("RANKED")) return;
       setJoiningLobby(true);
       await joinLobby("TRIVIA", opts.difficulty);
       router.replace(

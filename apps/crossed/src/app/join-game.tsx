@@ -3,9 +3,11 @@ import { useGame } from "../hooks/use-game";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useEffect } from "react";
 import { useMyProfile } from "../hooks/use-my-profile";
+import { useGameGate } from "../hooks/use-subscription";
 import { Button } from "../components/Button";
 import { Image } from "expo-image";
 import { avatars } from "../lib/images";
+import { events, trackEvent } from "../lib/track-event";
 
 export default function JoinGame() {
   const { gameId } = useLocalSearchParams();
@@ -17,6 +19,21 @@ export default function JoinGame() {
       gameId: gameId as string | undefined,
     }
   );
+  const { checkCanPlay } = useGameGate();
+
+  // Accepting a friend's invite is a game too — same daily free limit.
+  const joinIfAllowed = async () => {
+    const gate = await checkCanPlay();
+    if (!gate.allowed) {
+      trackEvent(events.GATE_BLOCKED, {
+        mode: "JOIN_INVITE",
+        variant: game?.gameVariant,
+      });
+      router.push("/upgrade-to-pro");
+      return;
+    }
+    startGame();
+  };
 
   const gamePlayState = game?.playState;
 
@@ -80,7 +97,7 @@ export default function JoinGame() {
           rounded={"full"}
           label="Start Match"
           isLoading={startingGame}
-          onPress={() => startGame()}
+          onPress={joinIfAllowed}
         />
       </View>
       <View className="absolute bottom-8 inset-x-4">

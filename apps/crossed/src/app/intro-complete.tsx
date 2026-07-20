@@ -4,8 +4,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { useGame } from "../hooks/use-game";
+import { useGameGate } from "../hooks/use-subscription";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { consumePendingIntro } from "../lib/intro-flag";
+import { events, trackEvent } from "../lib/track-event";
 
 // Shown after the guided intro match (username already chosen up front). Leads
 // with the result + rating movement, then a single button to drop into the
@@ -22,6 +24,7 @@ export default function IntroComplete() {
   const { createGuidedMatch, creatingGuidedMatch } = useGame({
     gameId: undefined,
   });
+  const { checkCanPlay } = useGameGate();
   const { myProfile, refreshMyProfile } = useMyProfile();
   useEffect(() => {
     refreshMyProfile();
@@ -57,6 +60,14 @@ export default function IntroComplete() {
 
   const playAgain = async () => {
     try {
+      // Replays count against the daily free limit. PUSH (not replace) so the
+      // paywall's Back returns here rather than stranding the player.
+      const gate = await checkCanPlay();
+      if (!gate.allowed) {
+        trackEvent(events.GATE_BLOCKED, { mode: "INTRO", variant: "CROSSWORD" });
+        router.push("/upgrade-to-pro");
+        return;
+      }
       const id = await createGuidedMatch({
         source: preview === "1" ? "preview" : "onboarding",
       });

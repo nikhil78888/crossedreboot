@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { ChallengeButton } from "../components/ChallengeButton";
 import { useGame, type GameVariant } from "../hooks/use-game";
+import { useGameGate } from "../hooks/use-subscription";
+import { events, trackEvent } from "../lib/track-event";
 import type { GameDifficulty } from "types-and-validators";
 import { fmtSolve } from "./(home-tabs)/stats";
 
@@ -29,6 +31,7 @@ export default function VariantResult() {
       gameId?: string;
     }>();
   const { createSoloGame, creatingSoloGame } = useGame({ gameId: undefined });
+  const { checkCanPlay } = useGameGate();
 
   const isSolo = type === "SOLO";
   const youSecs = parseInt(you ?? "0", 10) || 0;
@@ -56,6 +59,13 @@ export default function VariantResult() {
 
   const playAgain = async () => {
     try {
+      // Replays count against the daily free limit like any other game.
+      const gate = await checkCanPlay();
+      if (!gate.allowed) {
+        trackEvent(events.GATE_BLOCKED, { mode: "SOLO", variant });
+        router.replace("/upgrade-to-pro");
+        return;
+      }
       const id = await createSoloGame({
         variant: (variant as GameVariant) ?? "WORD_SEARCH",
         difficulty: (difficulty as GameDifficulty) ?? "REGULAR",

@@ -4,11 +4,18 @@ import { Platform } from "react-native";
 // Public App Store SDK key (safe to ship in the app).
 const APPLE_API_KEY = "appl_jUOfxYzjmnGZzDxSbHkVvJeAzUi";
 
-// 3 free competitive games per day for non-subscribers.
+// 3 free games per day for non-subscribers.
 export const FREE_COMPETITIVE_PER_DAY = 3;
 
-// Modes that count against the free limit (Solo is always free).
-export const GATED_GAME_TYPES = ["RANKED", "FRIENDLY", "TOURNAMENT"] as const;
+// EVERY game type counts against the free limit — ranked, friendly (which is
+// also how challenge/ghost races are stored), tournament, and solo — across all
+// variants (crossword, sudoku, word search, trivia). One shared daily budget.
+export const GATED_GAME_TYPES = [
+  "RANKED",
+  "FRIENDLY",
+  "TOURNAMENT",
+  "SOLO",
+] as const;
 
 let configured = false;
 

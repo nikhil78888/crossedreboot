@@ -3,6 +3,8 @@ import { Linking, ScrollView, Text, View } from "react-native";
 import { avatars, images } from "../lib/images";
 import { useRouter } from "expo-router";
 import { calculateScore, solutionOf, puzzleOf, useGame } from "../hooks/use-game";
+import { useGameGate } from "../hooks/use-subscription";
+import { events, trackEvent } from "../lib/track-event";
 import { classNames } from "../lib/utils";
 import { ShareAppButton } from "./ShareAppButton";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -33,6 +35,7 @@ export const FriendlyGameResult = ({
   const router = useRouter();
   const { myProfile } = useMyProfile();
   const { game, playAgainFriendly, playingAgain } = useGame({ gameId });
+  const { checkCanPlay } = useGameGate();
   if (!myProfile || !game) {
     return null;
   }
@@ -97,6 +100,16 @@ export const FriendlyGameResult = ({
             rounded={"full"}
             isLoading={playingAgain}
             onPress={async () => {
+              // Rematches count against the daily free limit like any game.
+              const gate = await checkCanPlay();
+              if (!gate.allowed) {
+                trackEvent(events.GATE_BLOCKED, {
+                  mode: "REMATCH",
+                  variant: game.gameVariant,
+                });
+                router.replace("/upgrade-to-pro");
+                return;
+              }
               const targetId = await playAgainFriendly();
               if (targetId) {
                 router.replace(`/game?gameId=${targetId}`);

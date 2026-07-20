@@ -10,6 +10,7 @@ import { FormTextInput } from "../components/FormTextInput";
 import { images } from "../lib/images";
 import { useAuth } from "../hooks/use-auth";
 import { useGame } from "../hooks/use-game";
+import { useGameGate } from "../hooks/use-subscription";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { events, trackEvent } from "../lib/track-event";
 
@@ -41,6 +42,7 @@ export default function SetUsername() {
   const { createGuidedMatch, creatingGuidedMatch } = useGame({
     gameId: undefined,
   });
+  const { checkCanPlay } = useGameGate();
   const { myProfile, refreshMyProfile } = useMyProfile();
   // Pull the post-game rating so we can show the movement (before -> after).
   useEffect(() => {
@@ -79,6 +81,14 @@ export default function SetUsername() {
 
   const playAgain = async () => {
     try {
+      // Replays count against the daily free limit. PUSH (not replace) so the
+      // paywall's Back returns here and a new player can still pick a username.
+      const gate = await checkCanPlay();
+      if (!gate.allowed) {
+        trackEvent(events.GATE_BLOCKED, { mode: "INTRO", variant: "CROSSWORD" });
+        router.push("/upgrade-to-pro");
+        return;
+      }
       const id = await createGuidedMatch({
         source: preview === "1" ? "preview" : "onboarding",
       });

@@ -31,14 +31,12 @@ export default function SelectDifficulty() {
     setBusy(difficulty);
     try {
       trackEvent(events.DIFFICULTY_SELECTED, { mode, variant, difficulty });
-      // Competitive modes are gated by the subscription/daily limit.
-      if (mode !== "SOLO") {
-        const gate = await checkCanPlay();
-        if (!gate.allowed) {
-          trackEvent(events.GATE_BLOCKED, { mode, variant });
-          router.replace("/upgrade-to-pro");
-          return;
-        }
+      // EVERY mode (solo included) counts against the daily free limit.
+      const gate = await checkCanPlay();
+      if (!gate.allowed) {
+        trackEvent(events.GATE_BLOCKED, { mode, variant });
+        router.replace("/upgrade-to-pro");
+        return;
       }
       // Word search ranked + friendly now use the same real flows as crossword
       // (lobby matchmaking / friend invite) — they fall through below.

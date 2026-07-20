@@ -2,7 +2,9 @@ import { useEffect, useRef } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
+import { useGameGate } from "../hooks/use-subscription";
 import { useMyProfile } from "../hooks/use-my-profile";
+import { events, trackEvent } from "../lib/track-event";
 
 // Deep-link target for a shared challenge: create the recipient's ghost-race
 // game and drop them into it. (For brand-new installs, Branch delivers the id
@@ -12,6 +14,7 @@ export default function ChallengeAccept() {
   const router = useRouter();
   const { myProfile } = useMyProfile();
   const { acceptChallenge } = useGame({ gameId: undefined });
+  const { checkCanPlay } = useGameGate();
   const ran = useRef(false);
 
   useEffect(() => {
@@ -19,6 +22,16 @@ export default function ChallengeAccept() {
       ran.current = true;
       (async () => {
         try {
+          // Challenge (ghost) races count against the daily free limit too.
+          const gate = await checkCanPlay();
+          if (!gate.allowed) {
+            trackEvent(events.GATE_BLOCKED, {
+              mode: "CHALLENGE",
+              variant: "CHALLENGE",
+            });
+            router.replace("/upgrade-to-pro");
+            return;
+          }
           const gid = await acceptChallenge({ challengeId: String(id) });
           router.replace(gid ? `/game?gameId=${gid}&challenge=1` : "/home");
         } catch {
@@ -26,7 +39,7 @@ export default function ChallengeAccept() {
         }
       })();
     }
-  }, [id, myProfile?.id, acceptChallenge, router]);
+  }, [id, myProfile?.id, acceptChallenge, checkCanPlay, router]);
 
   return (
     <View className="flex-1 items-center justify-center bg-white px-8">
