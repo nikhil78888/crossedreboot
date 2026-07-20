@@ -372,6 +372,28 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
     gameId ? ["game", gameId] : null,
     (key, { next }: SWRSubscriptionOptions<Game, Error>) => {
       console.info(`fetching game - ${gameId}`);
+      // finalizeGame flips playState to COMPLETED first (that UPDATE is its
+      // idempotency claim) and only THEN writes gamePlayers.score and the Glicko
+      // ratings. The realtime refetch below is triggered by that very flip, so
+      // it reads the PRE-rating values — which is why the results screen showed
+      // "1130 → 1130" with no ▲/▼ delta and sometimes 0 points. Re-read once,
+      // shortly after, so the settled scores/ratings reach the screen.
+      let settledScheduled = false;
+      let settleTimer: ReturnType<typeof setTimeout> | undefined;
+      const scheduleSettledRefetch = () => {
+        if (settledScheduled) return;
+        settledScheduled = true;
+        settleTimer = setTimeout(async () => {
+          const { data: settled } = await supabase
+            .from("games")
+            .select(
+              "*, players:profiles!gamePlayers(*), scores:gamePlayers(*), crossword:crosswords(*), sudoku:sudokus(*)"
+            )
+            .eq("id", gameId)
+            .single();
+          if (settled) next(null, fixType(settled));
+        }, 1500);
+      };
       const subscription = supabase
         .channel(`game-updates-${gameId}`)
         .on(
@@ -398,6 +420,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             // undefined — otherwise the board unmounts and crashes mid-match.
             if (game) {
               next(null, fixType(game));
+              if (game.playState === "COMPLETED") scheduleSettledRefetch();
             }
           }
         )
@@ -421,6 +444,7 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         });
 
       return () => {
+        if (settleTimer) clearTimeout(settleTimer);
         subscription.unsubscribe();
         setConnectionStatus("connected"); // reset when leaving the game
       };
@@ -429,10 +453,18 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
 
   const playState = game?.playState;
   useEffect(() => {
-    if (playState === "COMPLETED" || playState === "ABORTED") {
+    if (playState !== "COMPLETED" && playState !== "ABORTED") return;
+    refreshStats();
+    refreshMyProfile();
+    // Ratings are written just AFTER the game flips to COMPLETED, so the first
+    // refresh above can still read the old rating. Refresh once more when they
+    // have landed, otherwise the profile/stats (and the rank badge on Home)
+    // keep showing the pre-game rating until the next app launch.
+    const t = setTimeout(() => {
       refreshStats();
       refreshMyProfile();
-    }
+    }, 1600);
+    return () => clearTimeout(t);
   }, [playState, refreshStats, refreshMyProfile]);
 
   const { trigger: createSoloGame, isMutating: creatingSoloGame } =
