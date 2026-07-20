@@ -214,6 +214,10 @@ export default function IndexLayout() {
           name="notifications"
           options={{ headerTitle: "Notifications" }}
         />
+        <Stack.Screen
+          name="intro-prompt"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
         <Stack.Screen name="set-username" options={{ headerShown: false }} />
         <Stack.Screen name="intro-complete" options={{ headerShown: false }} />
         <Stack.Screen name="variant-result" options={{ headerShown: false }} />

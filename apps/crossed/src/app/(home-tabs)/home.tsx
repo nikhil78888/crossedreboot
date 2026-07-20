@@ -15,7 +15,6 @@ import {
 } from "../../lib/intro-flag";
 import { Button } from "../../components/Button";
 import { ChallengeResultsBanner } from "../../components/ChallengeResultsBanner";
-import { IntroGamePrompt } from "../../components/IntroGamePrompt";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
@@ -35,7 +34,7 @@ import {
 
 export default function Home() {
   const { currentGameId, loadingCurrentGameId } = useCurrentGame();
-  const { game, createGuidedMatch } = useGame({
+  const { game } = useGame({
     gameId: currentGameId,
   });
   const { myProfile } = useMyProfile();
@@ -78,15 +77,12 @@ export default function Home() {
   const [launchingChallenge, setLaunchingChallenge] = useState(
     !!peekPendingChallenge()
   );
-  const [showIntroPrompt, setShowIntroPrompt] = useState(peekPendingIntro());
-  const [introLaunching, setIntroLaunching] = useState(false);
-
-  // Consume the one-shot intro flag on mount: the initial render above already
-  // captured it, so clearing it now means a later remount can't yank the player
-  // back into onboarding after they've reached the dashboard.
-  useEffect(() => {
-    if (peekPendingIntro()) consumePendingIntro();
-  }, []);
+  // Whether this player still owes us their intro game. "pending" means we don't
+  // know yet — we render a spinner rather than the dashboard, so a brand-new
+  // player never sees the dashboard flash before the intro appears.
+  const [introState, setIntroState] = useState<"pending" | "new" | "existing">(
+    peekPendingIntro() ? "new" : "pending"
+  );
 
   // Durable new-user intro. The in-memory pendingIntro flag above is lost if the
   // app reloads between signup and reaching Home (e.g. a fresh install applying
@@ -95,19 +91,36 @@ export default function Home() {
   // new" signal — so the intro reliably pops up for new users. Once they've
   // played anything, the count is > 0 and this never fires again.
   useEffect(() => {
-    if (!myProfile?.id || peekPendingChallenge()) return;
+    if (introState !== "pending") return;
+    if (peekPendingChallenge()) {
+      setIntroState("existing"); // a challenge deep link supersedes the intro
+      return;
+    }
+    if (!myProfile?.id) return; // still loading the profile; stay on the spinner
     let active = true;
     (async () => {
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from("gamePlayers")
         .select("gamesId", { count: "exact", head: true })
         .eq("profilesId", myProfile.id);
-      if (active && (count ?? 1) === 0) setShowIntroPrompt(true);
+      if (!active) return;
+      // On an error we can't prove they're new — fall through to the dashboard
+      // rather than trapping an existing player behind the intro.
+      setIntroState(!error && (count ?? 0) === 0 ? "new" : "existing");
     })();
     return () => {
       active = false;
     };
-  }, [myProfile?.id]);
+  }, [introState, myProfile?.id]);
+
+  // Send brand-new players to the intro as a FULL-SCREEN route. Rendering it
+  // inside this tab left the tab bar visible, so they could tap Stats or
+  // Leaderboard and skip the warm-up entirely.
+  useEffect(() => {
+    if (introState !== "new") return;
+    consumePendingIntro();
+    router.replace("/intro-prompt");
+  }, [introState, router]);
 
   useEffect(() => {
     if (!myProfile?.id || challengeLaunched.current) return;
@@ -116,43 +129,24 @@ export default function Home() {
       consumePendingIntro(); // a challenge supersedes the generic intro
       challengeLaunched.current = true;
       setLaunchingChallenge(true);
-      setShowIntroPrompt(false);
+      setIntroState("existing");
       router.replace(`/challenge?id=${challengeId}`);
     }
   }, [myProfile?.id, router]);
 
-  const launchIntro = async () => {
-    if (introLaunching) return;
-    setIntroLaunching(true);
-    consumePendingIntro();
-    try {
-      const id = await createGuidedMatch({ source: "onboarding" });
-      if (id) router.replace(`/game?gameId=${id}&guided=1`);
-      else {
-        setIntroLaunching(false);
-        setShowIntroPrompt(false);
-      }
-    } catch {
-      setIntroLaunching(false);
-      setShowIntroPrompt(false); // fall through to the dashboard
-    }
-  };
-
-  if (launchingChallenge || loadingCurrentGameId || (currentGameId && !game)) {
+  // Hold the spinner until we know whether this is a brand-new player (and while
+  // the redirect to /intro-prompt lands). Rendering the dashboard first is what
+  // produced the flash before the intro appeared.
+  if (
+    launchingChallenge ||
+    loadingCurrentGameId ||
+    (currentGameId && !game) ||
+    introState !== "existing"
+  ) {
     return (
       <View className="flex-1 items-center justify-center px-4 bg-white">
         <ActivityIndicator />
       </View>
-    );
-  }
-
-  if (showIntroPrompt) {
-    return (
-      <IntroGamePrompt
-        username={myProfile?.username}
-        onPlay={launchIntro}
-        isLoading={introLaunching}
-      />
     );
   }
 
