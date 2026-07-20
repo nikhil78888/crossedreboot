@@ -43,6 +43,7 @@ import { setPendingChallenge } from "../lib/intro-flag";
 import { useHeartbeat } from "../hooks/use-heartbeat";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { configureRevenueCat } from "../lib/revenuecat";
+import { initAppsFlyer, setAppsFlyerUserId } from "../lib/appsflyer";
 import { mobileConfig } from "../mobile-config";
 import axios from "axios";
 import { BackButton } from "../components/BackButton";
@@ -119,11 +120,20 @@ export default function IndexLayout() {
   // Keep online presence fresh for the friends list.
   useHeartbeat();
 
+  // Start AppsFlyer once per launch, as early as possible — the install
+  // attribution it reports is only accurate if the SDK starts on first open.
+  useEffect(() => {
+    initAppsFlyer();
+  }, []);
+
   // Initialize RevenueCat (anonymously first, then tie purchases to the profile).
   const { myProfile } = useMyProfile();
   useEffect(() => {
     configureRevenueCat(myProfile?.id);
     setAnalyticsUser(myProfile?.id);
+    // Tie AppsFlyer installs/events to our profile id so attribution can be
+    // joined back to a real user (the gap where Branch data was being discarded).
+    setAppsFlyerUserId(myProfile?.id);
   }, [myProfile?.id]);
 
   // One app-open event per launch (after the profile is attributable).

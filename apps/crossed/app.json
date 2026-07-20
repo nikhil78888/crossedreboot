@@ -50,6 +50,7 @@
       [
         "./plugins/withBranchInit"
       ],
+      "react-native-appsflyer",
       [
         "expo-build-properties",
         {

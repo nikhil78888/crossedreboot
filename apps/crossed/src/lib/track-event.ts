@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { supabase } from "./supabase";
+import { logAppsFlyerEvent } from "./appsflyer";
 
 export const events = {
   // navigation / intent
@@ -46,10 +47,24 @@ export const setAnalyticsUser = (id?: string) => {
 
 // Record a product-analytics event. Fire-and-forget: never blocks the UI and
 // never throws — analytics must not affect gameplay.
+// The few events worth forwarding to AppsFlyer for install attribution and ad
+// optimization, mapped onto AppsFlyer's standard event names (partners optimize
+// against these). Everything else stays in our own analytics table — forwarding
+// the noisy events adds cost without improving targeting.
+const APPSFLYER_EVENTS: Record<string, string> = {
+  INTRO_USERNAME_SAVED: "af_complete_registration",
+  INTRO_RACE_COMPLETED: "af_tutorial_completion",
+  GAME_COMPLETED: "af_level_achieved",
+  SUBSCRIBE_TAPPED: "af_initiated_checkout",
+  PURCHASE_SUCCEEDED: "af_subscribe",
+};
+
 export const trackEvent = (
   name: string,
   properties?: Record<string, unknown>
 ) => {
+  const afName = APPSFLYER_EVENTS[name];
+  if (afName) logAppsFlyerEvent(afName, properties ?? {});
   try {
     supabase
       .from("analyticsEvents")

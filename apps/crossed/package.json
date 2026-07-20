@@ -57,6 +57,7 @@
     "react": "19.2.0",
     "react-hook-form": "^7.43.9",
     "react-native": "0.83.6",
+    "react-native-appsflyer": "^6.18.0",
     "react-native-avoid-softinput": "^8.0.2",
     "react-native-branch": "^6.10.0",
     "react-native-gesture-handler": "~2.30.0",
