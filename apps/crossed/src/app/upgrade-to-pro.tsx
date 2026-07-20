@@ -21,6 +21,15 @@ export default function UpgradeToPro() {
     useSubscription();
   const [busy, setBusy] = useState(false);
 
+  // Leaving the paywall must ALWAYS work. If this screen is the only entry in
+  // the stack (e.g. a challenge deep link on a cold start routed straight here),
+  // router.back() silently no-ops and the user is trapped with no way into the
+  // app — even after a successful purchase. Fall back to /home in that case.
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/home");
+  };
+
   useEffect(() => {
     trackEvent(events.PAYWALL_VIEWED);
   }, []);
@@ -49,7 +58,7 @@ export default function UpgradeToPro() {
             label="Back"
             intent="secondary"
             size="lg"
-            onPress={() => router.back()}
+            onPress={leave}
           />
         </View>
       </View>
@@ -73,7 +82,7 @@ export default function UpgradeToPro() {
           productId: pkg.product.identifier,
         });
         Alert.alert("You're Pro! 🎉", "Enjoy unlimited games.");
-        router.back();
+        leave();
       }
     } catch (e) {
       const err = e as { userCancelled?: boolean };
@@ -106,7 +115,7 @@ export default function UpgradeToPro() {
           ? "Your Pro subscription is active."
           : "No active subscription found."
       );
-      if (ok) router.back();
+      if (ok) leave();
     } finally {
       setBusy(false);
     }
@@ -258,7 +267,7 @@ export default function UpgradeToPro() {
           label="Not now"
           intent="secondary"
           size="lg"
-          onPress={() => router.back()}
+          onPress={leave}
         />
       </View>
 

@@ -32,7 +32,13 @@ export default function JoinGame() {
       router.push("/upgrade-to-pro");
       return;
     }
-    startGame();
+    // AWAIT + surface failures: a bare startGame() swallowed rejections, so a
+    // failed join (duplicate row, RLS, offline) left the button looking dead.
+    try {
+      await startGame();
+    } catch {
+      Alert.alert("Couldn't join", "Please check your connection and try again.");
+    }
   };
 
   const gamePlayState = game?.playState;

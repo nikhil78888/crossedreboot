@@ -66,7 +66,17 @@ export default function RankedLobby() {
       const claimed = await leaveLobby();
       if (cancelled) return;
       if (!claimed.length) return; // matched, or transiently re-queued — retry later
-      const id = await createRankedBotMatch({ variant, difficulty });
+      // We now hold the claim, so ANY failure past this point must re-queue —
+      // createRankedBotMatch THROWS on insert failure, and without this catch
+      // the throw skipped the re-queue below, leaving the player with no queue
+      // row and no game (every later retry claims nothing and returns early):
+      // a permanent lobby hang, plus an unhandled rejection inside setInterval.
+      let id: string | undefined;
+      try {
+        id = await createRankedBotMatch({ variant, difficulty });
+      } catch {
+        id = undefined;
+      }
       if (id) {
         cancelled = true;
         if (interval) clearInterval(interval);

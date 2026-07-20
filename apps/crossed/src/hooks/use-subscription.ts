@@ -98,10 +98,14 @@ export const useSubscription = () => {
 // player can start another one today and how many free games remain.
 export const useGameGate = () => {
   const { myProfile } = useMyProfile();
-  const { isPro } = useSubscription();
+  const { isPro, loading } = useSubscription();
 
   const checkCanPlay = useCallback(async () => {
     if (isPro) return { allowed: true, remaining: Infinity, isPro: true };
+    // Entitlement not resolved yet (RevenueCat call in flight): NEVER block.
+    // isPro starts false, so gating here would lock out a paying subscriber
+    // whose customer-info request simply hadn't returned when they tapped play.
+    if (loading) return { allowed: true, remaining: Infinity, isPro: false };
     if (!myProfile)
       return {
         allowed: true,
@@ -125,7 +129,7 @@ export const useGameGate = () => {
       remaining: Math.max(0, FREE_COMPETITIVE_PER_DAY - played),
       isPro: false,
     };
-  }, [isPro, myProfile]);
+  }, [isPro, loading, myProfile]);
 
   return { checkCanPlay };
 };

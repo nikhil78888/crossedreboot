@@ -151,7 +151,30 @@ const tryMatch = async () => {
         .delete()
         .in("profilesId", [a.profilesId, b.profilesId])
         .select("profilesId");
-      if (!claimed || claimed.length < 2) return; // someone else grabbed one
+      if (!claimed || claimed.length < 2) {
+        // PARTIAL claim: the other player was grabbed first (their own bot
+        // fallback, or they left), but our DELETE still removed whoever WAS
+        // present. Put them back — otherwise they sit in the lobby with no queue
+        // row and no game, and their bot fallback (which only fires when it can
+        // claim its own row) can never rescue them: a permanent "finding
+        // player…" hang.
+        const stranded = (claimed ?? []).map((c) => c.profilesId);
+        for (const p of [a, b]) {
+          if (!stranded.includes(p.profilesId)) continue;
+          await supabase.from("rankedQueue").upsert(
+            {
+              profilesId: p.profilesId,
+              rating: p.rating,
+              gameVariant: p.gameVariant,
+              difficulty: p.difficulty,
+              joinedAt: new Date(p.joinedAt).toISOString(),
+              lastSeenAt: new Date().toISOString(),
+            },
+            { onConflict: "profilesId" }
+          );
+        }
+        return;
+      }
       try {
         await createRankedMatch(a.profilesId, b.profilesId, a.gameVariant, a.difficulty);
       } catch (error) {

@@ -74,12 +74,17 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
           timeline: timelineRef.current,
         },
       };
-      supabase
-        .from("games")
-        .update({ gameState: mergedDone as never })
-        .eq("id", gameId)
-        .then();
-      finishGame();
+      // AWAIT the winning write before finishing: the server re-reads gameState
+      // from the DB to score, so a fire-and-forget write here can lose the race
+      // and score the last answer as unanswered (same fix as crossword/sudoku/
+      // word search).
+      void (async () => {
+        await supabase
+          .from("games")
+          .update({ gameState: mergedDone as never })
+          .eq("id", gameId);
+        finishGame();
+      })();
       return;
     }
     if (writeTimer.current) clearTimeout(writeTimer.current);
