@@ -19,6 +19,8 @@ import { IntroGamePrompt } from "../../components/IntroGamePrompt";
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
+import { useGameGate } from "../../hooks/use-subscription";
+import { events, trackEvent } from "../../lib/track-event";
 import { supabase } from "../../lib/supabase";
 import { usePushRegistration } from "../../hooks/use-push-registration";
 import { NotificationOptInBanner } from "../../components/NotificationOptInBanner";
@@ -44,6 +46,7 @@ export default function Home() {
   const { tournamentInvites, refreshTournamentInvites } =
     useTournamentInvites();
   const { acceptInvite } = useTournament({ tournamentId: undefined });
+  const { checkCanPlay } = useGameGate();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -226,6 +229,13 @@ export default function Home() {
         <TouchableOpacity
           onPress={async () => {
             try {
+              // Joining a tournament is playing games — same daily free limit.
+              const gate = await checkCanPlay();
+              if (!gate.allowed) {
+                trackEvent(events.GATE_BLOCKED, { mode: "TOURNAMENT_INVITE" });
+                router.push("/upgrade-to-pro");
+                return;
+              }
               const tid = await acceptInvite(tournamentInvites[0].tournamentId);
               refreshTournamentInvites();
               if (tid) router.push(`/tournament?tournamentId=${tid}`);

@@ -124,8 +124,8 @@ export default function UpgradeToPro() {
         Crossed Pro
       </Text>
       <Text className="mt-1 text-center font-[jost400] text-crossed-gray-400">
-        You get {FREE_COMPETITIVE_PER_DAY} free competitive games a day. Go Pro
-        for unlimited play.
+        You get {FREE_COMPETITIVE_PER_DAY} free games a day. Go Pro for
+        unlimited play.
       </Text>
 
       <View className="mt-6">
