@@ -130,7 +130,11 @@ export const createRankedMatch = async (
     player_two_id: playerTwoId,
   });
 
-  if (error) {
+  // Guard the empty result too (the SUDOKU branch above already does): `data[0]`
+  // being undefined threw a TypeError on cw.puzzle, which the matcher caught and
+  // re-queued both players for — so an exhausted pool made the pair churn
+  // delete/recreate every tick forever instead of ever matching.
+  if (error || !data?.[0]) {
     throw new Error(
       `Error fetching crossword b/w ${playerOneId} and ${playerTwoId}`
     );
@@ -418,14 +422,16 @@ const pickWinner = (
   if (a.score !== b.score) {
     return a.score > 0 || game.gameType === "TOURNAMENT" ? a.playerId : null;
   }
-  // tie
-  if (game.gameType === "TOURNAMENT") {
-    const players = game.players as unknown as RankedPlayer[];
-    const ra = players.find((p) => p.id === a.playerId)?.eloRating ?? 0;
-    const rb = players.find((p) => p.id === b.playerId)?.eloRating ?? 0;
-    return ra >= rb ? a.playerId : b.playerId;
-  }
-  return a.score > 0 ? a.playerId : null;
+  // Tie. A tournament MUST advance someone (see below), but a ranked/friendly
+  // draw has no winner: `a` is just whichever player the DB join returned first,
+  // so awarding it handed a real win/loss (and full Glicko movement) to an
+  // arbitrary player. Return null instead — a genuine draw.
+  if (game.gameType !== "TOURNAMENT") return null;
+  // Tournament: the bracket can't stall, so break the tie by rating.
+  const players = game.players as unknown as RankedPlayer[];
+  const ra = players.find((p) => p.id === a.playerId)?.eloRating ?? 0;
+  const rb = players.find((p) => p.id === b.playerId)?.eloRating ?? 0;
+  return ra >= rb ? a.playerId : b.playerId;
 };
 
 // Finalize a PLAYING game: score it, set the winner, apply ratings, mark it

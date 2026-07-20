@@ -46,7 +46,18 @@ export const FriendlyGameResult = ({
   const opponentPoints =
     game.scores.find((s) => s.profilesId === opponent?.id)?.score || 0;
 
-  const result = myPoints > opponentPoints ? "WON" : "LOST";
+  // Trust the server's winnerId (it decides the result and drives the medal +
+  // rating). Deriving purely from points told a DRAW's players they lost, and
+  // could contradict the winner medal shown right below on the same screen.
+  const result: "WON" | "LOST" | "DREW" = game.winnerId
+    ? game.winnerId === myProfile.id
+      ? "WON"
+      : "LOST"
+    : myPoints > opponentPoints
+    ? "WON"
+    : myPoints === opponentPoints
+    ? "DREW"
+    : "LOST";
 
   return (
     <View className="h-full w-full bg-white">
@@ -55,7 +66,11 @@ export const FriendlyGameResult = ({
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 12 }}
       >
         <Text className="text-center font-[jost700] text-[28px]">
-          {result === "WON" ? "You aced it!" : "Better Luck Next Time"}
+          {result === "WON"
+            ? "You aced it!"
+            : result === "DREW"
+            ? "Dead heat!"
+            : "Better Luck Next Time"}
         </Text>
         <View className="mt-3 items-center">
           <Image

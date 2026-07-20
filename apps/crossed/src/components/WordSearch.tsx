@@ -74,8 +74,23 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     ? Math.max(0, Math.round((now - startAtMs) / 1000))
     : 0;
 
+  // Restore progress saved on the server (resuming after a background/kill —
+  // Home auto-routes back into a PLAYING game). Without this the grid restarts
+  // empty and the debounced write below overwrites the saved words with [].
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current || !myProfile?.id || !game?.gameState) return;
+    const mine = (
+      game.gameState as Record<string, { found?: string[] } | undefined>
+    )[myProfile.id];
+    hydratedRef.current = true;
+    if (mine?.found?.length) setFound(mine.found);
+  }, [game?.gameState, myProfile?.id]);
+
   // Persist progress + detect completion.
   useEffect(() => {
+    // Never write before restoring, or we'd clobber saved progress with [].
+    if (!hydratedRef.current) return;
     if (!puzzle || !myProfile || !game || finishedRef.current) return;
     const p = wordSearchProgress(puzzle, found);
     const last = timelineRef.current[timelineRef.current.length - 1];

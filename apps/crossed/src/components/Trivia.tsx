@@ -54,8 +54,33 @@ export const TriviaGame = ({ gameId }: { gameId: string }) => {
   );
   const elapsed = startAtMs ? Math.max(0, Math.round((now - startAtMs) / 1000)) : 0;
 
+  // Restore answers saved on the server (resuming after a background/kill), and
+  // jump to the first unanswered question. Without this the quiz restarts from
+  // scratch and the next answer overwrites every earlier one.
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current || !myProfile?.id || !game?.gameState || !quiz)
+      return;
+    const mine = (
+      game.gameState as Record<
+        string,
+        { answers?: Record<string, number> } | undefined
+      >
+    )[myProfile.id];
+    hydratedRef.current = true;
+    const saved = mine?.answers;
+    if (saved && Object.keys(saved).length) {
+      setAnswers(saved);
+      answersRef.current = saved;
+      const next = quiz.questions.findIndex((q) => saved[q.id] === undefined);
+      setIdx(next < 0 ? quiz.questions.length - 1 : next);
+    }
+  }, [game?.gameState, myProfile?.id, quiz]);
+
   // Persist progress + detect completion (all questions answered).
   useEffect(() => {
+    // Never write before restoring, or we'd clobber saved answers.
+    if (!hydratedRef.current) return;
     if (!quiz || !myProfile || !game || finishedRef.current) return;
     const answered = Object.keys(answers).length;
     if (answered === 0) return;

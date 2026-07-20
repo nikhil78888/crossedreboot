@@ -565,7 +565,11 @@ export const advanceTournament = async (tournamentId: string) => {
   const created: { row: TMatch; p1?: TPlayer; p2?: TPlayer }[] = [];
   for (let i = 0; i < current.length; i += 2) {
     const w1 = current[i].winnerId;
-    const w2 = current[i + 1].winnerId;
+    // An odd match count (a bracket that started short-handed because the bot
+    // pool couldn't fill every seat) left current[i+1] undefined and threw out
+    // of advanceTournament — freezing the bracket for everyone, permanently.
+    // The odd winner advances on a bye instead.
+    const w2 = current[i + 1]?.winnerId ?? null;
     const { data: row, error } = await supabase
       .from("tournamentMatches")
       .insert({

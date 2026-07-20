@@ -630,9 +630,13 @@ export const CrosswordGrid = ({
     const x = crossword.puzzle.findIndex((row) =>
       row.includes(String(clue.number))
     );
+    // A clue number with no matching cell (mismatched clues/grid) made
+    // puzzle[-1] undefined and crashed the game screen on the clue arrows.
+    if (x < 0) return;
     const y = crossword.puzzle[x].findIndex(
       (cell) => cell === String(clue.number)
     );
+    if (y < 0) return;
     setCurrentCell({ x, y });
     setDirection(direction);
   };
