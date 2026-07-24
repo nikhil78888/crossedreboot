@@ -1,7 +1,9 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGame, solutionOf } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
+import { CrosswordTutorial } from "../components/CrosswordTutorial";
 import { SudokuGrid } from "../components/Sudoku";
 import { WordSearchGrid } from "../components/WordSearch";
 import { TriviaGame } from "../components/Trivia";
@@ -18,6 +20,10 @@ import { supabase } from "../lib/supabase";
 import { TriviaQuiz, triviaCorrectCount } from "../lib/trivia";
 import { recordGameCompleted, maybeRequestReview } from "../lib/engagement";
 import { ratingForVariant } from "../lib/variant-rating";
+
+// Set once a player has seen the crossword how-to-play tutorial, so it only shows
+// on their first crossword game (the guided intro) and never again.
+const CROSSWORD_TUTORIAL_SEEN_KEY = "crossword_tutorial_seen_v1";
 
 // The challenger's trivia score, recovered from their ghost timeline (progress %
 // == correct / total). Used to decide a trivia challenge by accuracy.
@@ -46,9 +52,43 @@ export default function Game() {
     gameId: gameId as string | undefined,
   });
   const [opponentRating, setOpponentRating] = useState(0);
+  // "How to play" overlay for the crossword race. It shows on a player's FIRST
+  // crossword game (which is essentially always the guided intro), then never
+  // again — tracked by a persistent flag. The settings "Preview new-user
+  // experience" run (preview=1) always shows it, ignoring the flag, so it stays
+  // testable. It's presented as a gate BEFORE the race: the board (and its clock
+  // + keyboard) only mount once the tutorial is closed, and the race clock is
+  // restarted on close so no time is spent reading it.
+  const [tutorialClosed, setTutorialClosed] = useState(false);
+  // null = still reading the "seen" flag; false = not seen yet; true = seen.
+  const [tutorialSeen, setTutorialSeen] = useState<boolean | null>(null);
+  // True between closing the tutorial and the freshly-restarted countdown landing
+  // — we hold a "get ready" screen so the board doesn't flash with the old clock.
+  const [restarting, setRestarting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(CROSSWORD_TUTORIAL_SEEN_KEY)
+      .then((v) => active && setTutorialSeen(!!v))
+      // On a read error, treat as seen so we don't nag with the tutorial.
+      .catch(() => active && setTutorialSeen(true));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const gamePlayState = game?.playState;
   const gameType = game?.gameType;
+  // The how-to-play tutorial is active. While it's up we render a frozen board
+  // with a bottom-sheet tutorial and hide the header's Quit button so it can't
+  // collide with the sheet's Skip. Preview always shows it. Real players see it
+  // once, on the guided intro (guided=1) — a player's first crossword is always
+  // the intro, and scoping to it keeps the on-close clock restart off real live
+  // matches (which share the game row, so a restart would desync the opponent).
+  const tutorialActive =
+    game?.gameVariant === "CROSSWORD" &&
+    !tutorialClosed &&
+    (preview === "1" || (guided === "1" && tutorialSeen === false));
 
   // Ticks once a second so the pre-game countdown updates.
   const [now, setNow] = useState(Date.now());
@@ -63,6 +103,36 @@ export default function Game() {
     ? Math.ceil((startsAtMs - now) / 1000)
     : 0;
   const counting = gamePlayState === "PLAYING" && secondsToStart > 0;
+
+  // Close the tutorial and start the race fresh. The clock ran while the player
+  // read the tutorial, so push startedAt back out — the board's clock and the
+  // bot both key off it, so this makes the race truly begin now, not mid-way.
+  const closeTutorial = async () => {
+    setTutorialClosed(true);
+    setRestarting(true);
+    // Remember it so it never shows again (best-effort; preview ignores it).
+    setTutorialSeen(true);
+    AsyncStorage.setItem(CROSSWORD_TUTORIAL_SEEN_KEY, "1").catch(
+      () => undefined
+    );
+    try {
+      await supabase
+        .from("games")
+        .update({ startedAt: new Date(Date.now() + 6000).toISOString() })
+        .eq("id", gameId as string);
+    } catch {
+      // If the restart write fails, don't strand them on the prep screen.
+      setRestarting(false);
+    }
+    // Safety net in case the realtime update is slow to land.
+    setTimeout(() => setRestarting(false), 6000);
+  };
+
+  // Once the freshly-restarted countdown lands (startedAt back in the future),
+  // hand off to the normal countdown screen.
+  useEffect(() => {
+    if (restarting && counting) setRestarting(false);
+  }, [restarting, counting]);
 
   // Challenge race: decide when to end against the challenger's ghost.
   const ghostEnded = useRef(false);
@@ -154,51 +224,99 @@ export default function Game() {
           intent={"danger"}
           mode={"text"}
           size={"sm"}
-          label="Leave"
+          label="Quit"
           onPress={onPress}
         />
       );
+    // Warn before quitting so a stray tap doesn't cost the match. Competitive
+    // games forfeit (a loss); a solo game just submits whatever's on the board.
+    const confirmQuit = ({
+      forfeit,
+      onProceed,
+    }: {
+      forfeit: boolean;
+      onProceed: () => void;
+    }) =>
+      Alert.alert(
+        "Quit game?",
+        forfeit
+          ? "If you quit now you’ll forfeit the game and it counts as a loss."
+          : "Your puzzle will be submitted as it is right now.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Quit", style: "destructive", onPress: onProceed },
+        ]
+      );
+    // During the how-to-play tutorial, retitle the header and hide Quit so it
+    // can't sit on top of the tutorial sheet's Skip.
+    if (tutorialActive) {
+      navigation.setOptions({
+        headerTitle: "HOW TO PLAY",
+        headerRight: () => null,
+      });
+      return;
+    }
     switch (gameType) {
       case "FRIENDLY":
         navigation.setOptions({
           headerTitle: "FRIENDLY MATCH",
-          headerRight: leaveButton(() => {
-            trackEvent(events.FORFEIT_MATCH_CLICK);
-            leaveAction(forfeitGame);
-          }),
+          headerRight: leaveButton(() =>
+            confirmQuit({
+              forfeit: true,
+              onProceed: () => {
+                trackEvent(events.FORFEIT_MATCH_CLICK);
+                leaveAction(forfeitGame);
+              },
+            })
+          ),
         });
         break;
       case "SOLO":
         navigation.setOptions({
           headerTitle: "SOLO GAME",
-          headerRight: leaveButton(() => {
-            trackEvent(events.SUBMIT_SOLO_MATCH_CLICK);
-            leaveAction(finishGame);
-          }),
+          headerRight: leaveButton(() =>
+            confirmQuit({
+              forfeit: false,
+              onProceed: () => {
+                trackEvent(events.SUBMIT_SOLO_MATCH_CLICK);
+                leaveAction(finishGame);
+              },
+            })
+          ),
         });
         break;
       case "RANKED":
         navigation.setOptions({
           headerTitle: "RANKED MATCH",
-          headerRight: leaveButton(() => {
-            trackEvent(events.FORFEIT_MATCH_CLICK);
-            leaveAction(forfeitGame);
-          }),
+          headerRight: leaveButton(() =>
+            confirmQuit({
+              forfeit: true,
+              onProceed: () => {
+                trackEvent(events.FORFEIT_MATCH_CLICK);
+                leaveAction(forfeitGame);
+              },
+            })
+          ),
         });
         break;
       case "TOURNAMENT":
         navigation.setOptions({
           headerTitle: "TOURNAMENT",
-          headerRight: leaveButton(() => {
-            trackEvent(events.FORFEIT_MATCH_CLICK);
-            leaveAction(forfeitGame);
-          }),
+          headerRight: leaveButton(() =>
+            confirmQuit({
+              forfeit: true,
+              onProceed: () => {
+                trackEvent(events.FORFEIT_MATCH_CLICK);
+                leaveAction(forfeitGame);
+              },
+            })
+          ),
         });
         break;
       default:
         break;
     }
-  }, [finishGame, forfeitGame, gameType, navigation, router]);
+  }, [finishGame, forfeitGame, gameType, navigation, router, tutorialActive]);
 
   const navigatedAway = useRef(false);
   useEffect(() => {
@@ -478,6 +596,50 @@ export default function Game() {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
+      </View>
+    );
+  }
+
+  // Guided intro: hold a spinner until we know whether the tutorial was already
+  // seen, so the countdown/board never flashes before it appears.
+  if (
+    game?.gameVariant === "CROSSWORD" &&
+    guided === "1" &&
+    preview !== "1" &&
+    !tutorialClosed &&
+    tutorialSeen === null
+  ) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  // "How to play" — the board renders FROZEN (paused: no clock, no bot movement,
+  // no keyboard) with the tutorial as an opaque bottom sheet beneath it, so the
+  // grid + race bars stay visible above and it reads as one screen. The clock
+  // starts fresh once it's closed. Shows on a player's first crossword; preview
+  // always shows it.
+  if (tutorialActive) {
+    return (
+      <View className="flex-1 bg-white">
+        <ConnectionBanner />
+        <CrosswordGrid gameId={gameId as string} paused />
+        <CrosswordTutorial onClose={closeTutorial} />
+      </View>
+    );
+  }
+
+  // Just closed the tutorial — wait for the restarted countdown to land instead
+  // of briefly flashing the board with the pre-restart (stale) clock.
+  if (restarting && !counting) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator />
+        <Text className="mt-4 font-[jost600] text-crossed-gray-400">
+          Get ready…
+        </Text>
       </View>
     );
   }

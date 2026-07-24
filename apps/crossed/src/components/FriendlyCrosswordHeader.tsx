@@ -18,7 +18,13 @@ import {
 } from "../lib/word-search";
 import { triviaProgress, type TriviaQuiz } from "../lib/trivia";
 
-export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
+export const FriendlyCrosswordHeader = ({
+  gameId,
+  paused,
+}: {
+  gameId: string;
+  paused?: boolean;
+}) => {
   const { myProfile } = useMyProfile();
   const { opponentProgress, game, opponentUsername, finishGame } = useGame({
     gameId,
@@ -54,6 +60,21 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
   }
 
   useEffect(() => {
+    // Frozen behind the tutorial: show the full clock, don't tick, don't end.
+    if (paused) {
+      const full = intervalToDuration({
+        start: 0,
+        end: (game?.gameDurationInSeconds ?? 0) * 1000,
+      });
+      setTimeInGame(
+        `${(full.minutes ?? 0).toString().padStart(2, "0")}:${(
+          full.seconds ?? 0
+        )
+          .toString()
+          .padStart(2, "0")}`
+      );
+      return;
+    }
     // if game duration is over, end the game, else update time in game
     if (
       (game?.gameType === "FRIENDLY" ||
@@ -90,6 +111,7 @@ export const FriendlyCrosswordHeader = ({ gameId }: { gameId: string }) => {
     game?.playState,
     game?.startedAt,
     finishGame,
+    paused,
   ]);
 
   if (!game) {

@@ -39,11 +39,15 @@ const CrosswordContext = createContext<CrosswordContextType>(null!);
 export const CrosswordGrid = ({
   gameId,
   showResults,
+  paused,
 }: {
   gameId: string;
   showResults?: {
     playerId?: string;
   };
+  // Freeze the board behind the how-to-play tutorial: no clock, no bot movement,
+  // no keyboard. The race starts fresh once the tutorial is dismissed.
+  paused?: boolean;
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
@@ -96,6 +100,7 @@ export const CrosswordGrid = ({
 
   // auto update bot game state if applicable
   useEffect(() => {
+    if (paused) return; // frozen during the tutorial — the bot doesn't move
     if (game && crossword && opponent) {
       if (opponent?.type === "BOT") {
         const botGameState = game?.gameState?.[opponent.id];
@@ -251,7 +256,7 @@ export const CrosswordGrid = ({
         }
       }
     }
-  }, [crossword, game, gameId, isGameFinished, opponent]);
+  }, [crossword, game, gameId, isGameFinished, opponent, paused]);
 
   useEffect(() => {
     // initialize gameState
@@ -304,6 +309,7 @@ export const CrosswordGrid = ({
   }, [crossword, game, showResults]);
 
   useEffect(() => {
+    if (paused) return; // no progress writes / win checks while frozen
     if (!(game && gameState && myProfile && !isGameFinished)) return;
     // Capture a progress sample (only when it advances) for the ghost replay.
     // Solo games have no startedAt (self-paced) — fall back to createdAt so solo
@@ -373,7 +379,7 @@ export const CrosswordGrid = ({
     // Otherwise debounce the progress write (drives the opponent's bar).
     if (progressTimer.current) clearTimeout(progressTimer.current);
     progressTimer.current = setTimeout(write, 800);
-  }, [finishGame, game, gameId, gameState, isGameFinished, myProfile]);
+  }, [finishGame, game, gameId, gameState, isGameFinished, myProfile, paused]);
 
   if (!game || !gameState || !crossword) {
     return null;
@@ -672,7 +678,10 @@ export const CrosswordGrid = ({
                   {(game?.gameType === "FRIENDLY" ||
                     game?.gameType === "RANKED" ||
                     game?.gameType === "TOURNAMENT") && (
-                    <FriendlyCrosswordHeader gameId={gameId as string} />
+                    <FriendlyCrosswordHeader
+                      gameId={gameId as string}
+                      paused={paused}
+                    />
                   )}
                   {game?.gameType === "SOLO" && (
                     <SoloTimer startAt={game?.startedAt ?? game?.createdAt} />
@@ -699,7 +708,7 @@ export const CrosswordGrid = ({
                             handleBackspace={handleBackspace}
                             handleKey={handleKey}
                             toggleDirection={toggleDirection}
-                            disabled={!!showResults || isGameFinished}
+                            disabled={!!showResults || isGameFinished || !!paused}
                           />
                           {showResults &&
                             solution[rowIndex][colIndex] !==
