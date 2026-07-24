@@ -62,9 +62,11 @@ export default function Game() {
   const [tutorialClosed, setTutorialClosed] = useState(false);
   // null = still reading the "seen" flag; false = not seen yet; true = seen.
   const [tutorialSeen, setTutorialSeen] = useState<boolean | null>(null);
-  // True between closing the tutorial and the freshly-restarted countdown landing
-  // — we hold a "get ready" screen so the board doesn't flash with the old clock.
-  const [restarting, setRestarting] = useState(false);
+  // When the tutorial closes we drive a fresh countdown from this LOCAL start
+  // time immediately — independent of realtime — so the board never flashes with
+  // the clock that ran while they read the tutorial. The matching DB write keeps
+  // the board's own clock + the bot in sync.
+  const [forcedStartMs, setForcedStartMs] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -96,43 +98,40 @@ export default function Game() {
     const i = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(i);
   }, []);
-  const startsAtMs = game?.startedAt
-    ? new Date(`${game.startedAt}Z`).getTime()
-    : null;
+  // Prefer the local restart clock (set on tutorial close) so the countdown is
+  // immediate and never shows the tutorial-elapsed time, even if the realtime
+  // update of startedAt is slow.
+  const startsAtMs =
+    forcedStartMs ??
+    (game?.startedAt ? new Date(`${game.startedAt}Z`).getTime() : null);
   const secondsToStart = startsAtMs
     ? Math.ceil((startsAtMs - now) / 1000)
     : 0;
   const counting = gamePlayState === "PLAYING" && secondsToStart > 0;
 
   // Close the tutorial and start the race fresh. The clock ran while the player
-  // read the tutorial, so push startedAt back out — the board's clock and the
-  // bot both key off it, so this makes the race truly begin now, not mid-way.
-  const closeTutorial = async () => {
+  // read the tutorial, so restart it: drive a local 6s countdown right away, and
+  // push the same startedAt to the DB (the board's clock + the bot key off it).
+  // The local countdown gives that write time to propagate before the board
+  // mounts, so the board never renders against a stale/elapsed clock.
+  const closeTutorial = () => {
+    const restartAt = Date.now() + 6000;
+    setForcedStartMs(restartAt);
     setTutorialClosed(true);
-    setRestarting(true);
     // Remember it so it never shows again (best-effort; preview ignores it).
     setTutorialSeen(true);
     AsyncStorage.setItem(CROSSWORD_TUTORIAL_SEEN_KEY, "1").catch(
       () => undefined
     );
-    try {
+    const persist = async () => {
       await supabase
         .from("games")
-        .update({ startedAt: new Date(Date.now() + 6000).toISOString() })
+        .update({ startedAt: new Date(restartAt).toISOString() })
         .eq("id", gameId as string);
-    } catch {
-      // If the restart write fails, don't strand them on the prep screen.
-      setRestarting(false);
-    }
-    // Safety net in case the realtime update is slow to land.
-    setTimeout(() => setRestarting(false), 6000);
+    };
+    // Retry once on a network failure so the board's clock isn't left stale.
+    persist().catch(() => persist().catch(() => undefined));
   };
-
-  // Once the freshly-restarted countdown lands (startedAt back in the future),
-  // hand off to the normal countdown screen.
-  useEffect(() => {
-    if (restarting && counting) setRestarting(false);
-  }, [restarting, counting]);
 
   // Challenge race: decide when to end against the challenger's ghost.
   const ghostEnded = useRef(false);
@@ -627,19 +626,6 @@ export default function Game() {
         <ConnectionBanner />
         <CrosswordGrid gameId={gameId as string} paused />
         <CrosswordTutorial onClose={closeTutorial} />
-      </View>
-    );
-  }
-
-  // Just closed the tutorial — wait for the restarted countdown to land instead
-  // of briefly flashing the board with the pre-restart (stale) clock.
-  if (restarting && !counting) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator />
-        <Text className="mt-4 font-[jost600] text-crossed-gray-400">
-          Get ready…
-        </Text>
       </View>
     );
   }

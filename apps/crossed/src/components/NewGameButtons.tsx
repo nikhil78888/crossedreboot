@@ -142,12 +142,13 @@ export const NewGameButtons = () => {
             trackEvent(events.START_FRIENDLY_GAME_CLICK);
             playFriendly();
           }}
-          style={{
+          style={({ pressed }) => ({
             flex: 1,
             borderRadius: 16,
             padding: 16,
             backgroundColor: "#ede9fe",
-          }}
+            opacity: pressed ? 0.9 : 1,
+          })}
         >
           <Image
             source={images.friend}
@@ -166,12 +167,13 @@ export const NewGameButtons = () => {
         </Pressable>
         <Pressable
           onPress={onChallengePress}
-          style={{
+          style={({ pressed }) => ({
             flex: 1,
             borderRadius: 16,
             padding: 16,
             backgroundColor: "#dcfce7",
-          }}
+            opacity: pressed ? 0.9 : 1,
+          })}
         >
           <Image
             source={images.solo}
