@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { images } from "../lib/images";
@@ -126,9 +126,10 @@ export const NewGameButtons = () => {
         </View>
       </TouchableOpacity>
 
-      {/* Live Match / Challenge cards. RN Pressable (not RNGH TouchableOpacity)
-          as the direct row children: with alignItems:"stretch" + flex:1 they
-          fill equal-height columns. RNGH doesn't reliably fill via flex. */}
+      {/* Live Match / Challenge cards. The colored card is a plain flex:1 View
+          (reliably fills equal-height columns and shows its background); the
+          TouchableOpacity inside it carries the padding + tap. Putting the flex
+          + background on a Pressable directly dropped the styling entirely. */}
       <View
         style={{
           flexDirection: "row",
@@ -137,59 +138,53 @@ export const NewGameButtons = () => {
           marginTop: 12,
         }}
       >
-        <Pressable
-          onPress={() => {
-            trackEvent(events.START_FRIENDLY_GAME_CLICK);
-            playFriendly();
-          }}
-          style={({ pressed }) => ({
-            flex: 1,
-            borderRadius: 16,
-            padding: 16,
-            backgroundColor: "#ede9fe",
-            opacity: pressed ? 0.9 : 1,
-          })}
-        >
-          <Image
-            source={images.friend}
-            style={{ height: 48, width: 48 }}
-            contentFit="contain"
-          />
-          <Text
-            className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
-            numberOfLines={2}
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              playFriendly();
+            }}
+            style={{ flex: 1, padding: 16 }}
           >
-            Live Match
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-            Race a friend in real time.
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={onChallengePress}
-          style={({ pressed }) => ({
-            flex: 1,
-            borderRadius: 16,
-            padding: 16,
-            backgroundColor: "#dcfce7",
-            opacity: pressed ? 0.9 : 1,
-          })}
-        >
-          <Image
-            source={images.solo}
-            style={{ height: 48, width: 48 }}
-            contentFit="contain"
-          />
-          <Text
-            className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
-            numberOfLines={2}
+            <Image
+              source={images.friend}
+              style={{ height: 48, width: 48 }}
+              contentFit="contain"
+            />
+            <Text
+              className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
+              numberOfLines={2}
+            >
+              Live Match
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Race a friend in real time.
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#dcfce7" }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onChallengePress}
+            style={{ flex: 1, padding: 16 }}
           >
-            Challenge a Friend
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-            Solve a puzzle, then send it for a friend to beat.
-          </Text>
-        </Pressable>
+            <Image
+              source={images.solo}
+              style={{ height: 48, width: 48 }}
+              contentFit="contain"
+            />
+            <Text
+              className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
+              numberOfLines={2}
+            >
+              Challenge a Friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Solve a puzzle, then send it for a friend to beat.
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tournament bar */}
