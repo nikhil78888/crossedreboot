@@ -9,7 +9,7 @@ import { useStats } from "./use-stats";
 import { useEffect } from "react";
 import { addSeconds } from "date-fns";
 import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status";
-import { resolveAndLogClues } from "../lib/clue-resolver";
+import { resolveAndLogClues, extractWordSlots } from "../lib/clue-resolver";
 import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
 import { loadChallenge } from "../lib/challenge-utils";
@@ -42,25 +42,61 @@ export const SUDOKU_DURATION_SECONDS = 900;
 // Last bot used for an intro race, so "Play again" faces a different opponent.
 let lastIntroBotId: string | undefined;
 
-// Hand-picked 5x5 crosswords for the first-time warm-up: every one uses only
-// common, everyday words with plain clues (no names, abbreviations, or obscure
-// crosswordese), so a brand-new player can reliably solve it and win. Pinned by
-// id because the crosswords.category column is a fixed enum we can't extend to
-// "intro" without a migration.
-const INTRO_CROSSWORD_IDS = [
-  "62990901-a942-463a-b8b6-bce26e5e3339",
-  "eba36bca-781e-488b-a3d6-71830ba142f0",
-  "8732b1c2-1a25-4dfd-9f5d-869a5bb0052c",
-  "b2215260-e36a-49a5-a6b8-9f65a4f88779",
-  "75900e17-a3e7-48c6-9fc1-ff98b60cc41c",
-  "5a6a4bfe-6d53-425b-972b-29782912effc",
-  "6da5d76a-1127-48aa-8c22-3a38b5b3167b",
-  "26fed928-90b6-4926-b974-84fe45a1f48f",
-  "77a6ef5d-66d7-46ca-b7f2-170344f348c5",
-  "ab43982b-8daa-4a8d-8864-b558a41331aa",
-  "7abee915-40d1-4e14-80fd-0dfe54771f0f",
-  "8bdb7156-5447-474e-af3d-b77782c1b652",
-];
+// The first-time warm-up must be trivially winnable EVERY time, so it's pinned
+// to ONE hand-vetted 5x5 (all everyday words) and paired with the dead-simple,
+// hand-written clues below — bypassing the random clue bank, which could
+// otherwise serve a cleverer/harder clue for a word. Pinned by id because the
+// crosswords.category column is a fixed enum we can't extend to "intro" without
+// a migration.
+const INTRO_CROSSWORD_ID = "b2215260-e36a-49a5-a6b8-9f65a4f88779";
+
+// Answer word -> the trivially-easy clue to show for the intro grid. Every word
+// in the pinned grid is covered; anything not listed falls back to its baked
+// clue (shouldn't happen for the pinned puzzle).
+const INTRO_CLUES: Record<string, string> = {
+  DRY: "The opposite of wet",
+  WET: "Soaked with water",
+  YES: "The opposite of no",
+  ACT: "Perform on a stage",
+  GROW: "Get bigger, like a plant",
+  TONE: "___ of voice",
+  CROSS: "Walk from one side to the other",
+  AGREE: "Say yes; go along with it",
+  RESET: "Start over from the beginning",
+  DRONE: "Flying gadget with propellers",
+};
+
+// Build the intro grid's clues from INTRO_CLUES, matched to each answer slot by
+// the grid's own numbering (so it can never drift out of sync with the puzzle).
+const introCluesFor = (cw: {
+  puzzle: unknown;
+  solution: unknown;
+  clues: unknown;
+}) => {
+  const slots = extractWordSlots(
+    cw.puzzle as unknown as string[][],
+    cw.solution as unknown as (string | null)[][]
+  );
+  const baked = cw.clues as {
+    Across?: { number: string; clue: string }[];
+    Down?: { number: string; clue: string }[];
+  };
+  const out: {
+    Across: { number: string; clue: string }[];
+    Down: { number: string; clue: string }[];
+  } = { Across: [], Down: [] };
+  for (const s of slots) {
+    const bakedClue =
+      baked?.[s.direction]?.find(
+        (c) => String(c.number) === String(s.number)
+      )?.clue ?? "";
+    out[s.direction].push({
+      number: s.number,
+      clue: INTRO_CLUES[s.word] ?? bakedClue,
+    });
+  }
+  return out;
+};
 
 // A solution grid is letters (crossword) or 1-9 ints (sudoku); null = blank.
 type SolutionGrid = (string | number | null)[][];
@@ -794,17 +830,19 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               clues: unknown;
             }
           | undefined;
-        const introId =
-          INTRO_CROSSWORD_IDS[
-            Math.floor(Math.random() * INTRO_CROSSWORD_IDS.length)
-          ];
         const { data: pinned } = await supabase
           .from("crosswords")
           .select("id, size, puzzle, solution, clues")
-          .eq("id", introId)
+          .eq("id", INTRO_CROSSWORD_ID)
           .limit(1);
         cw = pinned?.[0] as typeof cw;
-        if (!cw?.id) {
+        // The pinned intro gets its guaranteed-easy, hand-written clues (no bank
+        // randomness). Only if that fetch fails do we fall back to any 5x5 with
+        // resolver clues.
+        let resolvedClues: ReturnType<typeof introCluesFor> | null = null;
+        if (cw?.id) {
+          resolvedClues = introCluesFor(cw);
+        } else {
           const { data: fives } = await supabase
             .from("crosswords")
             .select("id, size, puzzle, solution, clues")
@@ -819,17 +857,17 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
             });
             cw = data?.[0] as typeof cw;
           }
+          if (!cw?.id) return;
+          resolvedClues = await resolveAndLogClues(
+            {
+              puzzle: cw.puzzle as unknown as Crossword["puzzle"],
+              solution: cw.solution as unknown as Crossword["solution"],
+              clues: cw.clues as unknown as Crossword["clues"],
+            },
+            myProfile.id,
+            false
+          );
         }
-        if (!cw?.id) return;
-        const resolvedClues = await resolveAndLogClues(
-          {
-            puzzle: cw.puzzle as unknown as Crossword["puzzle"],
-            solution: cw.solution as unknown as Crossword["solution"],
-            clues: cw.clues as unknown as Crossword["clues"],
-          },
-          myProfile.id,
-          false
-        );
         const { data: bots } = await supabase
           .from("random_bot_profiles")
           .select();
