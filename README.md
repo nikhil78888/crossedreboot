@@ -35,6 +35,12 @@ Refer to `.env.example` in each of the directories to setup environment variable
 
 Run `yarn dev` in project root
 
+#### Running a local database
+
+`supabase start` needs Docker. Without a Docker daemon, `./scripts/local-db/up.sh`
+brings up a plain Postgres carrying the same schema (all of `supabase/migrations/`)
+plus synthetic seed data. See `scripts/local-db/README.md`.
+
 #### Running the app
 
 1. `cd apps/crossed`
