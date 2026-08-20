@@ -47,11 +47,12 @@ export const NewGameButtons = () => {
         : pick("RANKED"),
     [variant, router, pick]
   );
-  const playTournament = useCallback(() => pick("TOURNAMENT"), [pick]);
-  const playPrivateTournament = useCallback(
-    () => pick("PRIVATE_TOURNAMENT"),
-    [pick]
-  );
+  // Tournaments disabled (2026-08) — see the commented bracket UI below.
+  // const playTournament = useCallback(() => pick("TOURNAMENT"), [pick]);
+  // const playPrivateTournament = useCallback(
+  //   () => pick("PRIVATE_TOURNAMENT"),
+  //   [pick]
+  // );
 
   // A challenge is a SOLO solve that you then send. Launch that flow.
   const startChallenge = useCallback(() => {
@@ -187,7 +188,9 @@ export const NewGameButtons = () => {
         </View>
       </View>
 
-      {/* Tournament bar */}
+      {/* Tournaments (public + private) disabled (2026-08): not enough concurrent
+          players to fill a bracket. Uncomment both blocks to restore. */}
+      {/*
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
@@ -216,7 +219,6 @@ export const NewGameButtons = () => {
         <Text className="text-crossed-gray-900/50 text-xl">›</Text>
       </TouchableOpacity>
 
-      {/* Private friends-only tournament */}
       <TouchableOpacity
         onPress={playPrivateTournament}
         className="mt-2 flex-row items-center justify-center py-2"
@@ -226,6 +228,7 @@ export const NewGameButtons = () => {
           Create a private tournament with friends
         </Text>
       </TouchableOpacity>
+      */}
 
       {/* First-time "how a challenge works" explainer */}
       <ChallengeIntroSheet

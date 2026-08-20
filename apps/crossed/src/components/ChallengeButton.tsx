@@ -23,7 +23,8 @@ type ChallengeInsert = {
 };
 
 // Variants whose solve can be re-raced as a challenge (sudoku ghost replay TODO).
-const CHALLENGEABLE = ["CROSSWORD", "WORD_SEARCH", "TRIVIA"];
+// TRIVIA disabled (2026-08) — no new trivia challenges while the mode is hidden.
+const CHALLENGEABLE = ["CROSSWORD", "WORD_SEARCH"];
 
 // Minimal structural view so we can hit the (not-yet-in-generated-types)
 // `challenges` table without `any` or a types-package rebuild.

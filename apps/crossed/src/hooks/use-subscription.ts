@@ -101,6 +101,12 @@ export const useGameGate = () => {
   const { isPro, loading } = useSubscription();
 
   const checkCanPlay = useCallback(async () => {
+    // PAYWALL DISABLED (2026-08): retention experiment — never gate anyone while
+    // we figure out whether the game retains at all. To re-enable the
+    // 3-free-games/day limit, delete this block and uncomment the logic below.
+    return { allowed: true, remaining: Infinity, isPro: true };
+
+    /* ----- original gate logic (temporarily disabled) -----
     if (isPro) return { allowed: true, remaining: Infinity, isPro: true };
     // Entitlement not resolved yet (RevenueCat call in flight): NEVER block.
     // isPro starts false, so gating here would lock out a paying subscriber
@@ -129,6 +135,7 @@ export const useGameGate = () => {
       remaining: Math.max(0, FREE_COMPETITIVE_PER_DAY - played),
       isPro: false,
     };
+    ----- end original gate logic ----- */
   }, [isPro, loading, myProfile]);
 
   return { checkCanPlay };
