@@ -6,6 +6,7 @@ import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
+import { events, trackEvent } from "../lib/track-event";
 
 // Show re-engagement pushes even while the app is foregrounded.
 Notifications.setNotificationHandler({
@@ -71,6 +72,7 @@ export const usePushRegistration = (profileId?: string) => {
     registered.current = true;
     (async () => {
       const perm = await Notifications.getPermissionsAsync();
+      const wasGranted = perm.status === "granted";
       let status = perm.status;
       // Ask on the first app open (as soon as they reach the dashboard) rather
       // than waiting for the banner tap. If already asked/denied the OS won't
@@ -78,7 +80,13 @@ export const usePushRegistration = (profileId?: string) => {
       if (status !== "granted" && perm.canAskAgain) {
         status = (await Notifications.requestPermissionsAsync()).status;
       }
-      if (status === "granted") await registerPushToken(profileId);
+      if (status === "granted") {
+        // Fire the opt-in event only on the transition to granted (not on every
+        // launch of an already-opted-in user). This is the high-value event
+        // forwarded to AppsFlyer for lookalike ad targeting.
+        if (!wasGranted) trackEvent(events.PUSH_OPT_IN);
+        await registerPushToken(profileId);
+      }
     })();
   }, [profileId]);
 };

@@ -6,6 +6,7 @@ import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { branch } from "../lib/branch";
 import { fmtSolve } from "../app/(home-tabs)/stats";
+import { events, trackEvent } from "../lib/track-event";
 
 // "Challenge a friend to beat my time." Creates a challenge from a just-finished
 // crossword and opens the native share sheet. The recipient-side ghost race is
@@ -59,8 +60,14 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
   const mine = game.gameState?.[myProfile.id] as
     | { solvedInSeconds?: number; timeline?: unknown }
     | undefined;
-  const solveSeconds = mine?.solvedInSeconds;
-  if (solveSeconds == null) return null; // only offer once they've actually solved it
+  const solvedSeconds = mine?.solvedInSeconds ?? null;
+  const solved = solvedSeconds != null;
+  // Un-gated: anyone can challenge a friend, solved or not. In a timed race most
+  // new users DON'T finish, and they're exactly who we want spreading the game —
+  // so a non-solver sends "I couldn't crack it, can you?" instead of nothing.
+  // For the beatable number we use their solve time if they solved, else the full
+  // duration, so the recipient "wins" by simply solving what the sender couldn't.
+  const challengeSeconds = solvedSeconds ?? game.gameDurationInSeconds ?? 180;
   // Inline puzzle to replay (word search / trivia); crossword uses crosswordsId.
   const gs = game.gameState as
     | { __wordsearch?: unknown; __trivia?: unknown }
@@ -79,7 +86,7 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
           crosswordsId: game.crossword?.id ?? null,
           difficulty: game.difficulty,
           resolvedClues: game.resolvedClues ?? null,
-          solveSeconds,
+          solveSeconds: challengeSeconds,
           timeline: mine?.timeline ?? null,
           // Only send puzzle for inline variants (the column may not exist until
           // the migration runs; crossword challenges must keep working without it).
@@ -107,10 +114,16 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
           // keep the plain fallback link
         }
       }
-      await Share.share({
-        message: `I finished this Crossed ${gameNoun} in ${fmtSolve(
-          solveSeconds
-        )} — think you can beat me? 👉 ${link}`,
+      const message = solved
+        ? `I finished this Crossed ${gameNoun} in ${fmtSolve(
+            challengeSeconds
+          )} — think you can beat me? 👉 ${link}`
+        : `I couldn't crack this Crossed ${gameNoun}. Bet you can't either 👀 👉 ${link}`;
+      await Share.share({ message });
+      // The async growth loop firing — a challenge actually sent to a friend.
+      trackEvent(events.CHALLENGE_SENT, {
+        variant: game.gameVariant,
+        solved,
       });
     } catch {
       // best-effort — never block the results screen
@@ -124,7 +137,11 @@ export const ChallengeButton = ({ gameId }: { gameId: string }) => {
       intent="primary"
       size="xl"
       rounded="full"
-      label={`⚡ Challenge a friend to beat ${fmtSolve(solveSeconds)}`}
+      label={
+        solved
+          ? `⚡ Challenge a friend to beat ${fmtSolve(challengeSeconds)}`
+          : "⚡ Dare a friend to solve it"
+      }
       isLoading={busy}
       onPress={onChallenge}
     />

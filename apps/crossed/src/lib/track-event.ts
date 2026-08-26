@@ -16,6 +16,12 @@ export const events = {
   INTRO_RACE_STARTED: "INTRO_RACE_STARTED",
   INTRO_RACE_COMPLETED: "INTRO_RACE_COMPLETED",
   INTRO_USERNAME_SAVED: "INTRO_USERNAME_SAVED",
+  // Granting notification permission is our strongest early predictor of a user
+  // who stays (returns at ~3x the rate of non-opters), so it's forwarded to
+  // AppsFlyer as the high-value optimization event for lookalike targeting.
+  PUSH_OPT_IN: "PUSH_OPT_IN",
+  // A challenge actually sent to a friend — the async growth loop firing.
+  CHALLENGE_SENT: "CHALLENGE_SENT",
   // gameplay funnel
   RANKED_MATCH_OPPONENT_FOUND: "RANKED_MATCH_OPPONENT_FOUND",
   TOURNAMENT_ENQUEUED: "TOURNAMENT_ENQUEUED",
@@ -57,6 +63,10 @@ const APPSFLYER_EVENTS: Record<string, string> = {
   GAME_COMPLETED: "af_level_achieved",
   SUBSCRIBE_TAPPED: "af_initiated_checkout",
   PURCHASE_SUCCEEDED: "af_subscribe",
+  // Custom events (no af_ prefix — that's reserved for AppsFlyer's own). Point
+  // your campaign optimization + lookalike seed at push_opt_in.
+  PUSH_OPT_IN: "push_opt_in",
+  CHALLENGE_SENT: "challenge_sent",
 };
 
 export const trackEvent = (
