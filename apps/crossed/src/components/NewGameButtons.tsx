@@ -142,7 +142,7 @@ export const NewGameButtons = () => {
         <View className="flex-row items-center p-5">
           <View className="flex-1 pr-2">
             <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-              CROSSED is MORE FUN WITH a FRIEND
+              Crossed is More Fun With a Friend
             </Text>
             <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
               Text a link to play a friend live
