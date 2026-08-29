@@ -20,6 +20,13 @@ export const events = {
   // who stays (returns at ~3x the rate of non-opters), so it's forwarded to
   // AppsFlyer as the high-value optimization event for lookalike targeting.
   PUSH_OPT_IN: "PUSH_OPT_IN",
+  // Played a game on a later calendar day than they first played — actual
+  // retention, and (at ~24-48h) still inside iOS SKAN's optimization window.
+  // The truest ad-optimization / lookalike signal we can send.
+  CAME_BACK: "CAME_BACK",
+  // Reached 3 completed games. A weak engagement floor (our data shows day-1
+  // depth barely predicts return) — kept only as a secondary value tier.
+  PLAYED_3_GAMES: "PLAYED_3_GAMES",
   // gameplay funnel
   RANKED_MATCH_OPPONENT_FOUND: "RANKED_MATCH_OPPONENT_FOUND",
   TOURNAMENT_ENQUEUED: "TOURNAMENT_ENQUEUED",
@@ -61,9 +68,13 @@ const APPSFLYER_EVENTS: Record<string, string> = {
   GAME_COMPLETED: "af_level_achieved",
   SUBSCRIBE_TAPPED: "af_initiated_checkout",
   PURCHASE_SUCCEEDED: "af_subscribe",
-  // Custom event (no af_ prefix — that's reserved for AppsFlyer's own). Point
-  // your campaign optimization + lookalike seed at push_opt_in.
+  // Custom events (no af_ prefix — that's reserved for AppsFlyer's own).
+  // For iOS SKAN campaign optimization, point the goal at came_back (real
+  // retention, in-window); push_opt_in is the earlier proxy for volume while
+  // came_back accumulates; played_3_games is a weak secondary tier.
   PUSH_OPT_IN: "push_opt_in",
+  CAME_BACK: "came_back",
+  PLAYED_3_GAMES: "played_3_games",
 };
 
 export const trackEvent = (
