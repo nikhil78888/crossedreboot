@@ -151,11 +151,11 @@ export const NewGameButtons = () => {
           contentFit="contain"
         />
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text className="font-[jost700] text-[16px] text-crossed-gray-900">
+          <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
             Crossed is more fun with a friend
           </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-            Text a link to play a friend
+          <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
+            Text a link to play a friend live
           </Text>
         </View>
         <Text className="text-crossed-gray-900/40 text-xl">›</Text>
