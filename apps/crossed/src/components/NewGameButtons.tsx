@@ -127,66 +127,68 @@ export const NewGameButtons = () => {
         </View>
       </TouchableOpacity>
 
-      {/* Live Match / Challenge cards. The colored card is a plain flex:1 View
-          (reliably fills equal-height columns and shows its background); the
-          TouchableOpacity inside it carries the padding + tap. Putting the flex
-          + background on a Pressable directly dropped the styling entirely. */}
-      <View
+      {/* Play a Friend — full-width. Friend play is the core concept, so it
+          leads with the "more fun with a friend" pitch. (Behavior still routes
+          to the friendly flow; the "text a link" invite is a follow-up.) */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => {
+          trackEvent(events.START_FRIENDLY_GAME_CLICK);
+          playFriendly();
+        }}
         style={{
           flexDirection: "row",
-          alignItems: "stretch",
-          gap: 12,
+          alignItems: "center",
           marginTop: 12,
+          borderRadius: 16,
+          padding: 16,
+          backgroundColor: "#ede9fe",
         }}
       >
-        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => {
-              trackEvent(events.START_FRIENDLY_GAME_CLICK);
-              playFriendly();
-            }}
-            style={{ flex: 1, padding: 16 }}
-          >
-            <Image
-              source={images.friend}
-              style={{ height: 48, width: 48 }}
-              contentFit="contain"
-            />
-            <Text
-              className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
-              numberOfLines={2}
-            >
-              Live Match
-            </Text>
-            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Race a friend in real time.
-            </Text>
-          </TouchableOpacity>
+        <Image
+          source={images.friend}
+          style={{ height: 48, width: 48 }}
+          contentFit="contain"
+        />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text className="font-[jost700] text-[16px] text-crossed-gray-900">
+            Crossed is more fun with a friend
+          </Text>
+          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+            Text a link to play a friend
+          </Text>
         </View>
-        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#dcfce7" }}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={onChallengePress}
-            style={{ flex: 1, padding: 16 }}
-          >
-            <Image
-              source={images.solo}
-              style={{ height: 48, width: 48 }}
-              contentFit="contain"
-            />
-            <Text
-              className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
-              numberOfLines={2}
-            >
-              Solo Game
-            </Text>
-            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Play on your own — then send it to a friend to beat.
-            </Text>
-          </TouchableOpacity>
+        <Text className="text-crossed-gray-900/40 text-xl">›</Text>
+      </TouchableOpacity>
+
+      {/* Solo Game — full-width, last. */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={onChallengePress}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginTop: 12,
+          borderRadius: 16,
+          padding: 16,
+          backgroundColor: "#dcfce7",
+        }}
+      >
+        <Image
+          source={images.solo}
+          style={{ height: 48, width: 48 }}
+          contentFit="contain"
+        />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text className="font-[jost700] text-[16px] text-crossed-gray-900">
+            Solo Game
+          </Text>
+          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+            Play on your own — then send it to a friend to beat.
+          </Text>
         </View>
-      </View>
+        <Text className="text-crossed-gray-900/40 text-xl">›</Text>
+      </TouchableOpacity>
 
       {/* Tournaments (public + private) disabled (2026-08): not enough concurrent
           players to fill a bracket. Uncomment both blocks to restore. */}
