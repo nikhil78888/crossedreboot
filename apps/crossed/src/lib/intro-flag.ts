@@ -34,6 +34,20 @@ export const consumePendingChallenge = () => {
   return v;
 };
 
+// A live-match game id delivered by a Branch invite link before the user has an
+// account (new install). /home consumes it after the silent account is created
+// and routes straight to /join-game so a brand-new friend lands in the match.
+let pendingJoinGameId: string | null = null;
+export const setPendingJoinGame = (id: string | null) => {
+  pendingJoinGameId = id;
+};
+export const peekPendingJoinGame = () => pendingJoinGameId;
+export const consumePendingJoinGame = () => {
+  const v = pendingJoinGameId;
+  pendingJoinGameId = null;
+  return v;
+};
+
 // A username we auto-assign so a new player can start before naming themselves.
 // They rename on the post-race screen. This prefix is also the signal that a
 // player is still unnamed (drives the "pick a username" prompt).

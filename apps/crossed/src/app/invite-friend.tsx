@@ -7,6 +7,7 @@ import { Image } from "expo-image";
 import { avatars } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { WaitingSpinner } from "../components/WaitingSpinner";
+import { branch } from "../lib/branch";
 
 export default function InviteFriend() {
   const { gameId } = useLocalSearchParams();
@@ -41,9 +42,31 @@ export default function InviteFriend() {
   }, [gameId, gamePlayState, router, navigation]);
 
   const inviteFriend = async () => {
+    // Prefer a Branch link: it opens the app for existing users AND sends a
+    // friend WITHOUT the app to the App Store, then drops them into this game
+    // after they sign up (deferred deep link → setPendingJoinGame in _layout).
+    // Fall back to the raw scheme link (existing-users-only) if Branch is absent.
+    let link = `crossed://join-game?gameId=${gameId}`;
+    if (branch) {
+      try {
+        const buo = await branch.createBranchUniversalObject(`game/${gameId}`, {
+          title: "Play me on Crossed!",
+          contentMetadata: {
+            customMetadata: { joinGameId: String(gameId) },
+          },
+        });
+        const res = await buo.generateShortUrl(
+          { feature: "invite", channel: "share" },
+          { joinGameId: String(gameId) }
+        );
+        if (res?.url) link = res.url;
+      } catch {
+        // keep the plain scheme fallback
+      }
+    }
     const shared = await Share.share({
       title: "Let's play",
-      message: `crossed://join-game?gameId=${gameId}`,
+      message: `Race me on Crossed 👉 ${link}`,
     });
     if (shared.action === Share.dismissedAction) {
       Alert.alert("Please invite a friend to play");

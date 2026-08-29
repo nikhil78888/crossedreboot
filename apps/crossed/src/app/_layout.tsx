@@ -39,7 +39,7 @@ import { Bitter_700Bold } from "@expo-google-fonts/bitter";
 import * as Updates from "expo-updates";
 import { useAuth } from "../hooks/use-auth";
 import { branch } from "../lib/branch";
-import { setPendingChallenge } from "../lib/intro-flag";
+import { setPendingChallenge, setPendingJoinGame } from "../lib/intro-flag";
 import { useHeartbeat } from "../hooks/use-heartbeat";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { configureRevenueCat } from "../lib/revenuecat";
@@ -106,6 +106,15 @@ export default function IndexLayout() {
     if (!branch) return;
     const unsubscribe = branch.subscribe(({ params }) => {
       if (!params || !params["+clicked_branch_link"]) return;
+      // Live-match invite: existing users join now; a new install stashes it so
+      // /home drops them into the game right after their account is created.
+      const joinGameId =
+        typeof params.joinGameId === "string" ? params.joinGameId : undefined;
+      if (joinGameId) {
+        if (user) router.push(`/join-game?gameId=${joinGameId}`);
+        else setPendingJoinGame(joinGameId);
+        return;
+      }
       const challengeId =
         typeof params.challengeId === "string" ? params.challengeId : undefined;
       if (!challengeId) return;

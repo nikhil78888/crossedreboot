@@ -12,6 +12,8 @@ import {
   peekPendingIntro,
   consumePendingChallenge,
   peekPendingChallenge,
+  consumePendingJoinGame,
+  peekPendingJoinGame,
 } from "../../lib/intro-flag";
 import { Button } from "../../components/Button";
 import { ChallengeResultsBanner } from "../../components/ChallengeResultsBanner";
@@ -77,6 +79,9 @@ export default function Home() {
   const [launchingChallenge, setLaunchingChallenge] = useState(
     !!peekPendingChallenge()
   );
+  // Same idea for a live-match invite arriving via a Branch link on a new install.
+  const joinLaunched = useRef(false);
+  const [launchingJoin, setLaunchingJoin] = useState(!!peekPendingJoinGame());
   // Whether this player still owes us their intro game. "pending" means we don't
   // know yet — we render a spinner rather than the dashboard, so a brand-new
   // player never sees the dashboard flash before the intro appears.
@@ -92,8 +97,8 @@ export default function Home() {
   // played anything, the count is > 0 and this never fires again.
   useEffect(() => {
     if (introState !== "pending") return;
-    if (peekPendingChallenge()) {
-      setIntroState("existing"); // a challenge deep link supersedes the intro
+    if (peekPendingChallenge() || peekPendingJoinGame()) {
+      setIntroState("existing"); // a challenge/invite deep link supersedes the intro
       return;
     }
     if (!myProfile?.id) return; // still loading the profile; stay on the spinner
@@ -134,11 +139,26 @@ export default function Home() {
     }
   }, [myProfile?.id, router]);
 
+  // A live-match invite (Branch link) → drop a just-signed-up friend straight
+  // into the inviter's game instead of the generic intro.
+  useEffect(() => {
+    if (!myProfile?.id || joinLaunched.current) return;
+    const joinGameId = consumePendingJoinGame();
+    if (joinGameId) {
+      consumePendingIntro();
+      joinLaunched.current = true;
+      setLaunchingJoin(true);
+      setIntroState("existing");
+      router.replace(`/join-game?gameId=${joinGameId}`);
+    }
+  }, [myProfile?.id, router]);
+
   // Hold the spinner until we know whether this is a brand-new player (and while
   // the redirect to /intro-prompt lands). Rendering the dashboard first is what
   // produced the flash before the intro appeared.
   if (
     launchingChallenge ||
+    launchingJoin ||
     loadingCurrentGameId ||
     (currentGameId && !game) ||
     introState !== "existing"
