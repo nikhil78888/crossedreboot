@@ -13,9 +13,9 @@ import { Button } from "./Button";
 // Button) don't lay out or receive touches without one — that's what pinned the
 // sheet to the top of the screen.
 const STEPS = [
-  { emoji: "✏️", text: "Solve the puzzle to set your time" },
-  { emoji: "📤", text: "Send your result to a friend" },
-  { emoji: "🏆", text: "See who wins when they play" },
+  { emoji: "✏️", text: "Solve it solo" },
+  { emoji: "⏱️", text: "Set the time to beat" },
+  { emoji: "📤", text: "Send it to a friend (optional)" },
 ];
 
 export const ChallengeIntroSheet = ({
@@ -59,7 +59,13 @@ export const ChallengeIntroSheet = ({
               className="text-center font-[jost700] text-crossed-gray-900"
               style={{ fontSize: 22 }}
             >
-              Set a time for your friend to beat
+              Solo Game
+            </Text>
+            <Text
+              className="mt-2 text-center font-[jost500] text-crossed-gray-600"
+              style={{ fontSize: 15 }}
+            >
+              Play a crossword at your own pace and set your time.
             </Text>
 
             <View className="mt-6">
@@ -83,7 +89,7 @@ export const ChallengeIntroSheet = ({
                 intent="primary"
                 size="lg"
                 rounded="full"
-                label="Start Challenge"
+                label="Play"
                 onPress={onStart}
               />
             </View>

@@ -179,10 +179,10 @@ export const NewGameButtons = () => {
               className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900"
               numberOfLines={2}
             >
-              Challenge a Friend
+              Solo Game
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Solve a puzzle, then send it for a friend to beat.
+              Play on your own — then send it to a friend to beat.
             </Text>
           </TouchableOpacity>
         </View>
