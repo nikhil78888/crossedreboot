@@ -127,38 +127,42 @@ export const NewGameButtons = () => {
         </View>
       </TouchableOpacity>
 
-      {/* Play a Friend — full-width. Friend play is the core concept, so it
-          leads with the "more fun with a friend" pitch. (Behavior still routes
-          to the friendly flow; the "text a link" invite is a follow-up.) */}
+      {/* Play a Friend — mirrors the Play Ranked hero (same p-5, big
+          illustration, CTA pill) so it reads at the same size. Friend play is
+          the core concept, so it gets equal visual weight. */}
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
           trackEvent(events.START_FRIENDLY_GAME_CLICK);
           playFriendly();
         }}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginTop: 12,
-          borderRadius: 16,
-          padding: 16,
-          backgroundColor: "#ede9fe",
-        }}
+        className="rounded-2xl"
+        style={{ marginTop: 12, backgroundColor: "#ede9fe" }}
       >
-        <Image
-          source={images.friend}
-          style={{ height: 48, width: 48 }}
-          contentFit="contain"
-        />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-            Crossed is more fun with a friend
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-            Text a link to play a friend live
-          </Text>
+        <View className="flex-row items-center p-5">
+          <View className="flex-1 pr-2">
+            <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
+              Crossed is more fun with a friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
+              Text a link to play a friend live
+            </Text>
+            <View
+              className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
+              style={{ backgroundColor: "#7c3aed" }}
+            >
+              <Text className="font-[jost700] text-[14px] text-white">
+                Send a Link
+              </Text>
+              <Text className="ml-1 text-white">→</Text>
+            </View>
+          </View>
+          <Image
+            source={images.play_friendly}
+            style={{ height: 110, width: 116 }}
+            contentFit="contain"
+          />
         </View>
-        <Text className="text-crossed-gray-900/40 text-xl">›</Text>
       </TouchableOpacity>
 
       {/* Solo Game — full-width, last. */}
