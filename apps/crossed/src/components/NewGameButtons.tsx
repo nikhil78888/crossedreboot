@@ -9,6 +9,7 @@ import { events, trackEvent } from "../lib/track-event";
 import { VariantTabs } from "./VariantTabs";
 import { useVariant } from "../hooks/use-variant";
 import { ChallengeIntroSheet } from "./ChallengeIntroSheet";
+import { DailySection } from "./DailySection";
 import colors from "../lib/colors";
 
 // Set once the player has seen the "how a challenge works" explainer, so it only
@@ -86,6 +87,9 @@ export const NewGameButtons = () => {
 
   return (
     <View>
+      {/* Daily Duel + streak + goal — the daily-return hook, top of Home. */}
+      <DailySection />
+
       {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard. */}
       <View className="mb-4">
         <VariantTabs />

@@ -16,6 +16,22 @@ const REVIEW_COUNT_KEY = "eng:reviewCount";
 // One-shot flags so each AppsFlyer ad-optimization event fires exactly once.
 const CAME_BACK_KEY = "eng:cameBackFired";
 const PLAYED3_KEY = "eng:played3Fired";
+// Per-day completed-game count, for the Daily Goal ("play N games today").
+const DAY_GAMES_KEY = (day: string) => `eng:dayGames:${day}`;
+const dayStr = (ms: number = Date.now()) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+};
+
+export const gamesPlayedToday = async (): Promise<number> => {
+  try {
+    return Number(await AsyncStorage.getItem(DAY_GAMES_KEY(dayStr()))) || 0;
+  } catch {
+    return 0;
+  }
+};
 
 // Local calendar day (not UTC) so "came back a later day" matches the player's
 // own sense of a new day.
@@ -38,6 +54,13 @@ export const recordGameCompleted = async () => {
     const games = await num(GAMES_KEY);
     const newCount = games + 1;
     await AsyncStorage.setItem(GAMES_KEY, String(newCount));
+
+    // Per-day counter for the Daily Goal.
+    const dayKey = DAY_GAMES_KEY(dayStr());
+    await AsyncStorage.setItem(
+      dayKey,
+      String((Number(await AsyncStorage.getItem(dayKey)) || 0) + 1)
+    );
 
     const firstSeenRaw = await AsyncStorage.getItem(FIRST_SEEN_KEY);
     if (!firstSeenRaw) {
