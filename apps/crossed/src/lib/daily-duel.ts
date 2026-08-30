@@ -60,7 +60,11 @@ export const duelMeta = (day: string = localDay()): DuelMeta => {
   return {
     day,
     seed,
-    variant: seed % 2 === 0 ? "CROSSWORD" : "WORD_SEARCH",
+    // Word-search only for now: it's always completable (you can find every
+    // word), so the race reliably registers a solve time. Crossword duels need a
+    // curated *easy* pool first — a random published 5×5 can have answers you
+    // can't get exactly, so the solve never registers (shows a bogus loss).
+    variant: "WORD_SEARCH",
     opponent: CAST[seed % CAST.length],
     // 30–75s: never so high it's a walkover, never so low it's impossible on a
     // quick mini. Random-feeling but deterministic per day.
@@ -102,7 +106,8 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-const cacheKey = (day: string) => `daily:duelChallenge:${day}`;
+// v2: word-search-only reset — ignore any v1 (crossword) duel cached for today.
+const cacheKey = (day: string) => `daily:duelChallenge:v2:${day}`;
 
 // Returns today's duel: its meta + a challenge id to race. Creates the system
 // challenge once per day and caches the id so re-opening reuses the same duel.
