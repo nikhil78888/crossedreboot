@@ -4,6 +4,7 @@ import { watchTournaments } from "./watch-tournaments";
 import { watchTournamentQueue } from "./watch-tournament-queue";
 import { watchStaleGames } from "./watch-stale-games";
 import { watchReengagement } from "./reengagement";
+import { watchOnboardingPush } from "./onboarding-push";
 import { watchChallengeResults } from "./challenge-notify";
 import { supabase } from "./lib/supabase";
 
@@ -12,6 +13,7 @@ watchTournaments();
 watchTournamentQueue();
 watchStaleGames();
 watchReengagement();
+watchOnboardingPush();
 watchChallengeResults();
 
 // Retention: prune old seenClues rows daily so the table stays bounded and the

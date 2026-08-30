@@ -31,26 +31,26 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-const fmt = (s: number) =>
+export const fmt = (s: number) =>
   `${Math.floor(s / 60)}:${String(Math.max(0, Math.round(s)) % 60).padStart(
     2,
     "0"
   )}`;
 
 // Noon–8pm US Eastern-ish. 17:00–01:00 UTC.
-const inSendWindow = () => {
+export const inSendWindow = () => {
   const h = new Date().getUTCHours();
   return h >= 17 || h < 1;
 };
 
-const nounFor = (variant: string) =>
+export const nounFor = (variant: string) =>
   variant === "WORD_SEARCH"
     ? "word search"
     : variant === "TRIVIA"
     ? "trivia round"
     : "crossword";
 
-type Solve = {
+export type Solve = {
   variant: string;
   difficulty: string;
   seconds: number;
@@ -62,7 +62,7 @@ type Solve = {
 
 // Find a recent completed game with a clean solve (time + progress timeline) we
 // can rebuild as a challenge. Prefers the fastest solve in each game.
-const pickRecentSolve = async (): Promise<Solve | null> => {
+export const pickRecentSolve = async (): Promise<Solve | null> => {
   const { data } = await supabase
     .from("games")
     .select("gameVariant, crosswordsId, resolvedClues, difficulty, gameState")
@@ -123,7 +123,7 @@ const pickRecentSolve = async (): Promise<Solve | null> => {
 
 // Persist a system challenge (no challengerId → nobody gets a result). Returns
 // the challenge id to deep-link the push to, or null on failure.
-const createSystemChallenge = async (s: Solve): Promise<string | null> => {
+export const createSystemChallenge = async (s: Solve): Promise<string | null> => {
   try {
     const { data, error } = await challengesTable
       .from("challenges")
@@ -179,7 +179,7 @@ const httpFetch = (
 ).fetch;
 
 // POST a chunk of messages to Expo; return tokens Expo reports as dead.
-const sendChunk = async (messages: { to: string }[]): Promise<string[]> => {
+export const sendChunk = async (messages: { to: string }[]): Promise<string[]> => {
   const res = await httpFetch(EXPO_PUSH_URL, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
@@ -209,13 +209,19 @@ const sweep = async () => {
   const now = Date.now();
   const inactiveBefore = new Date(now - INACTIVE_MS).toISOString();
   const cooldownBefore = new Date(now - COOLDOWN_MS).toISOString();
+  // Users in their first 5 days are handled by the onboarding drip (daily
+  // cadence); this general win-back only touches established players so nobody
+  // gets double-pushed.
+  const newUserBefore = new Date(now - 5 * 24 * HOUR).toISOString();
 
-  // Eligible: has a token, inactive >= 24h, not pushed in the last 48h.
+  // Eligible: has a token, inactive >= 24h, not pushed in the last 48h, and past
+  // their onboarding-drip window (older than 5 days).
   const { data, error } = await supabase
     .from("profiles")
     .select("id, expoPushToken, lastSeenAt, lastPushedAt")
     .not("expoPushToken", "is", null)
     .eq("type", "USER")
+    .lt("createdAt", newUserBefore)
     .lt("lastSeenAt", inactiveBefore)
     .or(`lastPushedAt.is.null,lastPushedAt.lt.${cooldownBefore}`)
     .limit(BATCH)
