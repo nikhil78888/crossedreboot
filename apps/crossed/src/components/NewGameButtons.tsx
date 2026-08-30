@@ -131,72 +131,66 @@ export const NewGameButtons = () => {
         </View>
       </TouchableOpacity>
 
-      {/* Play a Friend — mirrors the Play Ranked hero (same p-5, big
-          illustration, CTA pill) so it reads at the same size. Friend play is
-          the core concept, so it gets equal visual weight. */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => {
-          trackEvent(events.START_FRIENDLY_GAME_CLICK);
-          playFriendly();
-        }}
-        className="rounded-2xl"
-        style={{ marginTop: 12, backgroundColor: "#ede9fe" }}
-      >
-        <View className="flex-row items-center p-5">
-          <View className="flex-1 pr-2">
-            <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-              Crossed is More Fun With a Friend
-            </Text>
-            <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-              Text a link to play a friend live
-            </Text>
-            <View
-              className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
-              style={{ backgroundColor: "#7c3aed" }}
-            >
-              <Text className="font-[jost700] text-[14px] text-white">
-                Send a Link
-              </Text>
-              <Text className="ml-1 text-white">→</Text>
-            </View>
-          </View>
-          <Image
-            source={images.play_friendly}
-            style={{ height: 110, width: 116 }}
-            contentFit="contain"
-          />
-        </View>
-      </TouchableOpacity>
-
-      {/* Solo Game — full-width, last. */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={onChallengePress}
+      {/* Play a Friend | Solo Game — two half-width cards (Ranked stays the
+          full-width hero above). The colored card is a plain flex:1 View that
+          reliably fills equal-height columns; the TouchableOpacity inside carries
+          the padding + tap (className is dropped on RNGH touchables). */}
+      <View
         style={{
           flexDirection: "row",
-          alignItems: "center",
+          alignItems: "stretch",
+          gap: 12,
           marginTop: 12,
-          borderRadius: 16,
-          padding: 16,
-          backgroundColor: "#dcfce7",
         }}
       >
-        <Image
-          source={images.solo}
-          style={{ height: 48, width: 48 }}
-          contentFit="contain"
-        />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text className="font-[jost700] text-[16px] text-crossed-gray-900">
-            Solo Game
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-            Play on your own — then send it to a friend to beat.
-          </Text>
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              playFriendly();
+            }}
+            style={{ flex: 1, padding: 14 }}
+          >
+            <Image
+              source={images.friend}
+              style={{ height: 44, width: 44 }}
+              contentFit="contain"
+            />
+            <Text
+              className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
+              numberOfLines={3}
+            >
+              Crossed is More Fun With a Friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Text a link to play a friend live
+            </Text>
+          </TouchableOpacity>
         </View>
-        <Text className="text-crossed-gray-900/40 text-xl">›</Text>
-      </TouchableOpacity>
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#dcfce7" }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onChallengePress}
+            style={{ flex: 1, padding: 14 }}
+          >
+            <Image
+              source={images.solo}
+              style={{ height: 44, width: 44 }}
+              contentFit="contain"
+            />
+            <Text
+              className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
+              numberOfLines={3}
+            >
+              Solo Game
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Play on your own — then send it to a friend to beat.
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Tournaments (public + private) disabled (2026-08): not enough concurrent
           players to fill a bracket. Uncomment both blocks to restore. */}

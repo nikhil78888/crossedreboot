@@ -14,23 +14,26 @@ export const DailySection = () => {
 
   return (
     <View style={{ marginBottom: 12 }}>
-      {/* Streaks */}
-      <View className="mb-3 flex-row items-center">
-        <Text style={{ fontSize: 24 }}>🔥</Text>
-        <Text className="ml-1 font-[jost700] text-[19px] text-crossed-gray-900">
-          {playStreak.current}
-        </Text>
-        <Text className="ml-1 font-[jost500] text-[12px] text-crossed-gray-900/50">
-          play streak
-        </Text>
-        <View className="mx-3 h-4 w-px bg-crossed-gray-200" />
-        <Text style={{ fontSize: 24 }}>🎯</Text>
-        <Text className="ml-1 font-[jost700] text-[19px] text-crossed-gray-900">
-          {goalStreak.current}
-        </Text>
-        <Text className="ml-1 font-[jost500] text-[12px] text-crossed-gray-900/50">
-          goal streak
-        </Text>
+      {/* Streaks — play streak left, goal streak right */}
+      <View className="mb-3 flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <Text style={{ fontSize: 24 }}>🔥</Text>
+          <Text className="ml-1 font-[jost700] text-[19px] text-crossed-gray-900">
+            {playStreak.current}
+          </Text>
+          <Text className="ml-1 font-[jost500] text-[12px] text-crossed-gray-900/50">
+            play streak
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          <Text style={{ fontSize: 24 }}>🎯</Text>
+          <Text className="ml-1 font-[jost700] text-[19px] text-crossed-gray-900">
+            {goalStreak.current}
+          </Text>
+          <Text className="ml-1 font-[jost500] text-[12px] text-crossed-gray-900/50">
+            goal streak
+          </Text>
+        </View>
       </View>
 
       {/* Daily Duel */}
@@ -38,17 +41,17 @@ export const DailySection = () => {
         activeOpacity={0.9}
         onPress={startDuel}
         disabled={starting}
-        style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 14 }}
+        style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 12 }}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-1 pr-3">
-            <Text className="font-[jost600] text-[12px] tracking-wide text-crossed-gray-900/50">
+            <Text className="font-[jost600] text-[11px] tracking-wide text-crossed-gray-900/50">
               {`DAILY DUEL${playStreak.doneToday ? " · DONE ✅" : ""}`}
             </Text>
-            <Text className="mt-1 font-[jost700] text-[18px] text-crossed-gray-900">
+            <Text className="mt-0.5 font-[jost700] text-[16px] text-crossed-gray-900">
               Race {meta.opponent}
             </Text>
-            <Text className="mt-0.5 font-[jost400] text-[13px] text-crossed-gray-900/60">
+            <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
               Beat their {variantLabel} time: {fmtSeconds(meta.seconds)}
             </Text>
           </View>
