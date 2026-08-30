@@ -38,7 +38,7 @@ export const DailySection = () => {
         activeOpacity={0.9}
         onPress={startDuel}
         disabled={starting}
-        style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 18 }}
+        style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 14 }}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-1 pr-3">
@@ -63,21 +63,19 @@ export const DailySection = () => {
         </View>
       </TouchableOpacity>
 
-      {/* Daily Goal */}
+      {/* Daily Goal — compact single line */}
       <View
-        className="mt-2.5 flex-row items-center"
-        style={{ borderRadius: 16, backgroundColor: "#eff6ff", padding: 14 }}
+        className="mt-2 flex-row items-center"
+        style={{ borderRadius: 14, backgroundColor: "#eff6ff", padding: 10 }}
       >
-        <Text style={{ fontSize: 20 }}>🎯</Text>
-        <View className="ml-2.5 flex-1">
-          <Text className="font-[jost600] text-[11px] tracking-wide text-crossed-gray-900/45">
-            DAILY GOAL
-          </Text>
-          <Text className="mt-0.5 font-[jost600] text-[14px] text-crossed-gray-900">
-            {goal.done ? "Complete! 🎉" : goal.label}
-          </Text>
-        </View>
-        <Text className="font-[jost700] text-[14px] text-crossed-gray-900/60">
+        <Text style={{ fontSize: 16 }}>🎯</Text>
+        <Text className="ml-2 font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/45">
+          Daily Goal
+        </Text>
+        <Text className="ml-2 flex-1 font-[jost500] text-[13px] text-crossed-gray-900/70">
+          {goal.done ? "Complete! 🎉" : goal.label}
+        </Text>
+        <Text className="font-[jost700] text-[13px] text-crossed-gray-900/60">
           {goal.progress}/{goal.target}
         </Text>
       </View>

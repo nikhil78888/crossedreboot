@@ -72,7 +72,7 @@ export const useDaily = () => {
       const duel = await getTodaysDuel();
       if (!duel) return;
       setPlayStreak(await recordDuelPlayed());
-      router.push(`/challenge?id=${duel.id}`);
+      router.push(`/challenge?id=${duel.id}&daily=1`);
     } finally {
       setStarting(false);
     }

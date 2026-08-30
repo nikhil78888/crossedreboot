@@ -38,7 +38,8 @@ const challengerTriviaCorrect = (
 export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { gameId, tournamentId, guided, preview } = useLocalSearchParams();
+  const { gameId, tournamentId, guided, preview, daily } =
+    useLocalSearchParams();
   const { myProfile } = useMyProfile();
   const {
     game,
@@ -492,7 +493,9 @@ export default function Game() {
         router.replace(
           `/challenge-result?name=${encodeURIComponent(
             challengeMeta.name ?? "your rival"
-          )}&won=${beat ? 1 : 0}&${resultParams}`
+          )}&won=${beat ? 1 : 0}&${resultParams}${
+            daily === "1" ? "&daily=1" : ""
+          }`
         );
         return;
       }

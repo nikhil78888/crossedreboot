@@ -21,7 +21,9 @@ export default function ChallengeResult() {
     youScore?: string;
     themScore?: string;
     total?: string;
+    daily?: string;
   }>();
+  const isDaily = params.daily === "1";
   const didWin = params.won === "1";
   const rival = params.name || "your rival";
   const isTrivia = params.variant === "TRIVIA";
@@ -69,6 +71,8 @@ export default function ChallengeResult() {
     themStat = fmtSolve(theirSeconds);
     subline = didWin
       ? `You beat ${rival}!`
+      : isDaily
+      ? `${rival} won this one — come back tomorrow!`
       : `${rival} won this one — get the rematch!`;
   }
 
@@ -78,7 +82,13 @@ export default function ChallengeResult() {
         className="text-center font-[jost700] text-crossed-gray-900"
         style={{ fontSize: 38 }}
       >
-        {didWin ? "🏆 You won!" : "You lost"}
+        {isDaily
+          ? didWin
+            ? "🏆 You won the Daily Duel!"
+            : "You lost the Daily Duel"
+          : didWin
+          ? "🏆 You won!"
+          : "You lost"}
       </Text>
       <Text
         className="mt-3 text-center font-[jost600] text-crossed-gray-600"
@@ -118,23 +128,38 @@ export default function ChallengeResult() {
         </View>
       </View>
 
-      <View className="mt-10">
-        <Button
-          intent="primary"
-          size="xl"
-          rounded="full"
-          label="Play another"
-          onPress={() => router.replace("/home")}
-        />
-      </View>
-      <View className="mt-3 items-center">
-        <Button
-          intent="primary"
-          mode="text"
-          label="Done"
-          onPress={() => router.replace("/home")}
-        />
-      </View>
+      {/* The Daily Duel is a once-a-day thing — no "play another", just Done. */}
+      {isDaily ? (
+        <View className="mt-10">
+          <Button
+            intent="primary"
+            size="xl"
+            rounded="full"
+            label="Done"
+            onPress={() => router.replace("/home")}
+          />
+        </View>
+      ) : (
+        <>
+          <View className="mt-10">
+            <Button
+              intent="primary"
+              size="xl"
+              rounded="full"
+              label="Play another"
+              onPress={() => router.replace("/home")}
+            />
+          </View>
+          <View className="mt-3 items-center">
+            <Button
+              intent="primary"
+              mode="text"
+              label="Done"
+              onPress={() => router.replace("/home")}
+            />
+          </View>
+        </>
+      )}
     </View>
   );
 }

@@ -10,7 +10,7 @@ import { events, trackEvent } from "../lib/track-event";
 // game and drop them into it. (For brand-new installs, Branch delivers the id
 // after onboarding; for existing accounts it lands here directly.)
 export default function ChallengeAccept() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, daily } = useLocalSearchParams<{ id?: string; daily?: string }>();
   const router = useRouter();
   const { myProfile } = useMyProfile();
   const { acceptChallenge } = useGame({ gameId: undefined });
@@ -33,13 +33,17 @@ export default function ChallengeAccept() {
             return;
           }
           const gid = await acceptChallenge({ challengeId: String(id) });
-          router.replace(gid ? `/game?gameId=${gid}&challenge=1` : "/home");
+          router.replace(
+            gid
+              ? `/game?gameId=${gid}&challenge=1${daily === "1" ? "&daily=1" : ""}`
+              : "/home"
+          );
         } catch {
           router.replace("/home");
         }
       })();
     }
-  }, [id, myProfile?.id, acceptChallenge, checkCanPlay, router]);
+  }, [id, daily, myProfile?.id, acceptChallenge, checkCanPlay, router]);
 
   return (
     <View className="flex-1 items-center justify-center bg-white px-8">
