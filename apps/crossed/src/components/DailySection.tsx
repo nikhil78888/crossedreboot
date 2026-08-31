@@ -3,37 +3,26 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { useDaily } from "../hooks/use-daily";
 import { fmtSeconds } from "../lib/daily-duel";
 
-// The "Daily" block at the top of Home: two streaks (Play + Goal), the Daily
-// Duel (race a funny-named opponent whose time is preset for the day), and the
-// Daily Goal. NOTE: className is silently dropped on react-native-gesture-handler
-// TouchableOpacity, so its layout/colors are inline; the RN children use className.
+// The "Daily" block at the top of Home: your daily play streak + the Daily Duel
+// (race a funny-named opponent whose time is preset for the day). NOTE: className
+// is silently dropped on react-native-gesture-handler TouchableOpacity, so its
+// layout/colors are inline; the RN children use className.
 export const DailySection = () => {
-  const { meta, playStreak, goalStreak, goal, starting, startDuel } = useDaily();
+  const { meta, playStreak, starting, startDuel } = useDaily();
   const variantLabel =
     meta.variant === "WORD_SEARCH" ? "word search" : "crossword";
 
   return (
     <View style={{ marginBottom: 12 }}>
-      {/* Streaks — play streak left, goal streak right */}
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <Text style={{ fontSize: 24 }}>🔥</Text>
-          <Text className="ml-1 font-[jost700] text-[19px] text-crossed-gray-900">
-            {playStreak.current}
-          </Text>
-          <Text className="ml-1 font-[jost500] text-[12px] text-crossed-gray-900/50">
-            play streak
-          </Text>
-        </View>
-        <View className="flex-row items-center">
-          <Text style={{ fontSize: 24 }}>🎯</Text>
-          <Text className="ml-1 font-[jost700] text-[19px] text-crossed-gray-900">
-            {goalStreak.current}
-          </Text>
-          <Text className="ml-1 font-[jost500] text-[12px] text-crossed-gray-900/50">
-            goal streak
-          </Text>
-        </View>
+      {/* Daily play streak — the flame */}
+      <View className="mb-3 flex-row items-center">
+        <Text style={{ fontSize: 26 }}>🔥</Text>
+        <Text className="ml-1.5 font-[jost700] text-[20px] text-crossed-gray-900">
+          {playStreak.current}
+        </Text>
+        <Text className="ml-2 font-[jost500] text-[13px] text-crossed-gray-900/55">
+          {playStreak.current === 1 ? "day" : "days"} · daily play streak
+        </Text>
       </View>
 
       {/* Daily Duel */}
@@ -65,23 +54,6 @@ export const DailySection = () => {
           </View>
         </View>
       </TouchableOpacity>
-
-      {/* Daily Goal — compact single line */}
-      <View
-        className="mt-2 flex-row items-center"
-        style={{ borderRadius: 14, backgroundColor: "#eff6ff", padding: 10 }}
-      >
-        <Text style={{ fontSize: 16 }}>🎯</Text>
-        <Text className="ml-2 font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/45">
-          Daily Goal
-        </Text>
-        <Text className="ml-2 flex-1 font-[jost500] text-[13px] text-crossed-gray-900/70">
-          {goal.done ? "Complete! 🎉" : goal.label}
-        </Text>
-        <Text className="font-[jost700] text-[13px] text-crossed-gray-900/60">
-          {goal.progress}/{goal.target}
-        </Text>
-      </View>
     </View>
   );
 };
