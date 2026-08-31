@@ -106,6 +106,28 @@ export default function IndexLayout() {
     if (!branch) return;
     const unsubscribe = branch.subscribe(({ params }) => {
       if (!params || !params["+clicked_branch_link"]) return;
+      // Branch re-delivers the LATEST link's params on every app open/init
+      // (including after an app update). Without a freshness guard, a link the
+      // user clicked days ago replays and yanks them into that old match. Only
+      // act on a genuinely fresh click: a deferred install (first session), or a
+      // click within the last hour. (No timestamp → can't tell, so allow it.)
+      const rawTs = params["+click_timestamp"];
+      const clickMs =
+        typeof rawTs === "number"
+          ? rawTs > 1e12
+            ? rawTs
+            : rawTs * 1000
+          : typeof rawTs === "string" && rawTs
+          ? Number(rawTs) > 1e12
+            ? Number(rawTs)
+            : Number(rawTs) * 1000
+          : 0;
+      const fresh =
+        params["+is_first_session"] === true ||
+        !clickMs ||
+        Date.now() - clickMs < 60 * 60 * 1000;
+      if (!fresh) return;
+
       // Live-match invite: existing users join now; a new install stashes it so
       // /home drops them into the game right after their account is created.
       const joinGameId =
