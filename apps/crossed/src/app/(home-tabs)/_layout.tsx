@@ -1,11 +1,36 @@
 import { Tabs } from "expo-router";
+import { Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
 import { Image } from "expo-image";
 import { images } from "../../lib/images";
+import { useDailyDone } from "../../hooks/use-daily-done";
 import colors from "../../lib/colors";
+
+// Daily tab icon: crossed swords + a red dot when today's duel isn't done yet.
+const DailyTabIcon = ({ showDot }: { showDot: boolean }) => (
+  <View style={{ width: 26, height: 22, alignItems: "center" }}>
+    <Text style={{ fontSize: 18 }}>⚔️</Text>
+    {showDot && (
+      <View
+        style={{
+          position: "absolute",
+          top: -2,
+          right: 0,
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: "#ef4444",
+          borderWidth: 1.5,
+          borderColor: "white",
+        }}
+      />
+    )}
+  </View>
+);
 
 export default function HomeLayout() {
   const { user } = useAuth();
+  const dailyDone = useDailyDone();
 
   if (!user) {
     return null;
@@ -40,6 +65,14 @@ export default function HomeLayout() {
               style={{ tintColor: color }}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="daily"
+        options={{
+          tabBarLabel: "Duel",
+          headerTitle: "Daily Duel",
+          tabBarIcon: () => <DailyTabIcon showDot={dailyDone === false} />,
         }}
       />
       <Tabs.Screen
