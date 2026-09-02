@@ -8,9 +8,10 @@ import { fmtSeconds } from "../lib/daily-duel";
 // is silently dropped on react-native-gesture-handler TouchableOpacity, so its
 // layout/colors are inline; the RN children use className.
 export const DailySection = () => {
-  const { meta, playStreak, starting, startDuel } = useDaily();
+  const { meta, playStreak, result, starting, startDuel } = useDaily();
   const variantLabel =
     meta.variant === "WORD_SEARCH" ? "word search" : "crossword";
+  const done = result != null;
 
   return (
     <View style={{ marginBottom: 12 }}>
@@ -25,35 +26,55 @@ export const DailySection = () => {
         </Text>
       </View>
 
-      {/* Daily Duel */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={startDuel}
-        disabled={starting}
-        style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 12 }}
-      >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-3">
-            <Text className="font-[jost600] text-[11px] tracking-wide text-crossed-gray-900/50">
-              {`DAILY DUEL${playStreak.doneToday ? " · DONE ✅" : ""}`}
-            </Text>
-            <Text className="mt-0.5 font-[jost700] text-[16px] text-crossed-gray-900">
-              Race {meta.opponent}
-            </Text>
-            <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
-              Beat their {variantLabel} time: {fmtSeconds(meta.seconds)}
-            </Text>
-          </View>
-          <View
-            className="rounded-full px-4 py-2"
-            style={{ backgroundColor: "#f97316" }}
-          >
-            <Text className="font-[jost700] text-[14px] text-white">
-              {starting ? "…" : playStreak.doneToday ? "Replay" : "Race"}
-            </Text>
-          </View>
+      {done ? (
+        // Finished today — just show the result, no re-race.
+        <View
+          style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 12 }}
+        >
+          <Text className="font-[jost600] text-[11px] tracking-wide text-crossed-gray-900/50">
+            DAILY DUEL · DONE ✅
+          </Text>
+          <Text className="mt-0.5 font-[jost700] text-[16px] text-crossed-gray-900">
+            {result?.seconds != null
+              ? `Your time: ${fmtSeconds(result.seconds)}`
+              : "Complete"}
+          </Text>
+          <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
+            {result?.won
+              ? `You beat ${meta.opponent}! Back tomorrow for a new duel.`
+              : `Come back tomorrow for a new duel.`}
+          </Text>
         </View>
-      </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={startDuel}
+          disabled={starting}
+          style={{ borderRadius: 16, backgroundColor: "#fff7ed", padding: 12 }}
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1 pr-3">
+              <Text className="font-[jost600] text-[11px] tracking-wide text-crossed-gray-900/50">
+                DAILY DUEL
+              </Text>
+              <Text className="mt-0.5 font-[jost700] text-[16px] text-crossed-gray-900">
+                Race {meta.opponent}
+              </Text>
+              <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
+                Beat their {variantLabel} time: {fmtSeconds(meta.seconds)}
+              </Text>
+            </View>
+            <View
+              className="rounded-full px-4 py-2"
+              style={{ backgroundColor: "#f97316" }}
+            >
+              <Text className="font-[jost700] text-[14px] text-white">
+                {starting ? "…" : "Race"}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

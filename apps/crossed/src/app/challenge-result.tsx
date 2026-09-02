@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { fmtSolve } from "./(home-tabs)/stats";
+import { setTodaysResult } from "../lib/daily-duel";
 
 // Result of a ghost-race challenge. Crossword / word search are decided by TIME;
 // trivia by ACCURACY (correct answers, tie broken by time). We just say won/lost
@@ -25,6 +27,19 @@ export default function ChallengeResult() {
   }>();
   const isDaily = params.daily === "1";
   const didWin = params.won === "1";
+  const youSolvedFlag = params.youSolved === "1";
+  const yourSecondsRaw = parseInt(params.you ?? "0", 10) || 0;
+
+  // Persist the daily-duel result so Home shows the player's time and stops
+  // offering a re-race once they've finished today's duel.
+  useEffect(() => {
+    if (isDaily) {
+      setTodaysResult({
+        seconds: youSolvedFlag ? yourSecondsRaw : null,
+        won: didWin,
+      });
+    }
+  }, [isDaily, youSolvedFlag, yourSecondsRaw, didWin]);
   const rival = params.name || "your rival";
   const isTrivia = params.variant === "TRIVIA";
   const yourSeconds = parseInt(params.you ?? "0", 10) || 0;

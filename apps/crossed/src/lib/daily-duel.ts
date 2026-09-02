@@ -109,6 +109,28 @@ const challengesTable = supabase as unknown as {
 // v2: word-search-only reset — ignore any v1 (crossword) duel cached for today.
 const cacheKey = (day: string) => `daily:duelChallenge:v2:${day}`;
 
+// Today's finished-duel result, so the card can show the player's time (and stop
+// offering a re-race) once they've completed it.
+const resultKey = (day: string) => `daily:duelResult:${day}`;
+export type DuelResult = { seconds: number | null; won: boolean };
+
+export const setTodaysResult = async (r: DuelResult): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(resultKey(localDay()), JSON.stringify(r));
+  } catch {
+    // non-fatal
+  }
+};
+
+export const getTodaysResult = async (): Promise<DuelResult | null> => {
+  try {
+    const v = await AsyncStorage.getItem(resultKey(localDay()));
+    return v ? (JSON.parse(v) as DuelResult) : null;
+  } catch {
+    return null;
+  }
+};
+
 // Returns today's duel: its meta + a challenge id to race. Creates the system
 // challenge once per day and caches the id so re-opening reuses the same duel.
 export const getTodaysDuel = async (): Promise<{

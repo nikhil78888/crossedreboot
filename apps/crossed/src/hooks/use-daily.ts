@@ -1,6 +1,11 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
-import { duelMeta, getTodaysDuel } from "../lib/daily-duel";
+import {
+  duelMeta,
+  getTodaysDuel,
+  getTodaysResult,
+  type DuelResult,
+} from "../lib/daily-duel";
 import {
   getPlayStreak,
   recordDuelPlayed,
@@ -13,10 +18,13 @@ export const useDaily = () => {
   const router = useRouter();
   const meta = duelMeta();
   const [playStreak, setPlayStreak] = useState<StreakState>(EMPTY);
+  const [result, setResult] = useState<DuelResult | null>(null);
   const [starting, setStarting] = useState(false);
 
   const refresh = useCallback(async () => {
-    setPlayStreak(await getPlayStreak());
+    const [s, r] = await Promise.all([getPlayStreak(), getTodaysResult()]);
+    setPlayStreak(s);
+    setResult(r);
   }, []);
 
   useFocusEffect(
@@ -40,5 +48,5 @@ export const useDaily = () => {
     }
   }, [router, starting]);
 
-  return { meta, playStreak, starting, startDuel, refresh };
+  return { meta, playStreak, result, starting, startDuel, refresh };
 };
