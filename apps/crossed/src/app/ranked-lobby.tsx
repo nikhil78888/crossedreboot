@@ -44,10 +44,10 @@ export default function RankedLobby() {
     return () => clearInterval(h);
   }, [playState, heartbeat]);
 
-  // Bot fallback. After 18s (> the 12s server force-pair + realtime lag, so a
-  // real human match reliably wins the race) we start trying to drop into a bot
-  // game, and KEEP retrying every 6s until we either match or get a bot — so a
-  // player can never get stranded on "finding player" for minutes.
+  // Bot fallback. After 6s we start trying to drop into a bot game, and KEEP
+  // retrying every 6s until we either match or get a bot — so a player never
+  // waits long on "finding player". (Short window on purpose: the lobby is
+  // near-empty, so waiting longer for a rare human match just adds dead time.)
   //
   // Each attempt atomically claims our OWN queue row: an empty result means the
   // matcher already paired us (routing takes over) or the row was transiently
@@ -89,7 +89,7 @@ export default function RankedLobby() {
     const start = setTimeout(() => {
       attempt();
       interval = setInterval(attempt, 6000);
-    }, 18000);
+    }, 6000);
     return () => {
       cancelled = true;
       clearTimeout(start);

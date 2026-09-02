@@ -95,46 +95,44 @@ export const NewGameButtons = () => {
         <VariantTabs />
       </View>
 
-      {/* Play Ranked hero */}
+      {/* Play a Friend — the HERO. Friend play is the retention engine (the
+          stickiest users are friend-pairs playing each other), so it leads. */}
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
-          trackEvent(events.START_RANKED_GAME_CLICK);
-          playRanked();
+          trackEvent(events.START_FRIENDLY_GAME_CLICK);
+          playFriendly();
         }}
         className="rounded-2xl"
-        style={{ backgroundColor: colors["crossed-blue"]["50"] }}
+        style={{ backgroundColor: "#ede9fe" }}
       >
         <View className="flex-row items-center p-5">
           <View className="flex-1 pr-2">
             <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-              Play Ranked
+              Crossed is Meant to be Played With a Friend
             </Text>
             <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-              Compete with players worldwide and climb the leaderboard.
+              Text a link to play a friend live
             </Text>
             <View
               className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
-              style={{ backgroundColor: colors["crossed-blue"]["450"] }}
+              style={{ backgroundColor: "#7c3aed" }}
             >
               <Text className="font-[jost700] text-[14px] text-white">
-                Play Now
+                Send a Link
               </Text>
               <Text className="ml-1 text-white">→</Text>
             </View>
           </View>
           <Image
-            source={images.play_ranked}
+            source={images.play_friendly}
             style={{ height: 110, width: 116 }}
             contentFit="contain"
           />
         </View>
       </TouchableOpacity>
 
-      {/* Play a Friend | Solo Game — two half-width cards (Ranked stays the
-          full-width hero above). The colored card is a plain flex:1 View that
-          reliably fills equal-height columns; the TouchableOpacity inside carries
-          the padding + tap (className is dropped on RNGH touchables). */}
+      {/* Play Ranked | Solo Game — half-width cards below the friend hero. */}
       <View
         style={{
           flexDirection: "row",
@@ -143,17 +141,23 @@ export const NewGameButtons = () => {
           marginTop: 12,
         }}
       >
-        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
+        <View
+          style={{
+            flex: 1,
+            borderRadius: 16,
+            backgroundColor: colors["crossed-blue"]["50"],
+          }}
+        >
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => {
-              trackEvent(events.START_FRIENDLY_GAME_CLICK);
-              playFriendly();
+              trackEvent(events.START_RANKED_GAME_CLICK);
+              playRanked();
             }}
             style={{ flex: 1, padding: 14 }}
           >
             <Image
-              source={images.friend}
+              source={images.play_ranked}
               style={{ height: 44, width: 44 }}
               contentFit="contain"
             />
@@ -161,10 +165,10 @@ export const NewGameButtons = () => {
               className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
               numberOfLines={3}
             >
-              Crossed is More Fun With a Friend
+              Play Ranked
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Text a link to play a friend live
+              Compete worldwide & climb the leaderboard.
             </Text>
           </TouchableOpacity>
         </View>
