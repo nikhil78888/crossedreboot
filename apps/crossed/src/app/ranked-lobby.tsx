@@ -89,7 +89,7 @@ export default function RankedLobby() {
     const start = setTimeout(() => {
       attempt();
       interval = setInterval(attempt, 6000);
-    }, 6000);
+    }, 5000);
     return () => {
       cancelled = true;
       clearTimeout(start);
