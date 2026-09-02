@@ -106,8 +106,8 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-// v2: word-search-only reset — ignore any v1 (crossword) duel cached for today.
-const cacheKey = (day: string) => `daily:duelChallenge:v2:${day}`;
+// v3: word-search-only + HARD difficulty — ignore earlier cached duels for today.
+const cacheKey = (day: string) => `daily:duelChallenge:v3:${day}`;
 
 // Today's finished-duel result, so the card can show the player's time (and stop
 // offering a re-race) once they've completed it.
@@ -149,7 +149,7 @@ export const getTodaysDuel = async (): Promise<{
     challengerId: null, // system: nobody is notified of a result
     challengerName: meta.opponent,
     gameVariant: meta.variant,
-    difficulty: "REGULAR",
+    difficulty: "HARD",
     solveSeconds: meta.seconds,
     timeline: timelineFor(meta.seed, meta.seconds),
   };
@@ -160,7 +160,8 @@ export const getTodaysDuel = async (): Promise<{
       ...base,
       crosswordsId: null,
       resolvedClues: null,
-      puzzle: generateWordSearch("REGULAR", meta.seed),
+      // Always HARD for the daily duel (bigger grid + reversed directions).
+      puzzle: generateWordSearch("HARD", meta.seed),
     };
   } else {
     // Seeded pick of a published 5×5 mini — same crossword for everyone today.
