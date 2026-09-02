@@ -6,7 +6,8 @@ import { images } from "../../lib/images";
 import { useDailyDone } from "../../hooks/use-daily-done";
 import colors from "../../lib/colors";
 
-// Daily tab icon: crossed swords + a red dot when today's duel isn't done yet.
+// Daily tab icon: crossed swords + a bold red "!" badge when today's duel isn't
+// done yet — sized to be hard to miss.
 const DailyTabIcon = ({ showDot }: { showDot: boolean }) => (
   <View style={{ width: 26, height: 22, alignItems: "center" }}>
     <Text style={{ fontSize: 18 }}>⚔️</Text>
@@ -14,16 +15,30 @@ const DailyTabIcon = ({ showDot }: { showDot: boolean }) => (
       <View
         style={{
           position: "absolute",
-          top: -2,
-          right: 0,
-          width: 10,
-          height: 10,
-          borderRadius: 5,
+          top: -7,
+          right: -9,
+          minWidth: 19,
+          height: 19,
+          borderRadius: 10,
           backgroundColor: "#ef4444",
-          borderWidth: 1.5,
+          borderWidth: 2,
           borderColor: "white",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 3,
         }}
-      />
+      >
+        <Text
+          style={{
+            color: "white",
+            fontSize: 12,
+            fontWeight: "800",
+            lineHeight: 14,
+          }}
+        >
+          !
+        </Text>
+      </View>
     )}
   </View>
 );
