@@ -376,10 +376,36 @@ export const CrosswordGrid = ({
       })();
       return;
     }
-    // Otherwise debounce the progress write (drives the opponent's bar).
+    // Otherwise debounce the progress write (drives the opponent's bar). Kept
+    // short so the server never lags far behind what the player has typed — a
+    // long debounce meant a game ending mid-debounce lost the last letters
+    // (wrong "red dots" on review, and an under-counted score that turned wins
+    // into ties).
     if (progressTimer.current) clearTimeout(progressTimer.current);
-    progressTimer.current = setTimeout(write, 800);
+    progressTimer.current = setTimeout(write, 200);
   }, [finishGame, game, gameId, gameState, isGameFinished, myProfile, paused]);
+
+  // Flush the final local grid the moment the game ends (timeout / opponent
+  // finished), so the results + review read exactly what the player typed rather
+  // than a stale debounced write. Skips if they already solved — that path wrote
+  // the final state (with the solve time) itself, so we mustn't clobber it.
+  useEffect(() => {
+    if (!isGameFinished || !game || !gameState || !myProfile) return;
+    const alreadySolved = (
+      game.gameState?.[myProfile.id] as
+        | { solvedInSeconds?: number | null }
+        | undefined
+    )?.solvedInSeconds;
+    if (alreadySolved != null) return;
+    if (progressTimer.current) {
+      clearTimeout(progressTimer.current);
+      progressTimer.current = null;
+    }
+    const merged = game.gameState
+      ? { ...game.gameState, [myProfile.id]: gameState }
+      : { [myProfile.id]: gameState };
+    void supabase.from("games").update({ gameState: merged }).eq("id", gameId);
+  }, [isGameFinished, game, gameState, myProfile, gameId]);
 
   if (!game || !gameState || !crossword) {
     return null;

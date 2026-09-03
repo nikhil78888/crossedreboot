@@ -130,9 +130,33 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
         })
         .eq("id", gameId)
         .then();
-    }, 700);
+    }, 200);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [found]);
+
+  // Flush the final found-words the moment the game ends (timeout / opponent
+  // finished), so the score + review aren't undercounted by a stale debounced
+  // write (which could turn a win into a tie). Skips if they already found every
+  // word — that path wrote the final state itself.
+  useEffect(() => {
+    const ps = game?.playState;
+    if ((ps !== "COMPLETED" && ps !== "ABORTED") || finishedRef.current) return;
+    if (!myProfile) return;
+    if (writeTimer.current) {
+      clearTimeout(writeTimer.current);
+      writeTimer.current = null;
+    }
+    void supabase
+      .from("games")
+      .update({
+        gameState: {
+          ...(gsRef.current ?? {}),
+          [myProfile.id]: { found: foundRef.current },
+        } as never,
+      })
+      .eq("id", gameId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.playState, myProfile, gameId]);
 
   // Bot opponent: rubber-band its found-word count toward the player (a hair
   // ahead early, then tracking, capped ~90% so finishing wins) — same feel as
