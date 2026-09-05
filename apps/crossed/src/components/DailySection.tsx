@@ -7,7 +7,10 @@ import { fmtSeconds } from "../lib/daily-duel";
 // (right). Same footprint — emoji pinned top, content pinned bottom — so they
 // read as a set. NOTE: className is dropped on react-native-gesture-handler
 // TouchableOpacity, so the duel tile is inline-styled.
-const TILE_MIN_HEIGHT = 108;
+const TILE_MIN_HEIGHT = 88;
+// Fixed slot for the flame so the number's left edge — and the label indented to
+// match it — land at a known, exact x offset.
+const FLAME_SLOT = 34;
 
 export const DailySection = () => {
   const { playStreak, result, starting, startDuel } = useDaily();
@@ -22,20 +25,25 @@ export const DailySection = () => {
         style={{
           borderRadius: 16,
           backgroundColor: "#fff7ed",
-          padding: 16,
+          padding: 14,
           minHeight: TILE_MIN_HEIGHT,
         }}
       >
         <View className="flex-row items-center">
-          <Text style={{ fontSize: 26 }}>🔥</Text>
+          <View style={{ width: FLAME_SLOT }}>
+            <Text style={{ fontSize: 26 }}>🔥</Text>
+          </View>
           <Text
-            className="ml-2 font-[jost700] text-crossed-gray-900"
+            className="font-[jost700] text-crossed-gray-900"
             style={{ fontSize: 34, lineHeight: 36 }}
           >
             {current}
           </Text>
         </View>
-        <Text className="font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/50">
+        <Text
+          className="font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/50"
+          style={{ marginLeft: FLAME_SLOT }}
+        >
           Day Play Streak
         </Text>
       </View>
@@ -54,7 +62,7 @@ export const DailySection = () => {
           disabled={starting || done}
           style={{
             flex: 1,
-            padding: 16,
+            padding: 14,
             minHeight: TILE_MIN_HEIGHT,
             justifyContent: "space-between",
           }}
