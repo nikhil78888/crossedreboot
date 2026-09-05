@@ -1,7 +1,7 @@
 import { Alert, Share, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "../components/Button";
 import { Image } from "expo-image";
 import { avatars } from "../lib/images";
@@ -10,8 +10,9 @@ import { WaitingSpinner } from "../components/WaitingSpinner";
 import { branch } from "../lib/branch";
 
 export default function InviteFriend() {
-  const { gameId } = useLocalSearchParams();
+  const { gameId, autoShare } = useLocalSearchParams();
   const router = useRouter();
+  const autoShared = useRef(false);
   const { game, abortGame } = useGame({
     gameId: gameId as string | undefined,
   });
@@ -41,7 +42,7 @@ export default function InviteFriend() {
     }
   }, [gameId, gamePlayState, router, navigation]);
 
-  const inviteFriend = async () => {
+  const inviteFriend = async ({ auto = false }: { auto?: boolean } = {}) => {
     // Prefer a Branch link: it opens the app for existing users AND sends a
     // friend WITHOUT the app to the App Store, then drops them into this game
     // after they sign up (deferred deep link → setPendingJoinGame in _layout).
@@ -68,11 +69,26 @@ export default function InviteFriend() {
       title: "Let's play",
       message: `Race me on Crossed 👉 ${link}`,
     });
-    if (shared.action === Share.dismissedAction) {
+    // On the auto path (share sheet popped on arrival), don't nag if they
+    // dismiss — they're already sitting on the waiting screen with a manual
+    // "Invite a friend" button to try again.
+    if (shared.action === Share.dismissedAction && !auto) {
       Alert.alert("Please invite a friend to play");
       return;
     }
   };
+
+  // Arriving from the friendly hero with autoShare=1: open the share sheet right
+  // away so "Send a Link" actually sends a link, then leave them on this
+  // waiting-for-opponent screen.
+  useEffect(() => {
+    if (autoShared.current) return;
+    if (autoShare === "1" && gameId) {
+      autoShared.current = true;
+      inviteFriend({ auto: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoShare, gameId]);
 
   const exitGame = () => {
     Alert.alert("Exit Game?", "Are you sure?", [
@@ -116,7 +132,7 @@ export default function InviteFriend() {
           size="base"
           label="Invite a friend"
           rounded={"full"}
-          onPress={inviteFriend}
+          onPress={() => inviteFriend()}
         />
       </View>
       <View className="absolute bottom-8 inset-x-4">

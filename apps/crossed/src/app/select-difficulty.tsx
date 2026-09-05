@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -23,6 +23,7 @@ export default function SelectDifficulty() {
   });
   const { checkCanPlay } = useGameGate();
   const [busy, setBusy] = useState<GameDifficulty | null>(null);
+  const autoFired = useRef(false);
 
   const isSudoku = variant === "SUDOKU";
 
@@ -54,7 +55,8 @@ export default function SelectDifficulty() {
         if (id) router.replace(`/game?gameId=${id}`);
       } else if (mode === "FRIENDLY") {
         const id = await createFriendlyGame({ variant, difficulty });
-        if (id) router.replace(`/invite-friend?gameId=${id}`);
+        // autoShare=1 tells the waiting screen to pop the share sheet on arrival.
+        if (id) router.replace(`/invite-friend?gameId=${id}&autoShare=1`);
       } else if (mode === "RANKED") {
         await joinLobby(variant, difficulty);
         router.replace(
@@ -76,6 +78,33 @@ export default function SelectDifficulty() {
       setBusy(null);
     }
   };
+
+  // Friendly skips the picker entirely: pick a difficulty at random (keeps a mix
+  // of Regular/Hard in circulation) and go straight to creating the game +
+  // sharing. Removing this decision is the point — one tap to a share sheet.
+  useEffect(() => {
+    if (mode === "FRIENDLY" && !autoFired.current) {
+      autoFired.current = true;
+      go(Math.random() < 0.5 ? "REGULAR" : "HARD");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // No difficulty screen for friendly — show a spinner while the game is created.
+  if (mode === "FRIENDLY") {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#ffffff",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator color={colors["crossed-blue"]["450"]} />
+      </View>
+    );
+  }
 
   const OPTIONS: {
     key: GameDifficulty;
