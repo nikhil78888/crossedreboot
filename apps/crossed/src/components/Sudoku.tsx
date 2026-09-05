@@ -4,6 +4,7 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import produce from "immer";
 import { addSeconds, differenceInSeconds } from "date-fns";
 import { useGame } from "../hooks/use-game";
+import { botCanWin, botShouldSurge, botTargetFrac } from "../lib/bot-race";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
 import { GameState } from "types-and-validators";
@@ -32,6 +33,8 @@ export const SudokuGrid = ({
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
+  // Guards the once-only "bot finished first, end the match" call in bot-win games.
+  const botFinishedRef = useRef(false);
   const sudoku = game?.sudoku;
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width * 0.92, 440);
@@ -91,11 +94,16 @@ export const SudokuGrid = ({
     const playerFrac = playerOwn / fillable;
     const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
     const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-    const targetOwnFrac = Math.min(0.9, Math.max(earlyFloor, playerFrac + lead));
+    const isIntro = !!(game.gameState as Record<string, unknown> | undefined)
+      ?.__intro;
+    const botWinGame = botCanWin(gameId) && !isIntro;
+    const surging = botShouldSurge(botWinGame, playerFrac);
+    const targetOwnFrac = botTargetFrac(botWinGame, playerFrac, earlyFloor, lead);
     const targetFilled = givens + Math.floor(fillable * targetOwnFrac);
     const cellsToFill = targetFilled - botFilled;
-    // Smooth, brisk catch-up — not instant (that would look robotic).
-    const nextDelayMs = 450 + Math.random() * 700;
+    // Smooth, brisk catch-up — not instant (that would look robotic). When
+    // surging to the wire in a win-game, fill fast to edge the player out.
+    const nextDelayMs = surging ? 90 + Math.random() * 90 : 450 + Math.random() * 700;
 
     if (cellsToFill > 0 && secondsLeft > 0) {
       const interval = setInterval(() => {
@@ -106,6 +114,18 @@ export const SudokuGrid = ({
         const rowIndex = solution.findIndex((row) => row.includes(EMPTY));
         if (rowIndex < 0) {
           clearInterval(interval);
+          // Win-game: bot completed the grid (only via the end-game surge, when
+          // the player was already ~80% done) — end the match so the bot wins at
+          // the wire. If the player finished first the game is already COMPLETED
+          // and this effect wouldn't be running.
+          if (
+            botWinGame &&
+            game.gameType === "RANKED" &&
+            !botFinishedRef.current
+          ) {
+            botFinishedRef.current = true;
+            finishGame();
+          }
           return;
         }
         const colIndex = solution[rowIndex].findIndex((c) => c === EMPTY);

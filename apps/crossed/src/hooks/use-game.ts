@@ -183,6 +183,7 @@ export const fixType = (game: any): Game => {
 // on-device so successive puzzles don't repeat the category or the same words.
 const WS_THEMES_KEY = "ws:recentThemes";
 const WS_WORDS_KEY = "ws:seenWords";
+const LAST_RANKED_BOT_KEY = "ranked:lastBotId";
 const WS_THEME_MEMORY = 5; // avoid the last N themes
 const WS_WORD_MEMORY = 400; // remember the last N words shown
 
@@ -727,20 +728,37 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         );
         if (!picked) return;
 
-        // Pick a bot whose rating is closest to the player's, so the fallback
-        // match feels fair (not a random-strength opponent).
+        // Pick from the bots closest in rating to the player (so the match feels
+        // fair), but ROTATE among that near pool and avoid an immediate repeat —
+        // a player who keeps hitting the bot fallback shouldn't face the same
+        // opponent every time.
         const { data: bots } = await supabase
           .from("random_bot_profiles")
           .select();
         const myRating = myProfile.eloRating ?? 1100;
-        const bot = (bots || [])
+        const ranked = (bots || [])
           .slice()
           .sort(
             (a, b) =>
               Math.abs((a.eloRating ?? 1100) - myRating) -
               Math.abs((b.eloRating ?? 1100) - myRating)
-          )[0];
+          );
+        const pool = ranked.slice(0, Math.min(6, ranked.length));
+        let lastBotId: string | null = null;
+        try {
+          lastBotId = await AsyncStorage.getItem(LAST_RANKED_BOT_KEY);
+        } catch {
+          // ignore storage errors — we'll just not exclude a repeat
+        }
+        const candidates = pool.filter((b) => b.id !== lastBotId);
+        const choices = candidates.length ? candidates : pool;
+        const bot = choices[Math.floor(Math.random() * choices.length)];
         if (!bot?.id) return;
+        try {
+          await AsyncStorage.setItem(LAST_RANKED_BOT_KEY, bot.id);
+        } catch {
+          // best-effort — a missed write just means the next match might repeat
+        }
         const { data: game, error: createGameError } = await supabase
           .from("games")
           .insert({
@@ -891,6 +909,9 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
               : {}),
             gameType: "RANKED",
             playState: "PLAYING",
+            // Marks the intro race so the bot never surges to a win here — game
+            // one is meant to be a guaranteed win for a new player.
+            gameState: { __intro: true } as unknown as Json,
             startedAt: addSeconds(new Date(), 6).toISOString(),
             gameDurationInSeconds: durationForSize(cw.size, 180),
           })

@@ -3,6 +3,7 @@ import { Text, useWindowDimensions, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import produce from "immer";
 import { calculateScore, puzzleOf, solutionOf, useGame } from "../hooks/use-game";
+import { botCanWin, botShouldSurge, botTargetFrac } from "../lib/bot-race";
 import { ghostProgressAt } from "../lib/challenge-utils";
 import { TextInput, TouchableOpacity } from "react-native-gesture-handler";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
@@ -51,6 +52,8 @@ export const CrosswordGrid = ({
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
+  // Guards the once-only "bot finished first, end the match" call in bot-win games.
+  const botFinishedRef = useRef(false);
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
@@ -157,6 +160,26 @@ export const CrosswordGrid = ({
                 )
               : 0;
 
+          // Player's own progress (used by the rubber-band + the bot-win guard).
+          const playerSolutionNow = myProfile?.id
+            ? game?.gameState?.[myProfile.id]?.solution
+            : undefined;
+          const playerFilledNow = playerSolutionNow
+            ? playerSolutionNow.reduce(
+                (count, row) =>
+                  count +
+                  row.filter((cell) => cell !== "" && cell !== null).length,
+                0
+              )
+            : 0;
+          const playerFracNow = totalFillableCells
+            ? playerFilledNow / totalFillableCells
+            : 0;
+          const isIntro = !!(
+            game.gameState as Record<string, unknown> | undefined
+          )?.__intro;
+          const botWinGame = botCanWin(gameId) && !isIntro;
+
           let totalBotFillableCells: number;
           let nextDelayMs: number;
           const challengeMeta = (
@@ -179,34 +202,24 @@ export const CrosswordGrid = ({
             );
             nextDelayMs = 250;
           } else {
-            // Rubber-band (every other bot game): surge out of the gate, then
-            // quietly track the player's progress so the race stays close —
-            // a hair ahead, capped ~90% so finishing wins.
-            const playerSolution = myProfile?.id
-              ? game?.gameState?.[myProfile.id]?.solution
-              : undefined;
-            const playerFilled = playerSolution
-              ? playerSolution.reduce(
-                  (count, row) =>
-                    count +
-                    row.filter((cell) => cell !== "" && cell !== null).length,
-                  0
-                )
-              : 0;
-            const playerFrac = totalFillableCells
-              ? playerFilled / totalFillableCells
-              : 0;
+            // Rubber-band: track the player's progress so the race stays close —
+            // a hair ahead, capped ~90% so finishing wins. In a win-game, once
+            // the player nears the finish the target lifts to 100% and the bot
+            // rushes (short delay) to complete just before them.
             const lead = 0.18 - 0.13 * Math.min(1, elapsedFrac / 0.4);
             const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
-            const targetFrac = Math.min(
-              0.9,
-              Math.max(earlyFloor, playerFrac + lead)
+            const surging = botShouldSurge(botWinGame, playerFracNow);
+            const targetFrac = botTargetFrac(
+              botWinGame,
+              playerFracNow,
+              earlyFloor,
+              lead
             );
             totalBotFillableCells = Math.max(
               1,
               Math.floor(totalFillableCells * targetFrac)
             );
-            nextDelayMs = 450 + Math.random() * 700;
+            nextDelayMs = surging ? 90 + Math.random() * 90 : 450 + Math.random() * 700;
           }
           const cellsToFill = totalBotFillableCells - botFilledCells;
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
@@ -220,6 +233,20 @@ export const CrosswordGrid = ({
               // crash: solution[-1] -> reading .findIndex of undefined).
               if (rowToFillIndex < 0) {
                 clearInterval(interval);
+                // Win-game: the bot just completed the grid (only reachable via
+                // the end-game surge, i.e. the player was already ~80% done), so
+                // end the match now — finalize scores the bot at 100 vs the
+                // player's partial and the bot takes it at the wire. If the
+                // player finished first the game is already COMPLETED and this
+                // effect wouldn't be running, so their win stands.
+                if (
+                  botWinGame &&
+                  game.gameType === "RANKED" &&
+                  !botFinishedRef.current
+                ) {
+                  botFinishedRef.current = true;
+                  finishGame();
+                }
                 return;
               }
               const rowToFill = solution[rowToFillIndex];
