@@ -4,10 +4,10 @@ import { useDaily } from "../hooks/use-daily";
 import { fmtSeconds } from "../lib/daily-duel";
 
 // Two matched dashboard tiles: your play streak (left) and today's Daily Duel
-// (right). Identical structure — emoji pinned top, one single-size label pinned
-// bottom — so they read as a set. NOTE: className is dropped on
-// react-native-gesture-handler TouchableOpacity, so the duel tile is inline-styled.
-const TILE_MIN_HEIGHT = 96;
+// (right). Same footprint — emoji pinned top, content pinned bottom — so they
+// read as a set. NOTE: className is dropped on react-native-gesture-handler
+// TouchableOpacity, so the duel tile is inline-styled.
+const TILE_MIN_HEIGHT = 108;
 
 export const DailySection = () => {
   const { playStreak, result, starting, startDuel } = useDaily();
@@ -16,7 +16,7 @@ export const DailySection = () => {
 
   return (
     <View className="mb-4 flex-row" style={{ gap: 12, alignItems: "stretch" }}>
-      {/* Day Play Streak */}
+      {/* Day Play Streak — the streak count is the hero. */}
       <View
         className="flex-1 justify-between"
         style={{
@@ -26,13 +26,21 @@ export const DailySection = () => {
           minHeight: TILE_MIN_HEIGHT,
         }}
       >
-        <Text style={{ fontSize: 24 }}>🔥</Text>
-        <Text className="font-[jost700] text-[16px] leading-[20px] text-crossed-gray-900">
-          <Text style={{ color: "#f97316" }}>{current}</Text> Day Play Streak
-        </Text>
+        <Text style={{ fontSize: 22 }}>🔥</Text>
+        <View>
+          <Text
+            className="font-[jost700] text-crossed-gray-900"
+            style={{ fontSize: 34, lineHeight: 36 }}
+          >
+            {current}
+          </Text>
+          <Text className="mt-0.5 font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/50">
+            Day Play Streak
+          </Text>
+        </View>
       </View>
 
-      {/* Daily Duel */}
+      {/* Daily Duel — the whole tile is the CTA. */}
       <View
         className="flex-1"
         style={{
@@ -52,7 +60,7 @@ export const DailySection = () => {
           }}
         >
           <View className="flex-row items-start justify-between">
-            <Text style={{ fontSize: 24 }}>⚔️</Text>
+            <Text style={{ fontSize: 22 }}>⚔️</Text>
             {!done && !starting && (
               <View
                 style={{
@@ -65,7 +73,7 @@ export const DailySection = () => {
               />
             )}
           </View>
-          <Text className="font-[jost700] text-[16px] leading-[20px] text-crossed-gray-900">
+          <Text className="font-[jost700] text-[17px] leading-[21px] text-crossed-gray-900">
             {done
               ? result?.seconds != null
                 ? `Done · ${fmtSeconds(result.seconds)}`

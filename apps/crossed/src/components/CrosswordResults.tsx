@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import { calculateScore, solutionOf, puzzleOf, useGame } from "../hooks/use-game";
 import { useGameGate } from "../hooks/use-subscription";
 import { events, trackEvent } from "../lib/track-event";
-import { classNames } from "../lib/utils";
 import { ShareAppButton } from "./ShareAppButton";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { NewGameButtons } from "./NewGameButtons";
@@ -77,12 +76,6 @@ export const FriendlyGameResult = ({
             source={result === "WON" ? images.results_win : images.results_lost}
             className="w-[259px] h-[166px]"
           />
-          <Text
-            className={classNames("text-center text-3xl mt-3.5 font-[jost600]")}
-            style={{ fontFamily: "bitterBold" }}
-          >
-            You get {myPoints} Points
-          </Text>
         </View>
         {/* Challenge is the hero CTA — surfaced first, right after the result. */}
         <View className="mt-5">
@@ -225,12 +218,6 @@ export const SoloGameResult = ({ gameId }: { gameId: string }) => {
             }
             className="w-[259px] h-[166px]"
           />
-          <Text
-            className={classNames("text-center text-3xl mt-3.5 font-[jost600]")}
-            style={{ fontFamily: "bitterBold" }}
-          >
-            You get {points} Points
-          </Text>
         </View>
         <View className="mt-6">
           <ChallengeButton gameId={gameId} />

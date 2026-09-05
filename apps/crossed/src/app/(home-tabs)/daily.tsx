@@ -6,24 +6,13 @@ import { Button } from "../../components/Button";
 // The Daily Duel tab: race a funny-named opponent whose time is preset for the
 // day. Once finished, it just shows the player's time (no re-race).
 export default function DailyScreen() {
-  const { meta, playStreak, result, starting, startDuel } = useDaily();
+  const { meta, result, starting, startDuel } = useDaily();
   const done = result != null;
   const variantLabel =
     meta.variant === "WORD_SEARCH" ? "word search" : "crossword";
 
   return (
     <View className="flex-1 bg-white px-6 pt-8">
-      {/* streak echo */}
-      <View className="mb-6 flex-row items-center justify-center">
-        <Text style={{ fontSize: 22 }}>🔥</Text>
-        <Text className="ml-1.5 font-[jost700] text-[18px] text-crossed-gray-900">
-          {playStreak.current}
-        </Text>
-        <Text className="ml-1.5 font-[jost500] text-[13px] text-crossed-gray-900/50">
-          day play streak
-        </Text>
-      </View>
-
       {done ? (
         <View className="mt-6 items-center">
           <Text style={{ fontSize: 46 }}>{result?.won ? "🏆" : "⏱️"}</Text>

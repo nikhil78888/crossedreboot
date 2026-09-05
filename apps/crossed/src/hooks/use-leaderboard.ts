@@ -37,3 +37,29 @@ export const useLeaderboard = (
     refreshLeaderboard: mutate,
   };
 };
+
+export type MyRank = {
+  rank: number | null; // null = not yet ranked
+  total: number;
+  eloRating: number;
+  username: string;
+  avatar: string | null;
+  hasPlayed: boolean;
+};
+
+// The caller's own global standing for a variant — resolves even when they're
+// outside the top 100 the board shows. Only used for GLOBAL scope (FRIENDS place
+// is already derivable from the friends list).
+export const useMyRank = (variant: string, profileId?: string | null) => {
+  const { data, mutate } = useSWR(
+    profileId ? ["myRank", variant, profileId] : null,
+    async () => {
+      const res = await axios.get<MyRank>(
+        `/api/profiles/rank?variant=${variant}&profileId=${profileId}`
+      );
+      return res.data;
+    },
+    { revalidateOnFocus: true }
+  );
+  return { myRank: data, refreshMyRank: mutate };
+};
