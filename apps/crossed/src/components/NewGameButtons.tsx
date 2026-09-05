@@ -34,12 +34,15 @@ export const NewGameButtons = () => {
       variant === "TRIVIA" ? router.push("/trivia-setup") : pick("SOLO"),
     [variant, router, pick]
   );
+  // Friendly skips the difficulty picker entirely: go straight to the waiting
+  // screen, which creates the game (random Regular/Hard) and pops the share
+  // sheet. One tap → share a link.
   const playFriendly = useCallback(
     () =>
       variant === "TRIVIA"
         ? router.push("/trivia-setup?mode=friendly")
-        : pick("FRIENDLY"),
-    [variant, router, pick]
+        : router.push("/invite-friend?create=1&autoShare=1"),
+    [variant, router]
   );
   const playRanked = useCallback(
     () =>

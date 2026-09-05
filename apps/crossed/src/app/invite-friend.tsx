@@ -1,39 +1,91 @@
 import { Alert, Share, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useGame } from "../hooks/use-game";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { Image } from "expo-image";
 import { avatars } from "../lib/images";
 import { useMyProfile } from "../hooks/use-my-profile";
+import { useVariant } from "../hooks/use-variant";
+import { useGameGate } from "../hooks/use-subscription";
+import { events, trackEvent } from "../lib/track-event";
 import { WaitingSpinner } from "../components/WaitingSpinner";
 import { branch } from "../lib/branch";
 
 export default function InviteFriend() {
-  const { gameId, autoShare } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const paramGameId = params.gameId as string | undefined;
+  const autoShare = params.autoShare;
+  const create = params.create;
   const router = useRouter();
-  const autoShared = useRef(false);
-  const { game, abortGame } = useGame({
-    gameId: gameId as string | undefined,
-  });
-  const { myProfile } = useMyProfile();
   const navigation = useNavigation();
+  const { variant } = useVariant();
+  const { checkCanPlay } = useGameGate();
+  const { myProfile } = useMyProfile();
+
+  // gameId may arrive as a param (old flow) or be created here on the fly (new
+  // one-tap friendly flow), so it lives in state.
+  const [gameId, setGameId] = useState<string | undefined>(paramGameId);
+  const { game, abortGame, createFriendlyGame } = useGame({ gameId });
   const gamePlayState = game?.playState;
 
+  const creating = useRef(false);
+  const autoShared = useRef(false);
+  const leaving = useRef(false); // suppress the abort prompt on programmatic exits
+
+  // New friendly flow: no game passed in → create one now (random difficulty),
+  // so the difficulty picker is skipped and we land straight on this waiting
+  // screen. The screen's own spinner covers the create round-trip.
   useEffect(() => {
-    // if game has ended go back home
-    // if game is playing, go to game screen
+    if (gameId || create !== "1" || creating.current) return;
+    creating.current = true;
+    (async () => {
+      try {
+        const gate = await checkCanPlay();
+        if (!gate.allowed) {
+          trackEvent(events.GATE_BLOCKED, { mode: "FRIENDLY", variant });
+          leaving.current = true;
+          router.replace("/upgrade-to-pro");
+          return;
+        }
+        const difficulty = Math.random() < 0.5 ? "REGULAR" : "HARD";
+        trackEvent(events.DIFFICULTY_SELECTED, {
+          mode: "FRIENDLY",
+          variant,
+          difficulty,
+        });
+        const id = await createFriendlyGame({ variant, difficulty });
+        if (id) setGameId(id as string);
+        else {
+          Alert.alert("Something went wrong", "Please try again.");
+          leaving.current = true;
+          router.replace("/home");
+        }
+      } catch {
+        Alert.alert("Something went wrong", "Please try again.");
+        leaving.current = true;
+        router.replace("/home");
+      }
+    })();
+  }, [gameId, create, checkCanPlay, createFriendlyGame, variant, router]);
+
+  // Route out when the game state changes (opponent joined / game ended).
+  useEffect(() => {
+    if (leaving.current) return;
     if (navigation.isFocused()) {
       switch (gamePlayState) {
         case "COMPLETED":
+          leaving.current = true;
           Alert.alert("The game has ended");
-          router.push("/home");
+          router.replace("/home");
           break;
         case "ABORTED":
+          leaving.current = true;
           Alert.alert("The game was aborted");
-          router.push("/home");
+          router.replace("/home");
           break;
         case "PLAYING":
+          leaving.current = true;
           router.replace(`/game?gameId=${gameId}`);
           break;
         default:
@@ -69,18 +121,16 @@ export default function InviteFriend() {
       title: "Let's play",
       message: `Race me on Crossed 👉 ${link}`,
     });
-    // On the auto path (share sheet popped on arrival), don't nag if they
-    // dismiss — they're already sitting on the waiting screen with a manual
-    // "Invite a friend" button to try again.
+    // On the auto path (share sheet popped on arrival) don't nag if they
+    // dismiss — they're on the waiting screen with a manual button to retry.
     if (shared.action === Share.dismissedAction && !auto) {
       Alert.alert("Please invite a friend to play");
       return;
     }
   };
 
-  // Arriving from the friendly hero with autoShare=1: open the share sheet right
-  // away so "Send a Link" actually sends a link, then leave them on this
-  // waiting-for-opponent screen.
+  // Arriving with autoShare=1: pop the share sheet as soon as the game exists,
+  // so "Send a Link" actually sends a link, then stay on this waiting screen.
   useEffect(() => {
     if (autoShared.current) return;
     if (autoShare === "1" && gameId) {
@@ -90,10 +140,50 @@ export default function InviteFriend() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoShare, gameId]);
 
+  // Back (gesture / header button / hardware) should QUIT the match, not just
+  // leave a dangling waiting game behind. Confirm, abort, then let the nav go.
+  useEffect(() => {
+    const unsub = navigation.addListener("beforeRemove", (e: any) => {
+      // Allow programmatic exits (game started/ended) and the pre-game state
+      // where there's nothing to abort yet.
+      if (leaving.current || gamePlayState === "PLAYING" || !gameId) return;
+      e.preventDefault();
+      Alert.alert("Quit game?", "This ends the match for you and your friend.", [
+        { text: "Keep waiting", style: "cancel" },
+        {
+          text: "Quit",
+          style: "destructive",
+          onPress: async () => {
+            leaving.current = true;
+            try {
+              await abortGame();
+            } catch {
+              // proceed with leaving regardless
+            }
+            navigation.dispatch(e.data.action);
+          },
+        },
+      ]);
+    });
+    return unsub;
+  }, [navigation, gamePlayState, gameId, abortGame]);
+
   const exitGame = () => {
     Alert.alert("Exit Game?", "Are you sure?", [
       { text: "Keep waiting", style: "cancel" },
-      { text: "Exit", style: "destructive", onPress: () => abortGame() },
+      {
+        text: "Exit",
+        style: "destructive",
+        onPress: async () => {
+          leaving.current = true;
+          try {
+            await abortGame();
+          } catch {
+            // ignore
+          }
+          router.replace("/home");
+        },
+      },
     ]);
   };
 
