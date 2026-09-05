@@ -29,13 +29,11 @@ export const DailySection = () => {
           minHeight: TILE_MIN_HEIGHT,
         }}
       >
-        <View className="flex-row items-end">
-          <View style={{ width: FLAME_SLOT }}>
-            <Text style={{ fontSize: 26 }}>🔥</Text>
-          </View>
+        <View className="flex-row" style={{ alignItems: "baseline" }}>
+          <Text style={{ fontSize: 28, width: FLAME_SLOT }}>🔥</Text>
           <Text
             className="font-[jost700] text-crossed-gray-900"
-            style={{ fontSize: 34, lineHeight: 30 }}
+            style={{ fontSize: 34 }}
           >
             {current}
           </Text>
