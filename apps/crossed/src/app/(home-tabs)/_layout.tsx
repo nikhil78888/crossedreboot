@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
-import { Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Text, View } from "react-native";
 import { useAuth } from "../../hooks/use-auth";
 import { Image } from "expo-image";
 import { images } from "../../lib/images";
@@ -7,41 +8,65 @@ import { useDailyDone } from "../../hooks/use-daily-done";
 import colors from "../../lib/colors";
 
 // Daily tab icon: crossed swords + a bold red "!" badge when today's duel isn't
-// done yet — sized to be hard to miss.
-const DailyTabIcon = ({ showDot }: { showDot: boolean }) => (
-  <View style={{ width: 26, height: 22, alignItems: "center" }}>
-    <Text style={{ fontSize: 18 }}>⚔️</Text>
-    {showDot && (
-      <View
-        style={{
-          position: "absolute",
-          top: -7,
-          right: -9,
-          minWidth: 19,
-          height: 19,
-          borderRadius: 10,
-          backgroundColor: "#ef4444",
-          borderWidth: 2,
-          borderColor: "white",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 3,
-        }}
-      >
-        <Text
+// done yet. The badge gently pulses to pull the eye.
+const DailyTabIcon = ({ showDot }: { showDot: boolean }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!showDot) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.25,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [showDot, scale]);
+
+  return (
+    <View style={{ width: 26, height: 22, alignItems: "center" }}>
+      <Text style={{ fontSize: 18 }}>⚔️</Text>
+      {showDot && (
+        <Animated.View
           style={{
-            color: "white",
-            fontSize: 12,
-            fontWeight: "800",
-            lineHeight: 14,
+            position: "absolute",
+            top: -7,
+            right: -9,
+            minWidth: 19,
+            height: 19,
+            borderRadius: 10,
+            backgroundColor: "#ef4444",
+            borderWidth: 2,
+            borderColor: "white",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 3,
+            transform: [{ scale }],
           }}
         >
-          !
-        </Text>
-      </View>
-    )}
-  </View>
-);
+          <Text
+            style={{
+              color: "white",
+              fontSize: 12,
+              fontWeight: "800",
+              lineHeight: 14,
+            }}
+          >
+            !
+          </Text>
+        </Animated.View>
+      )}
+    </View>
+  );
+};
 
 export default function HomeLayout() {
   const { user } = useAuth();
