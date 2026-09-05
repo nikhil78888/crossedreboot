@@ -26,18 +26,18 @@ export const DailySection = () => {
           minHeight: TILE_MIN_HEIGHT,
         }}
       >
-        <Text style={{ fontSize: 22 }}>🔥</Text>
-        <View>
+        <View className="flex-row items-center">
+          <Text style={{ fontSize: 26 }}>🔥</Text>
           <Text
-            className="font-[jost700] text-crossed-gray-900"
+            className="ml-2 font-[jost700] text-crossed-gray-900"
             style={{ fontSize: 34, lineHeight: 36 }}
           >
             {current}
           </Text>
-          <Text className="mt-0.5 font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/50">
-            Day Play Streak
-          </Text>
         </View>
+        <Text className="font-[jost600] text-[12px] uppercase tracking-wide text-crossed-gray-900/50">
+          Day Play Streak
+        </Text>
       </View>
 
       {/* Daily Duel — the whole tile is the CTA. */}

@@ -93,7 +93,7 @@ export const NewGameButtons = () => {
       {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard.
           A touch of vertical padding so the bar isn't jammed between the tiles
           above and the hero below. */}
-      <View className="mb-4 py-1.5">
+      <View className="mb-5 mt-3">
         <VariantTabs />
       </View>
 
