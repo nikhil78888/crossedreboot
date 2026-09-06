@@ -142,31 +142,6 @@ export const NewGameButtons = () => {
           marginTop: 12,
         }}
       >
-        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => {
-              trackEvent(events.START_FRIENDLY_GAME_CLICK);
-              playFriendly();
-            }}
-            style={{ flex: 1, padding: 14 }}
-          >
-            <Image
-              source={images.play_friendly}
-              style={{ height: 44, width: 44 }}
-              contentFit="contain"
-            />
-            <Text
-              className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
-              numberOfLines={3}
-            >
-              Play a Friend
-            </Text>
-            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Text a link to play live.
-            </Text>
-          </TouchableOpacity>
-        </View>
         <View
           style={{
             flex: 1,
@@ -195,6 +170,31 @@ export const NewGameButtons = () => {
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
               Compete worldwide & climb the leaderboard.
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              playFriendly();
+            }}
+            style={{ flex: 1, padding: 14 }}
+          >
+            <Image
+              source={images.play_friendly}
+              style={{ height: 44, width: 44 }}
+              contentFit="contain"
+            />
+            <Text
+              className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
+              numberOfLines={3}
+            >
+              Play a Friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Text a link to play live.
             </Text>
           </TouchableOpacity>
         </View>
