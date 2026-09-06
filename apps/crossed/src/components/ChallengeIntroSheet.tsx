@@ -15,7 +15,7 @@ import { Button } from "./Button";
 const STEPS = [
   { emoji: "✏️", text: "Solve it solo" },
   { emoji: "⏱️", text: "Set the time to beat" },
-  { emoji: "📤", text: "Send it to a friend (optional)" },
+  { emoji: "📤", text: "Send it to a friend to beat" },
 ];
 
 export const ChallengeIntroSheet = ({
@@ -59,13 +59,13 @@ export const ChallengeIntroSheet = ({
               className="text-center font-[jost700] text-crossed-gray-900"
               style={{ fontSize: 22 }}
             >
-              Solo Game
+              Beat My Time
             </Text>
             <Text
               className="mt-2 text-center font-[jost500] text-crossed-gray-600"
               style={{ fontSize: 15 }}
             >
-              Play a crossword at your own pace and set your time.
+              Solve a puzzle at your own pace, then send it to a friend to beat.
             </Text>
 
             <View className="mt-6">
