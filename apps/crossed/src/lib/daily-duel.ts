@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabase";
-import { generateWordSearch } from "./word-search";
+import { generateWordSearch, wordSearchConfig } from "./word-search";
 
 // The Daily Duel: every day, a race against a funny-named "opponent" with a
 // preset time. It's fully deterministic from the calendar date — same opponent,
@@ -55,6 +55,21 @@ export type DuelMeta = {
   seconds: number; // the time to beat
 };
 
+// The opponent's time to beat, derived from the ACTUAL puzzle so it's never
+// unreasonable: it scales with the number of words to find (8 on the HARD 12×12
+// grid) at a brisk-but-human pace, plus a little orientation time, plus a small
+// deterministic day-to-day wiggle for variety. This replaces the old flat
+// 30–75s that ignored the puzzle — 30s for 8 reversed-grid words was effectively
+// impossible, while a high roll was a walkover.
+const BASE_SECONDS = 12; // initial scan / getting oriented
+const PER_WORD_SECONDS = 6.5; // brisk but human, per word, on a hard reversed grid
+export const duelSeconds = (seed: number): number => {
+  const { count } = wordSearchConfig("HARD");
+  const target = BASE_SECONDS + PER_WORD_SECONDS * count; // ~64s for 8 words
+  const wiggle = ((seed % 25) - 12) / 100; // -0.12 .. +0.12
+  return Math.round(target * (1 + wiggle)); // ~56–72s
+};
+
 export const duelMeta = (day: string = localDay()): DuelMeta => {
   const seed = seedFrom(day);
   return {
@@ -66,9 +81,7 @@ export const duelMeta = (day: string = localDay()): DuelMeta => {
     // can't get exactly, so the solve never registers (shows a bogus loss).
     variant: "WORD_SEARCH",
     opponent: CAST[seed % CAST.length],
-    // 30–75s: never so high it's a walkover, never so low it's impossible on a
-    // quick mini. Random-feeling but deterministic per day.
-    seconds: 30 + (seed % 46),
+    seconds: duelSeconds(seed),
   };
 };
 
@@ -106,8 +119,9 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-// v3: word-search-only + HARD difficulty — ignore earlier cached duels for today.
-const cacheKey = (day: string) => `daily:duelChallenge:v3:${day}`;
+// v4: time-to-beat now scales with the puzzle (see duelSeconds) — ignore duels
+// cached under the old flat-random time so today's card + ghost stay consistent.
+const cacheKey = (day: string) => `daily:duelChallenge:v4:${day}`;
 
 // Today's finished-duel result, so the card can show the player's time (and stop
 // offering a re-race) once they've completed it.
