@@ -100,44 +100,40 @@ export const NewGameButtons = () => {
         <VariantTabs />
       </View>
 
-      {/* Play a Friend — the HERO. Friend play is the retention engine (the
-          stickiest users are friend-pairs playing each other), so it leads. */}
+      {/* Beat My Time — the HERO. The async "play, then send it" challenge is the
+          friend mechanic that actually gets used (live friend matches sit at ~0,
+          async challenges are the real, growing usage), so it leads. */}
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => {
-          trackEvent(events.START_FRIENDLY_GAME_CLICK);
-          playFriendly();
-        }}
+        onPress={onChallengePress}
         className="rounded-2xl"
-        style={{ backgroundColor: "#ede9fe" }}
+        style={{ backgroundColor: "#dcfce7" }}
       >
         <View className="flex-row items-center p-5">
           <View className="flex-1 pr-2">
             <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-              Crossed is Meant to be Played With a Friend
+              Beat My Time
             </Text>
             <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-              Text a link to play a friend live
+              Solve a puzzle, then send it to a friend to beat.
             </Text>
             <View
               className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
-              style={{ backgroundColor: "#7c3aed" }}
+              style={{ backgroundColor: "#16a34a" }}
             >
-              <Text className="font-[jost700] text-[14px] text-white">
-                Send a Link
-              </Text>
+              <Text className="font-[jost700] text-[14px] text-white">Play</Text>
               <Text className="ml-1 text-white">→</Text>
             </View>
           </View>
           <Image
-            source={images.play_friendly}
-            style={{ height: 110, width: 116 }}
+            source={images.solo}
+            style={{ height: 104, width: 104 }}
             contentFit="contain"
           />
         </View>
       </TouchableOpacity>
 
-      {/* Play Ranked | Solo Game — half-width cards below the friend hero. */}
+      {/* Play a Friend (live) | Play Ranked — half-width cards below the hero. */}
       <View
         style={{
           flexDirection: "row",
@@ -146,6 +142,31 @@ export const NewGameButtons = () => {
           marginTop: 12,
         }}
       >
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#ede9fe" }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              playFriendly();
+            }}
+            style={{ flex: 1, padding: 14 }}
+          >
+            <Image
+              source={images.play_friendly}
+              style={{ height: 44, width: 44 }}
+              contentFit="contain"
+            />
+            <Text
+              className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
+              numberOfLines={3}
+            >
+              Play a Friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
+              Text a link to play live.
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View
           style={{
             flex: 1,
@@ -174,28 +195,6 @@ export const NewGameButtons = () => {
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
               Compete worldwide & climb the leaderboard.
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#dcfce7" }}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={onChallengePress}
-            style={{ flex: 1, padding: 14 }}
-          >
-            <Image
-              source={images.solo}
-              style={{ height: 44, width: 44 }}
-              contentFit="contain"
-            />
-            <Text
-              className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
-              numberOfLines={3}
-            >
-              Solo Game
-            </Text>
-            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Play on your own — then send it to a friend to beat.
             </Text>
           </TouchableOpacity>
         </View>
