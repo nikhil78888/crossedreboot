@@ -55,19 +55,26 @@ export type DuelMeta = {
   seconds: number; // the time to beat
 };
 
-// The opponent's time to beat, derived from the ACTUAL puzzle so it's never
-// unreasonable: it scales with the number of words to find (8 on the HARD 12×12
-// grid) at a brisk-but-human pace, plus a little orientation time, plus a small
-// deterministic day-to-day wiggle for variety. This replaces the old flat
-// 30–75s that ignored the puzzle — 30s for 8 reversed-grid words was effectively
-// impossible, while a high roll was a walkover.
-const BASE_SECONDS = 12; // initial scan / getting oriented
-const PER_WORD_SECONDS = 6.5; // brisk but human, per word, on a hard reversed grid
+// The opponent's time to beat, derived from the ACTUAL puzzle and VARIED day to
+// day so the duel is sometimes tough, sometimes easy.
+//
+// Grounded in real solve data: recorded word-search solves ran ~3–11s per word
+// with a wide skill spread (regular grid; the HARD 12×12 reversed grid is a bit
+// slower). So instead of one fixed pace, each day picks a per-word pace between a
+// FAST pace (a tight target only quick solvers beat) and a SLOW pace (a generous
+// target most players clear). Deterministic per day. Replaces the old flat
+// 30–75s that ignored the puzzle entirely (30s for 8 reversed-grid words was
+// effectively impossible). Re-tune the paces as real HARD solve times accumulate.
+const BASE_SECONDS = 10; // initial scan / getting oriented
+const PACE_FAST = 6.5; // seconds/word on a hard day → tough to beat
+const PACE_SLOW = 11.5; // seconds/word on an easy day → most people beat it
 export const duelSeconds = (seed: number): number => {
   const { count } = wordSearchConfig("HARD");
-  const target = BASE_SECONDS + PER_WORD_SECONDS * count; // ~64s for 8 words
-  const wiggle = ((seed % 25) - 12) / 100; // -0.12 .. +0.12
-  return Math.round(target * (1 + wiggle)); // ~56–72s
+  // Which "kind of day" it is, 0 (hardest) .. 1 (easiest). Uses a shifted slice
+  // of the seed so difficulty isn't correlated with the opponent pick.
+  const dayFactor = ((seed >>> 3) % 1000) / 1000;
+  const perWord = PACE_FAST + dayFactor * (PACE_SLOW - PACE_FAST);
+  return Math.round(BASE_SECONDS + perWord * count); // ~62s (hard) .. ~102s (easy)
 };
 
 export const duelMeta = (day: string = localDay()): DuelMeta => {
@@ -119,9 +126,10 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-// v4: time-to-beat now scales with the puzzle (see duelSeconds) — ignore duels
-// cached under the old flat-random time so today's card + ghost stay consistent.
-const cacheKey = (day: string) => `daily:duelChallenge:v4:${day}`;
+// v5: time-to-beat now varies by day between a tough and an easy target (see
+// duelSeconds) — ignore duels cached under an earlier time so today's card +
+// ghost stay consistent.
+const cacheKey = (day: string) => `daily:duelChallenge:v5:${day}`;
 
 // Today's finished-duel result, so the card can show the player's time (and stop
 // offering a re-race) once they've completed it.
