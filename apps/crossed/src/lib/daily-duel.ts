@@ -68,27 +68,37 @@ export type DuelMeta = {
 const BASE_SECONDS = 10; // initial scan / getting oriented
 const PACE_FAST = 6.5; // seconds/word on a hard day → tough to beat
 const PACE_SLOW = 11.5; // seconds/word on an easy day → most people beat it
-export const duelSeconds = (seed: number): number => {
-  const { count } = wordSearchConfig("HARD");
-  // Which "kind of day" it is, 0 (hardest) .. 1 (easiest). Uses a shifted slice
-  // of the seed so difficulty isn't correlated with the opponent pick.
+
+// The day's variant — alternate crossword / word search so it doesn't feel
+// samey. Deterministic per day; a shifted seed slice keeps it uncorrelated with
+// the opponent pick and the difficulty-of-day. It's a pure ghost race (solve →
+// get a time; don't solve → lose, no time), which works the same for both — so
+// the crossword doesn't need to be easy, just like a hard word search.
+const duelVariant = (seed: number): DuelVariant =>
+  (seed >>> 5) % 2 === 0 ? "WORD_SEARCH" : "CROSSWORD";
+
+export const duelSeconds = (seed: number, variant: DuelVariant): number => {
+  // Which "kind of day" it is, 0 (hardest) .. 1 (easiest). Shifted seed slice so
+  // difficulty isn't correlated with the opponent or variant pick.
   const dayFactor = ((seed >>> 3) % 1000) / 1000;
+  if (variant === "CROSSWORD") {
+    // A published 5×5 (~10 answers): tight ~45s .. generous ~95s.
+    return Math.round(45 + dayFactor * 50);
+  }
+  const { count } = wordSearchConfig("HARD");
   const perWord = PACE_FAST + dayFactor * (PACE_SLOW - PACE_FAST);
   return Math.round(BASE_SECONDS + perWord * count); // ~62s (hard) .. ~102s (easy)
 };
 
 export const duelMeta = (day: string = localDay()): DuelMeta => {
   const seed = seedFrom(day);
+  const variant = duelVariant(seed);
   return {
     day,
     seed,
-    // Word-search only for now: it's always completable (you can find every
-    // word), so the race reliably registers a solve time. Crossword duels need a
-    // curated *easy* pool first — a random published 5×5 can have answers you
-    // can't get exactly, so the solve never registers (shows a bogus loss).
-    variant: "WORD_SEARCH",
+    variant,
     opponent: CAST[seed % CAST.length],
-    seconds: duelSeconds(seed),
+    seconds: duelSeconds(seed, variant),
   };
 };
 
@@ -126,10 +136,9 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-// v5: time-to-beat now varies by day between a tough and an easy target (see
-// duelSeconds) — ignore duels cached under an earlier time so today's card +
-// ghost stay consistent.
-const cacheKey = (day: string) => `daily:duelChallenge:v5:${day}`;
+// v6: the duel now alternates crossword / word search by day — ignore duels
+// cached under the word-search-only versions so today matches the new variant.
+const cacheKey = (day: string) => `daily:duelChallenge:v6:${day}`;
 
 // Today's finished-duel result, so the card can show the player's time (and stop
 // offering a re-race) once they've completed it.
