@@ -55,7 +55,11 @@ gameRouter.get("/daily-rank", async (req, res) => {
       ] as
         | { challengerId?: string | null; name?: string | null; seconds?: number }
         | undefined;
-      if (!ch || ch.challengerId != null || !ch.name) continue; // not a daily duel
+      // Daily duel = system challenge (challengerId null) with a CAST opponent
+      // name. Exclude the reengagement "the record" challenge (also challengerId
+      // null) so it doesn't create its own bogus one-person board.
+      if (!ch || ch.challengerId != null || !ch.name || ch.name === "the record")
+        continue;
       const human = (g.players ?? []).find((p) => p.type !== "BOT");
       if (!human || isTest(human.username)) continue;
       const solved = (
