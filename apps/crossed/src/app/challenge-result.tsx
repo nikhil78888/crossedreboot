@@ -143,16 +143,27 @@ export default function ChallengeResult() {
         </View>
       </View>
 
-      {/* The Daily Duel is a once-a-day thing — no "play another", just Done. */}
+      {/* Daily Duel: finishers go straight to today's ranking; a non-finish
+          (no time) has nothing to rank, so just Done. */}
       {isDaily ? (
         <View className="mt-10">
-          <Button
-            intent="primary"
-            size="xl"
-            rounded="full"
-            label="Done"
-            onPress={() => router.replace("/home")}
-          />
+          {youSolved ? (
+            <Button
+              intent="primary"
+              size="xl"
+              rounded="full"
+              label="See Where You Rank →"
+              onPress={() => router.replace("/daily-leaderboard")}
+            />
+          ) : (
+            <Button
+              intent="primary"
+              size="xl"
+              rounded="full"
+              label="Done"
+              onPress={() => router.replace("/home")}
+            />
+          )}
         </View>
       ) : (
         <>

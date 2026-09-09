@@ -271,6 +271,10 @@ export default function IndexLayout() {
           options={{ headerShown: false, gestureEnabled: false }}
         />
         <Stack.Screen
+          name="daily-leaderboard"
+          options={{ headerTitle: "Daily Ranking" }}
+        />
+        <Stack.Screen
           name="feedback"
           options={{
             headerTitle: "Feedback",

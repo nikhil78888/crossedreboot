@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useDaily } from "../../hooks/use-daily";
 import { fmtSeconds } from "../../lib/daily-duel";
 import { Button } from "../../components/Button";
@@ -6,6 +7,7 @@ import { Button } from "../../components/Button";
 // The Daily Duel tab: race a funny-named opponent whose time is preset for the
 // day. Once finished, it just shows the player's time (no re-race).
 export default function DailyScreen() {
+  const router = useRouter();
   const { meta, result, starting, startDuel } = useDaily();
   const done = result != null;
   const variantLabel =
@@ -41,6 +43,17 @@ export default function DailyScreen() {
           <Text className="mt-1 text-center font-[jost500] text-[14px] text-crossed-gray-400">
             Come back tomorrow for a new duel.
           </Text>
+          {result?.seconds != null && (
+            <View className="mt-8 w-full">
+              <Button
+                intent="primary"
+                size="xl"
+                rounded="full"
+                label="See Today's Ranking"
+                onPress={() => router.push("/daily-leaderboard")}
+              />
+            </View>
+          )}
         </View>
       ) : (
         <View className="mt-6 items-center">
