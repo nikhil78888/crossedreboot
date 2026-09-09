@@ -1,13 +1,23 @@
 import useSWR from "swr";
 import axios from "axios";
 
+export type DailyRankEntry = {
+  profileId: string;
+  username: string | null;
+  avatar: string | null;
+  seconds: number;
+  rank: number;
+  isYou: boolean;
+};
+
 export type DailyRank = {
   played: boolean;
-  yourSeconds?: number;
-  rank?: number;
+  yourSeconds?: number | null;
+  rank?: number | null;
   total?: number;
-  percentile?: number; // "top X%" (rank / total)
+  percentile?: number | null; // "top X%" (rank / total)
   beatPct?: number; // "faster than Y% of players"
+  entries?: DailyRankEntry[];
 };
 
 // Your standing on today's daily duel — rank + percentile among everyone who

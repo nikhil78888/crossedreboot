@@ -22,7 +22,7 @@ gameRouter.get("/daily-rank", async (req, res) => {
     const { data: games } = await supabase
       .from("games")
       .select(
-        "id, gameVariant, gameState, createdAt, players:profiles!gamePlayers(id,type,username)"
+        "id, gameVariant, gameState, createdAt, players:profiles!gamePlayers(id,type,username,avatar)"
       )
       .eq("gameType", "FRIENDLY")
       .gte("createdAt", since);
@@ -32,12 +32,23 @@ gameRouter.get("/daily-rank", async (req, res) => {
       return !n || /^player\./.test(n) || ["nigelman", "leomans"].includes(n);
     };
 
-    type Entry = { key: string; profileId: string; seconds: number };
+    type Entry = {
+      key: string;
+      profileId: string;
+      username: string | null;
+      avatar: string | null;
+      seconds: number;
+    };
     const entries: Entry[] = [];
     for (const g of (games ?? []) as unknown as {
       gameVariant: string;
       gameState: Record<string, unknown> | null;
-      players: { id: string; type: string; username: string | null }[];
+      players: {
+        id: string;
+        type: string;
+        username: string | null;
+        avatar: string | null;
+      }[];
     }[]) {
       const ch = (g.gameState as Record<string, unknown> | null)?.[
         "__challenge"
@@ -54,11 +65,13 @@ gameRouter.get("/daily-rank", async (req, res) => {
       entries.push({
         key: `${g.gameVariant}|${ch.name}|${ch.seconds}`,
         profileId: human.id,
+        username: human.username,
+        avatar: human.avatar,
         seconds: Math.round(solved),
       });
     }
 
-    // The caller's own best finished time.
+    // The caller's own best finished time — anchors which puzzle to rank against.
     const mine = entries
       .filter((e) => e.profileId === myId)
       .sort((a, b) => a.seconds - b.seconds)[0];
@@ -66,26 +79,50 @@ gameRouter.get("/daily-rank", async (req, res) => {
       res.send({ played: false });
       return;
     }
-    // Best time per player on the SAME puzzle.
-    const best = new Map<string, number>();
+
+    // Best time per player on the SAME puzzle, sorted fastest first.
+    const bestByPlayer = new Map<string, Entry>();
     for (const e of entries) {
       if (e.key !== mine.key) continue;
-      const cur = best.get(e.profileId);
-      if (cur == null || e.seconds < cur) best.set(e.profileId, e.seconds);
+      const cur = bestByPlayer.get(e.profileId);
+      if (!cur || e.seconds < cur.seconds) bestByPlayer.set(e.profileId, e);
     }
-    const times = [...best.values()];
-    const total = times.length;
-    const rank = times.filter((t) => t < mine.seconds).length + 1;
-    // "top X%": rank 3 of 20 -> 15%. Also how many you beat.
-    const percentile = Math.max(1, Math.round((100 * rank) / total));
-    const beatPct = total > 1 ? Math.round((100 * (total - rank)) / (total - 1)) : 100;
+    const sorted = [...bestByPlayer.values()].sort(
+      (a, b) => a.seconds - b.seconds
+    );
+    // Competition ranking: equal times share a rank.
+    let rank = 0;
+    let lastSec: number | null = null;
+    const list = sorted.map((e, i) => {
+      if (lastSec == null || e.seconds !== lastSec) {
+        rank = i + 1;
+        lastSec = e.seconds;
+      }
+      return {
+        profileId: e.profileId,
+        username: e.username,
+        avatar: e.avatar,
+        seconds: e.seconds,
+        rank,
+        isYou: e.profileId === myId,
+      };
+    });
+    const meRow = list.find((r) => r.isYou);
+    const total = list.length;
+    const myRank = meRow?.rank ?? null;
+    const percentile = myRank ? Math.max(1, Math.round((100 * myRank) / total)) : null;
+    const beatPct =
+      myRank && total > 1
+        ? Math.round((100 * (total - myRank)) / (total - 1))
+        : 100;
     res.send({
       played: true,
-      yourSeconds: mine.seconds,
-      rank,
+      yourSeconds: meRow?.seconds ?? null,
+      rank: myRank,
       total,
       percentile,
       beatPct,
+      entries: list.slice(0, 100),
     });
   } catch (error) {
     console.log({ dailyRankError: error });
