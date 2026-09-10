@@ -430,6 +430,11 @@ export const CrosswordGrid = ({
   // the final state (with the solve time) itself, so we mustn't clobber it.
   useEffect(() => {
     if (!isGameFinished || !game || !gameState || !myProfile) return;
+    // If the player solved, the solve path already wrote the final state WITH
+    // the solve time. Flushing the plain grid here would clobber solvedInSeconds
+    // (the game.gameState check below is unreliable — it can be a stale snapshot
+    // that doesn't yet reflect the solve write). solvedRef is set synchronously.
+    if (solvedRef.current) return;
     const alreadySolved = (
       game.gameState?.[myProfile.id] as
         | { solvedInSeconds?: number | null }
