@@ -54,6 +54,10 @@ export const CrosswordGrid = ({
   const { finishGame, game, opponent } = useGame({ gameId });
   // Guards the once-only "bot finished first, end the match" call in bot-win games.
   const botFinishedRef = useRef(false);
+  // Set the instant the player solves, so the ghost/bot write loop stops
+  // immediately and can't clobber the just-written solvedInSeconds (race that
+  // was intermittently dropping solve times from the DB).
+  const solvedRef = useRef(false);
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
@@ -224,6 +228,12 @@ export const CrosswordGrid = ({
           const cellsToFill = totalBotFillableCells - botFilledCells;
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {
+              // Player already solved — stop; another ghost write here would
+              // clobber their solvedInSeconds in the shared gameState blob.
+              if (solvedRef.current) {
+                clearInterval(interval);
+                return;
+              }
               const solution = botGameState?.solution;
               if (!solution) return;
               const rowToFillIndex = solution.findIndex((row) =>
@@ -369,6 +379,8 @@ export const CrosswordGrid = ({
       JSON.stringify(gameState.solution) ===
         JSON.stringify(game.crossword?.solution);
     if (isCorrectSolution) {
+      // Freeze the ghost immediately so its next write can't overwrite the solve.
+      solvedRef.current = true;
       if (progressTimer.current) {
         clearTimeout(progressTimer.current);
         progressTimer.current = null;

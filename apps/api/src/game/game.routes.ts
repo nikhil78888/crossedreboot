@@ -61,7 +61,7 @@ gameRouter.get("/daily-rank", async (req, res) => {
       if (!ch || ch.challengerId != null || !ch.name || ch.name === "the record")
         continue;
       const human = (g.players ?? []).find((p) => p.type !== "BOT");
-      if (!human || isTest(human.username)) continue;
+      if (!human) continue; // keep test accounts here; filtered from the list below
       const solved = (
         g.gameState as Record<string, { solvedInSeconds?: number }> | null
       )?.[human.id]?.solvedInSeconds;
@@ -84,10 +84,12 @@ gameRouter.get("/daily-rank", async (req, res) => {
       return;
     }
 
-    // Best time per player on the SAME puzzle, sorted fastest first.
+    // Best time per player on the SAME puzzle, sorted fastest first. Other test
+    // accounts are hidden from the board; the caller always sees themselves.
     const bestByPlayer = new Map<string, Entry>();
     for (const e of entries) {
       if (e.key !== mine.key) continue;
+      if (isTest(e.username) && e.profileId !== myId) continue;
       const cur = bestByPlayer.get(e.profileId);
       if (!cur || e.seconds < cur.seconds) bestByPlayer.set(e.profileId, e);
     }
