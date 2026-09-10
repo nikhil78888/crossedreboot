@@ -40,7 +40,13 @@ gameRouter.get("/daily-rank", async (req, res) => {
       seconds: number;
     };
     const entries: Entry[] = [];
+    // The caller's MOST RECENT duel (finished or not) — anchors the board to
+    // TODAY's puzzle, not their fastest-ever in the window (which was showing a
+    // stale yesterday result when today's solve hadn't registered).
+    let myLatest: { createdAt: string; key: string; seconds: number | null } | null =
+      null;
     for (const g of (games ?? []) as unknown as {
+      createdAt: string;
       gameVariant: string;
       gameState: Record<string, unknown> | null;
       players: {
@@ -62,33 +68,37 @@ gameRouter.get("/daily-rank", async (req, res) => {
         continue;
       const human = (g.players ?? []).find((p) => p.type !== "BOT");
       if (!human) continue; // keep test accounts here; filtered from the list below
+      const key = `${g.gameVariant}|${ch.name}|${ch.seconds}`;
       const solved = (
         g.gameState as Record<string, { solvedInSeconds?: number }> | null
       )?.[human.id]?.solvedInSeconds;
-      if (solved == null || solved <= 0) continue; // didn't finish
+      const secs = solved != null && solved > 0 ? Math.round(solved) : null;
+      if (human.id === myId && (!myLatest || g.createdAt > myLatest.createdAt)) {
+        myLatest = { createdAt: g.createdAt, key, seconds: secs };
+      }
+      if (secs == null) continue; // didn't finish → not a ranked entry
       entries.push({
-        key: `${g.gameVariant}|${ch.name}|${ch.seconds}`,
+        key,
         profileId: human.id,
         username: human.username,
         avatar: human.avatar,
-        seconds: Math.round(solved),
+        seconds: secs,
       });
     }
 
-    // The caller's own best finished time — anchors which puzzle to rank against.
-    const mine = entries
-      .filter((e) => e.profileId === myId)
-      .sort((a, b) => a.seconds - b.seconds)[0];
-    if (!mine) {
+    // No completed duel today → prompt them to finish it (don't show yesterday).
+    if (!myLatest || myLatest.seconds == null) {
       res.send({ played: false });
       return;
     }
+    const myKey = myLatest.key;
+    const mySeconds = myLatest.seconds;
 
-    // Best time per player on the SAME puzzle, sorted fastest first. Other test
+    // Best time per player on TODAY's puzzle, sorted fastest first. Other test
     // accounts are hidden from the board; the caller always sees themselves.
     const bestByPlayer = new Map<string, Entry>();
     for (const e of entries) {
-      if (e.key !== mine.key) continue;
+      if (e.key !== myKey) continue;
       if (isTest(e.username) && e.profileId !== myId) continue;
       const cur = bestByPlayer.get(e.profileId);
       if (!cur || e.seconds < cur.seconds) bestByPlayer.set(e.profileId, e);
