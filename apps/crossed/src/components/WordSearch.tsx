@@ -172,6 +172,14 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
       !startAtMsForBot
     )
       return;
+    // Ghost race (daily duel / challenge): opponent bar comes from the timeline
+    // in use-game, so the ghost must NOT write to the shared gameState — those
+    // writes were racing with and clobbering the player's own solve.
+    if (
+      (game.gameState as { __challenge?: { timeline?: unknown } } | undefined)
+        ?.__challenge?.timeline
+    )
+      return;
     const total = puzzle.words.length;
     const duration = game.gameDurationInSeconds || 300;
     const botId = bot.id;

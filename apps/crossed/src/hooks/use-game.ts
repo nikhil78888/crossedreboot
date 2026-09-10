@@ -12,7 +12,7 @@ import { setConnectionStatus, mapChannelStatus } from "../lib/connection-status"
 import { resolveAndLogClues, extractWordSlots } from "../lib/clue-resolver";
 import { Crossword, Json, GameDifficulty } from "types-and-validators";
 import { events, trackEvent } from "../lib/track-event";
-import { loadChallenge } from "../lib/challenge-utils";
+import { loadChallenge, ghostProgressAt } from "../lib/challenge-utils";
 import {
   generateWordSearch,
   wordSearchProgress,
@@ -1012,14 +1012,27 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
       opponentUsername = opponent.username;
       // A challenge ghost race is driven by a bot internally, but the player is
       // really racing the challenger — show THEIR name, not the bot's.
-      const challengeName = (
-        game.gameState as { __challenge?: { name?: string | null } } | undefined
-      )?.__challenge?.name;
-      if (challengeName) opponentUsername = challengeName;
+      const challengeMeta = (
+        game.gameState as
+          | { __challenge?: { name?: string | null; timeline?: { t: number; p: number }[] } }
+          | undefined
+      )?.__challenge;
+      if (challengeMeta?.name) opponentUsername = challengeMeta.name;
       const oppState = game.gameState?.[opponent.id] as
         | { solution?: unknown; found?: string[]; answers?: Record<string, number> }
         | undefined;
-      if (oppState) {
+      if (challengeMeta?.timeline && (game.startedAt || game.createdAt)) {
+        // Ghost race (daily duel / challenge): drive the opponent bar from the
+        // recorded timeline, computed locally. This means the ghost NEVER writes
+        // to the shared gameState — which was racing with and clobbering the
+        // player's own solve (their solved grid getting reverted + solve time
+        // dropped). Recomputes on every render (the player types constantly).
+        const startMs = new Date(
+          `${game.startedAt ?? game.createdAt}Z`
+        ).getTime();
+        const elapsedSec = Math.max(0, Math.round((Date.now() - startMs) / 1000));
+        opponentProgress = ghostProgressAt(challengeMeta.timeline, elapsedSec);
+      } else if (oppState) {
         // Progress is variant-specific: grid score for crossword/sudoku, words
         // found for word search, % correct for trivia.
         if (game?.gameVariant === "WORD_SEARCH") {

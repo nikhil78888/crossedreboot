@@ -110,6 +110,15 @@ export const CrosswordGrid = ({
     if (paused) return; // frozen during the tutorial — the bot doesn't move
     if (game && crossword && opponent) {
       if (opponent?.type === "BOT") {
+        // Ghost race (daily duel / challenge): the opponent bar is now driven
+        // by the recorded timeline in use-game, so the ghost must NOT write to
+        // the shared gameState here — those writes were racing with and
+        // clobbering the player's own solve (reverting their grid + dropping the
+        // solve time). Skip all ghost writes for challenge games.
+        const isGhostRace = !!(
+          game.gameState as { __challenge?: { timeline?: unknown } } | undefined
+        )?.__challenge?.timeline;
+        if (isGhostRace) return;
         const botGameState = game?.gameState?.[opponent.id];
         if (!botGameState) {
           // initialize game state
