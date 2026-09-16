@@ -537,6 +537,8 @@ export interface Database {
           userId: string
           username: string
           lastSeenAt: string | null
+          seasonScore: number
+          seasonKey: string | null
         }
         Insert: {
           avatar?: string | null
@@ -561,6 +563,8 @@ export interface Database {
           userId: string
           username: string
           lastSeenAt?: string | null
+          seasonScore?: number
+          seasonKey?: string | null
         }
         Update: {
           avatar?: string | null
@@ -585,6 +589,8 @@ export interface Database {
           userId?: string
           username?: string
           lastSeenAt?: string | null
+          seasonScore?: number
+          seasonKey?: string | null
         }
         Relationships: []
       }

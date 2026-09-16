@@ -81,8 +81,11 @@ export default function MyAccount() {
         <Text className="mt-4 font-[jost500] text-cr-gray-800 text-2xl">
           @{myProfile?.username}
         </Text>
-        <View className="mt-4">
+        <View className="mt-4 items-center">
           <RankBadge rating={myProfile?.eloRating} size="lg" />
+          <Text className="mt-1.5 font-[jost500] text-[13px] text-cr-gray-500">
+            Overall rating {Math.round(myProfile?.eloRating ?? 1000)}
+          </Text>
         </View>
         <View className="mt-5 w-full px-1">
           <Button

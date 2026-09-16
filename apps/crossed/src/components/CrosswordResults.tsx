@@ -292,11 +292,21 @@ const PlayerResultCard = ({
 }) => {
   const router = useRouter();
   const isWinner = player.id === game.winnerId;
-  const currentRating =
+  const prev = parseInt(previousRating, 10) || 0;
+  let currentRating =
     ratingForVariant(player, game.gameVariant) ?? player.eloRating;
-  const delta = Math.round(
-    (currentRating ?? 0) - (parseInt(previousRating, 10) || 0)
-  );
+  let delta = Math.round((currentRating ?? 0) - prev);
+  // Bots hold a fixed anchor rating (never drifts), which would render as a
+  // static "1000 → 1000" and give the opponent away. Show a plausible,
+  // deterministic rating move instead: the sign follows the result, the
+  // magnitude is seeded off the game id so it's stable across re-renders.
+  if ((player as { type?: string }).type === "BOT") {
+    let h = 7;
+    for (const ch of game.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const mag = 6 + (h % 13); // 6..18, like a real Glicko move
+    delta = isWinner ? mag : -mag;
+    currentRating = (prev || 1000) + delta;
+  }
   const canViewAnswers = hasAnswerGrid(game.gameVariant);
   return (
     <TouchableOpacity

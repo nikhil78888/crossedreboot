@@ -1,14 +1,16 @@
 import { supabase } from "./lib/supabase";
+import { seasonKeyFor } from "./season";
 
-// Awards MONTHLY_SEASON medals to the top 10% of the ELO leaderboard once a
+// Awards MONTHLY_SEASON medals to the top 10% of the SEASON leaderboard once a
 // calendar month closes — the monthly "season" recognition. Runs hourly; it's a
 // no-op after the month's medals exist (checked up front) and every write is
 // idempotent, so it's safe to run repeatedly and on multiple replicas.
 //
-// Ranking is by rating (the same ladder the leaderboard shows), not by wins. We
-// use the primary CROSSWORD rating — the default board — and snapshot the current
-// standings when the month rolls over (ratings are all-time and don't reset, so
-// the standing at rollover is the season's finishing order).
+// Ranked by the season rating (profiles.seasonScore) for the just-closed month —
+// the same value the leaderboard's Season view showed. The season rating resets
+// lazily on each player's first ranked game of the new month, so we read the
+// standings promptly at rollover: a player whose seasonKey still equals the
+// closed month hasn't reset yet, which is the finishing order we want.
 
 const HOUR = 60 * 60 * 1000;
 const MIN_PARTICIPANTS = 10; // below this, "top 10%" isn't meaningful
@@ -66,19 +68,19 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
     .eq("periodKey", periodKey);
   if ((existing || 0) > 0) return;
 
-  // Ranked (has-played) humans by crossword rating, best first — the same
-  // population and order as the global leaderboard.
-  const players = await fetchAll<{ id: string; eloRating: number }>(
+  // Players who finished the closed season (seasonKey still that month), by
+  // their final season rating, best first.
+  const players = await fetchAll<{ id: string; seasonScore: number }>(
     async (f, t) => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, eloRating")
+        .select("id, seasonScore")
         .neq("type", "BOT")
-        .or("eloRating.neq.1000,ratingDeviation.neq.350")
-        .order("eloRating", { ascending: false })
+        .eq("seasonKey", seasonKeyFor(periodKey))
+        .order("seasonScore", { ascending: false })
         .range(f, t);
       return {
-        data: (data as { id: string; eloRating: number }[]) || [],
+        data: (data as { id: string; seasonScore: number }[]) || [],
       };
     }
   );
@@ -93,9 +95,9 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
   let last: number | null = null;
   const rows: Record<string, unknown>[] = [];
   players.forEach((p, i) => {
-    if (last === null || p.eloRating !== last) {
+    if (last === null || p.seasonScore !== last) {
       rank = i + 1;
-      last = p.eloRating;
+      last = p.seasonScore;
     }
     if (rank <= cutoffRank) {
       rows.push({

@@ -30,3 +30,17 @@ grant insert, delete on "public"."medals" to "service_role";
 
 create index if not exists "medals_profileId_idx"
   on "public"."medals" ("profileId");
+
+-- Monthly season rating. seasonScore is a rating that RESETS to 1000 on the 1st
+-- of each month and moves by the same per-game delta as the player's lifetime
+-- rating; the leaderboard's Season view ranks by it. seasonKey is the month the
+-- score belongs to ('YYYY-MM'); a stale key triggers a lazy reset in
+-- game.service on the player's first ranked game of the new month. The lifetime
+-- rating (profiles.eloRating & per-variant columns) is untouched and persists.
+alter table "public"."profiles"
+  add column if not exists "seasonScore" integer not null default 0;
+alter table "public"."profiles"
+  add column if not exists "seasonKey" text;
+
+create index if not exists "profiles_season_idx"
+  on "public"."profiles" ("seasonKey", "seasonScore" desc);
