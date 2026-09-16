@@ -1,5 +1,6 @@
 import { supabase } from "./lib/supabase";
 import { seasonKeyFor, isResetSeason } from "./season";
+import { ratingFieldsFor, ALL_VARIANTS } from "./rating-fields";
 
 // Awards MONTHLY_SEASON medals to the top 10% of the SEASON leaderboard once a
 // calendar month closes — the monthly "season" recognition. Runs hourly; it's a
@@ -51,61 +52,60 @@ async function fetchAll<T>(
   return out;
 }
 
-export const awardMonthlySeasonMedals = async (): Promise<void> => {
-  const now = new Date();
-  const prevStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
-  );
-  const periodKey = prevStart.toISOString().slice(0, 7); // 'YYYY-MM'
+// Award the top 10% of ONE variant's closed-month board. Medal type encodes the
+// variant ('MONTHLY_SEASON_CROSSWORD', …) so the (profileId, type, periodKey)
+// uniqueness lets a player earn one per variant. Reset months rank by that
+// variant's season rating; the launch month(s) rank by its lifetime rating.
+const awardVariant = async (
+  variant: (typeof ALL_VARIANTS)[number],
+  periodKey: string,
+  medalsDb: MedalsDb
+): Promise<number> => {
+  const type = `MONTHLY_SEASON_${variant}`;
+  const f = ratingFieldsFor(variant);
 
-  const medalsDb = supabase as unknown as MedalsDb;
-
-  // Already awarded for this month? Then nothing to do.
   const { count: existing } = await medalsDb
     .from("medals")
     .select("id", { count: "exact", head: true })
-    .eq("type", "MONTHLY_SEASON")
+    .eq("type", type)
     .eq("periodKey", periodKey);
-  if ((existing || 0) > 0) return;
+  if ((existing || 0) > 0) return 0;
 
-  // The closed month's finishing order. Reset months (FIRST_RESET_MONTH on) rank
-  // by the season rating; the launch month(s) before that ranked by lifetime
-  // rating, so award those the same way.
   const players: { id: string; score: number }[] = isResetSeason(periodKey)
-    ? await fetchAll<{ id: string; score: number }>(async (f, t) => {
+    ? await fetchAll<{ id: string; score: number }>(async (from, to) => {
         const { data } = await supabase
           .from("profiles")
-          .select("id, seasonScore")
+          .select(`id, s:${f.seasonScore}`)
           .neq("type", "BOT")
-          .eq("seasonKey", seasonKeyFor(periodKey))
-          .order("seasonScore", { ascending: false })
-          .range(f, t);
+          .eq(f.seasonKey, seasonKeyFor(periodKey))
+          .order(f.seasonScore, { ascending: false })
+          .range(from, to);
         return {
-          data: (
-            (data as { id: string; seasonScore: number }[]) || []
-          ).map((r) => ({ id: r.id, score: r.seasonScore })),
+          data: ((data as { id: string; s: number }[]) || []).map((r) => ({
+            id: r.id,
+            score: r.s,
+          })),
         };
       })
-    : await fetchAll<{ id: string; score: number }>(async (f, t) => {
+    : await fetchAll<{ id: string; score: number }>(async (from, to) => {
         const { data } = await supabase
           .from("profiles")
-          .select("id, eloRating")
+          .select(`id, r:${f.rating}`)
           .neq("type", "BOT")
-          .or("eloRating.neq.1000,ratingDeviation.neq.350")
-          .order("eloRating", { ascending: false })
-          .range(f, t);
+          .or(`${f.rating}.neq.1000,${f.rd}.neq.350`)
+          .order(f.rating, { ascending: false })
+          .range(from, to);
         return {
-          data: (
-            (data as { id: string; eloRating: number }[]) || []
-          ).map((r) => ({ id: r.id, score: Math.round(r.eloRating) })),
+          data: ((data as { id: string; r: number }[]) || []).map((r) => ({
+            id: r.id,
+            score: Math.round(r.r),
+          })),
         };
       });
 
   const total = players.length;
-  if (total < MIN_PARTICIPANTS) return; // too small a season to award
+  if (total < MIN_PARTICIPANTS) return 0; // too small a ladder to award
 
-  // Top 10% by competition rank (ties share a rank; a tie on the cutoff is
-  // included). cutoffRank = ceil(10% of the field).
   const cutoffRank = Math.max(1, Math.ceil(total * 0.1));
   let rank = 0;
   let last: number | null = null;
@@ -118,7 +118,7 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
     if (rank <= cutoffRank) {
       rows.push({
         profileId: p.id,
-        type: "MONTHLY_SEASON",
+        type,
         periodKey,
         rank,
         total,
@@ -126,19 +126,36 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
       });
     }
   });
-  if (!rows.length) return;
+  if (!rows.length) return 0;
 
   const { error } = await medalsDb.from("medals").upsert(rows, {
     onConflict: "profileId,type,periodKey",
     ignoreDuplicates: true,
   });
   if (error) {
-    console.log({ seasonMedalsUpsertError: error });
-    return;
+    console.log({ seasonMedalsUpsertError: error, variant });
+    return 0;
   }
-  console.log(
-    `[season-medals] awarded ${rows.length} MONTHLY_SEASON medals for ${periodKey} (field ${total})`
+  return rows.length;
+};
+
+export const awardMonthlySeasonMedals = async (): Promise<void> => {
+  const now = new Date();
+  const prevStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
   );
+  const periodKey = prevStart.toISOString().slice(0, 7); // 'YYYY-MM'
+
+  const medalsDb = supabase as unknown as MedalsDb;
+  let awarded = 0;
+  for (const variant of ALL_VARIANTS) {
+    awarded += await awardVariant(variant, periodKey, medalsDb);
+  }
+  if (awarded > 0) {
+    console.log(
+      `[season-medals] awarded ${awarded} MONTHLY_SEASON medals for ${periodKey}`
+    );
+  }
 };
 
 export const watchSeasonMedals = (): void => {

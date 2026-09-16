@@ -539,6 +539,12 @@ export interface Database {
           lastSeenAt: string | null
           seasonScore: number
           seasonKey: string | null
+          seasonScoreSudoku: number
+          seasonKeySudoku: string | null
+          seasonScoreWordSearch: number
+          seasonKeyWordSearch: string | null
+          seasonScoreTrivia: number
+          seasonKeyTrivia: string | null
         }
         Insert: {
           avatar?: string | null
@@ -565,6 +571,12 @@ export interface Database {
           lastSeenAt?: string | null
           seasonScore?: number
           seasonKey?: string | null
+          seasonScoreSudoku?: number
+          seasonKeySudoku?: string | null
+          seasonScoreWordSearch?: number
+          seasonKeyWordSearch?: string | null
+          seasonScoreTrivia?: number
+          seasonKeyTrivia?: string | null
         }
         Update: {
           avatar?: string | null
@@ -591,6 +603,12 @@ export interface Database {
           lastSeenAt?: string | null
           seasonScore?: number
           seasonKey?: string | null
+          seasonScoreSudoku?: number
+          seasonKeySudoku?: string | null
+          seasonScoreWordSearch?: number
+          seasonKeyWordSearch?: string | null
+          seasonScoreTrivia?: number
+          seasonKeyTrivia?: string | null
         }
         Relationships: []
       }

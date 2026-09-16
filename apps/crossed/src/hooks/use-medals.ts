@@ -4,17 +4,23 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type MedalType = "DAILY_DUEL" | "MONTHLY_SEASON";
-
+// 'DAILY_DUEL' or 'MONTHLY_SEASON_<VARIANT>' (e.g. MONTHLY_SEASON_CROSSWORD).
+// Legacy monthly medals are the bare 'MONTHLY_SEASON'.
 export type Medal = {
   id: string;
-  type: MedalType;
+  type: string;
   periodKey: string; // 'YYYY-MM-DD' (daily) | 'YYYY-MM' (monthly)
   rank: number | null;
   total: number | null;
   percentile: number | null;
   createdAt: string;
 };
+
+export const isSeasonMedal = (m: Medal) => m.type.startsWith("MONTHLY_SEASON");
+export const isDailyMedal = (m: Medal) => m.type === "DAILY_DUEL";
+// The variant a season medal is for ('' for legacy bare MONTHLY_SEASON).
+export const seasonMedalVariant = (m: Medal) =>
+  m.type.replace("MONTHLY_SEASON_", "").replace("MONTHLY_SEASON", "");
 
 // A player's earned medals (top-10% daily duels + top-10% monthly seasons),
 // newest first.

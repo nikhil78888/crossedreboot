@@ -408,17 +408,17 @@ export const applyRankedRatings = async (
     };
     if (resetSeason) {
       const player = players.find((pl) => pl.id === r.playerId);
-      const rec = player as unknown as {
-        seasonScore?: number;
-        seasonKey?: string;
-      };
-      // Season rating moves by the same amount the lifetime rating just did; a
-      // stale seasonKey (new month) resets the base to 1000.
+      const rec = player as unknown as Record<string, unknown>;
+      // This variant's season rating moves by the same amount its lifetime rating
+      // just did; a stale seasonKey (this variant not yet played this month)
+      // resets the base to 1000. Only this variant's season columns are touched.
       const delta = Math.round(r.rating) - Math.round(oldOf(r.playerId));
       const seasonBase =
-        rec?.seasonKey === seasonKey ? rec.seasonScore ?? SEASON_BASE : SEASON_BASE;
-      update.seasonScore = seasonBase + delta;
-      update.seasonKey = seasonKey;
+        rec?.[f.seasonKey] === seasonKey
+          ? (rec[f.seasonScore] as number) ?? SEASON_BASE
+          : SEASON_BASE;
+      update[f.seasonScore] = seasonBase + delta;
+      update[f.seasonKey] = seasonKey;
     }
 
     const { error } = await supabase
@@ -429,8 +429,8 @@ export const applyRankedRatings = async (
       console.log({ ratingUpdateError: error });
       const fallback: Record<string, unknown> = { [f.rating]: Math.round(r.rating) };
       if (resetSeason) {
-        fallback.seasonScore = update.seasonScore;
-        fallback.seasonKey = update.seasonKey;
+        fallback[f.seasonScore] = update[f.seasonScore];
+        fallback[f.seasonKey] = update[f.seasonKey];
       }
       await supabase
         .from("profiles")

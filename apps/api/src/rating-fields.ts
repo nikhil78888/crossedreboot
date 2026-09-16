@@ -2,23 +2,43 @@
 // independent ladder. Single source of truth for matchmaking, leaderboards,
 // and rating application.
 export const RATING_FIELDS = {
-  CROSSWORD: { rating: "eloRating", rd: "ratingDeviation", vol: "volatility" },
+  CROSSWORD: {
+    rating: "eloRating",
+    rd: "ratingDeviation",
+    vol: "volatility",
+    seasonScore: "seasonScore",
+    seasonKey: "seasonKey",
+  },
   SUDOKU: {
     rating: "eloRatingSudoku",
     rd: "ratingDeviationSudoku",
     vol: "volatilitySudoku",
+    seasonScore: "seasonScoreSudoku",
+    seasonKey: "seasonKeySudoku",
   },
   WORD_SEARCH: {
     rating: "eloRatingWordSearch",
     rd: "ratingDeviationWordSearch",
     vol: "volatilityWordSearch",
+    seasonScore: "seasonScoreWordSearch",
+    seasonKey: "seasonKeyWordSearch",
   },
   TRIVIA: {
     rating: "eloRatingTrivia",
     rd: "ratingDeviationTrivia",
     vol: "volatilityTrivia",
+    seasonScore: "seasonScoreTrivia",
+    seasonKey: "seasonKeyTrivia",
   },
 } as const;
+
+// All variants, for jobs that iterate every ladder (e.g. season medals).
+export const ALL_VARIANTS = [
+  "CROSSWORD",
+  "SUDOKU",
+  "WORD_SEARCH",
+  "TRIVIA",
+] as const;
 
 export const ratingFieldsFor = (variant: string | null | undefined) =>
   RATING_FIELDS[variant as keyof typeof RATING_FIELDS] ??

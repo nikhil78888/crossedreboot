@@ -37,10 +37,32 @@ create index if not exists "medals_profileId_idx"
 -- score belongs to ('YYYY-MM'); a stale key triggers a lazy reset in
 -- game.service on the player's first ranked game of the new month. The lifetime
 -- rating (profiles.eloRating & per-variant columns) is untouched and persists.
+-- Per-variant season rating: one (score, key) pair per ladder, mirroring the
+-- per-variant lifetime rating columns. seasonKey<Variant> is only set when that
+-- variant is played this season, so a variant's board = players who actually
+-- played it this month. (CROSSWORD reuses the base seasonScore/seasonKey names.)
 alter table "public"."profiles"
   add column if not exists "seasonScore" integer not null default 0;
 alter table "public"."profiles"
   add column if not exists "seasonKey" text;
+alter table "public"."profiles"
+  add column if not exists "seasonScoreSudoku" integer not null default 0;
+alter table "public"."profiles"
+  add column if not exists "seasonKeySudoku" text;
+alter table "public"."profiles"
+  add column if not exists "seasonScoreWordSearch" integer not null default 0;
+alter table "public"."profiles"
+  add column if not exists "seasonKeyWordSearch" text;
+alter table "public"."profiles"
+  add column if not exists "seasonScoreTrivia" integer not null default 0;
+alter table "public"."profiles"
+  add column if not exists "seasonKeyTrivia" text;
 
 create index if not exists "profiles_season_idx"
   on "public"."profiles" ("seasonKey", "seasonScore" desc);
+create index if not exists "profiles_season_sudoku_idx"
+  on "public"."profiles" ("seasonKeySudoku", "seasonScoreSudoku" desc);
+create index if not exists "profiles_season_wordsearch_idx"
+  on "public"."profiles" ("seasonKeyWordSearch", "seasonScoreWordSearch" desc);
+create index if not exists "profiles_season_trivia_idx"
+  on "public"."profiles" ("seasonKeyTrivia", "seasonScoreTrivia" desc);

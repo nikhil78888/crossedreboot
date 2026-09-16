@@ -110,20 +110,23 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
       });
     };
 
+    // The selected variant's rating/season columns.
+    const f = ratingFieldsFor(req.query.variant as string | undefined);
+
     let entries: SeasonRow[];
     let myRank: number | null;
     let myRating: number | null;
     let total = 0; // FULL board size (not the page) — the percentile denominator
 
     if (resetActive) {
-      // Reset season: rank by the monthly season rating.
+      // Reset season: rank by this variant's monthly season rating.
       const seasonKey = currentSeasonKey();
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, avatar, seasonScore, seasonKey")
+        .select(`id, username, avatar, sScore:${f.seasonScore}`)
         .neq("type", "BOT")
-        .eq("seasonKey", seasonKey)
-        .order("seasonScore", { ascending: false })
+        .eq(f.seasonKey, seasonKey)
+        .order(f.seasonScore, { ascending: false })
         .limit(limit);
       if (error) throw error;
       const rows =
@@ -131,42 +134,39 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
           id: string;
           username: string | null;
           avatar: string | null;
-          seasonScore: number;
+          sScore: number;
         }[]) || [];
-      const scoreById = new Map(rows.map((r) => [r.id, r.seasonScore]));
+      const scoreById = new Map(rows.map((r) => [r.id, r.sScore]));
       entries = rankEntries(rows, (r) => scoreById.get(r.id) ?? 0);
       const { count: t } = await supabase
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .neq("type", "BOT")
-        .eq("seasonKey", seasonKey);
+        .eq(f.seasonKey, seasonKey);
       total = t || entries.length;
       myRank = entries.find((e) => e.isYou)?.rank ?? null;
       myRating = entries.find((e) => e.isYou)?.seasonRating ?? null;
       if (profileId && myRank == null) {
         const { data: meRow } = await supabase
           .from("profiles")
-          .select("seasonScore, seasonKey")
+          .select(`${f.seasonScore}, ${f.seasonKey}`)
           .eq("id", profileId)
           .single();
-        const me = meRow as unknown as {
-          seasonScore: number;
-          seasonKey: string | null;
-        } | null;
-        if (me && me.seasonKey === seasonKey) {
+        const me = meRow as unknown as Record<string, unknown> | null;
+        if (me && me[f.seasonKey] === seasonKey) {
+          const myScore = me[f.seasonScore] as number;
           const { count: above } = await supabase
             .from("profiles")
             .select("id", { count: "exact", head: true })
             .neq("type", "BOT")
-            .eq("seasonKey", seasonKey)
-            .gt("seasonScore", me.seasonScore);
+            .eq(f.seasonKey, seasonKey)
+            .gt(f.seasonScore, myScore);
           myRank = (above || 0) + 1;
-          myRating = me.seasonScore;
+          myRating = myScore;
         }
       }
     } else {
       // Launch month: show the lifetime rating board for the selected variant.
-      const f = ratingFieldsFor(req.query.variant as string | undefined);
       const { data, error } = await supabase
         .from("profiles")
         .select(`id, username, avatar, eloRating:${f.rating}`)

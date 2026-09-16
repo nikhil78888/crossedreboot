@@ -1,9 +1,17 @@
 import { View, Text, FlatList, ActivityIndicator } from "react-native";
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
-import { useMedals, Medal, markMedalsSeen } from "../hooks/use-medals";
+import {
+  useMedals,
+  Medal,
+  markMedalsSeen,
+  isSeasonMedal,
+  isDailyMedal,
+  seasonMedalVariant,
+} from "../hooks/use-medals";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
+import { variantLabel } from "../lib/variant-rating";
 import colors from "../lib/colors";
 
 const fmtDaily = (key: string) => {
@@ -25,11 +33,14 @@ const fmtMonthly = (key: string) => {
 };
 
 const MedalRow = ({ medal }: { medal: Medal }) => {
-  const isDaily = medal.type === "DAILY_DUEL";
+  const isDaily = isDailyMedal(medal);
   const emoji = isDaily ? "🏅" : "🏆";
+  const variant = seasonMedalVariant(medal);
   const title = isDaily
     ? `Daily Duel · ${fmtDaily(medal.periodKey)}`
-    : `${fmtMonthly(medal.periodKey)} Season`;
+    : `${fmtMonthly(medal.periodKey)}${
+        variant ? ` ${variantLabel(variant)}` : ""
+      } Season`;
   const detail =
     medal.rank != null && medal.total != null
       ? `Top ${medal.percentile ?? 10}% · #${medal.rank} of ${medal.total}`
@@ -67,10 +78,8 @@ export default function Medals() {
     if (medals) markMedalsSeen(medals.length);
   }, [medals]);
 
-  const dailyCount =
-    medals?.filter((m) => m.type === "DAILY_DUEL").length ?? 0;
-  const seasonCount =
-    medals?.filter((m) => m.type === "MONTHLY_SEASON").length ?? 0;
+  const dailyCount = medals?.filter(isDailyMedal).length ?? 0;
+  const seasonCount = medals?.filter(isSeasonMedal).length ?? 0;
 
   if (isLoadingMedals && !medals) {
     return (
