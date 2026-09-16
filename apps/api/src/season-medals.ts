@@ -1,5 +1,5 @@
 import { supabase } from "./lib/supabase";
-import { seasonKeyFor } from "./season";
+import { seasonKeyFor, isResetSeason } from "./season";
 
 // Awards MONTHLY_SEASON medals to the top 10% of the SEASON leaderboard once a
 // calendar month closes — the monthly "season" recognition. Runs hourly; it's a
@@ -68,22 +68,38 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
     .eq("periodKey", periodKey);
   if ((existing || 0) > 0) return;
 
-  // Players who finished the closed season (seasonKey still that month), by
-  // their final season rating, best first.
-  const players = await fetchAll<{ id: string; seasonScore: number }>(
-    async (f, t) => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, seasonScore")
-        .neq("type", "BOT")
-        .eq("seasonKey", seasonKeyFor(periodKey))
-        .order("seasonScore", { ascending: false })
-        .range(f, t);
-      return {
-        data: (data as { id: string; seasonScore: number }[]) || [],
-      };
-    }
-  );
+  // The closed month's finishing order. Reset months (FIRST_RESET_MONTH on) rank
+  // by the season rating; the launch month(s) before that ranked by lifetime
+  // rating, so award those the same way.
+  const players: { id: string; score: number }[] = isResetSeason(periodKey)
+    ? await fetchAll<{ id: string; score: number }>(async (f, t) => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, seasonScore")
+          .neq("type", "BOT")
+          .eq("seasonKey", seasonKeyFor(periodKey))
+          .order("seasonScore", { ascending: false })
+          .range(f, t);
+        return {
+          data: (
+            (data as { id: string; seasonScore: number }[]) || []
+          ).map((r) => ({ id: r.id, score: r.seasonScore })),
+        };
+      })
+    : await fetchAll<{ id: string; score: number }>(async (f, t) => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, eloRating")
+          .neq("type", "BOT")
+          .or("eloRating.neq.1000,ratingDeviation.neq.350")
+          .order("eloRating", { ascending: false })
+          .range(f, t);
+        return {
+          data: (
+            (data as { id: string; eloRating: number }[]) || []
+          ).map((r) => ({ id: r.id, score: Math.round(r.eloRating) })),
+        };
+      });
 
   const total = players.length;
   if (total < MIN_PARTICIPANTS) return; // too small a season to award
@@ -95,9 +111,9 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
   let last: number | null = null;
   const rows: Record<string, unknown>[] = [];
   players.forEach((p, i) => {
-    if (last === null || p.seasonScore !== last) {
+    if (last === null || p.score !== last) {
       rank = i + 1;
-      last = p.seasonScore;
+      last = p.score;
     }
     if (rank <= cutoffRank) {
       rows.push({

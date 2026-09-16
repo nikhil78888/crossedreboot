@@ -11,9 +11,11 @@ export type SeasonEntry = {
 };
 
 export type SeasonLeaderboard = {
-  seasonKey: string; // 'YYYY-MM'
   monthName: string; // e.g. "September"
   resetsInDays: number;
+  // false during the launch month (board shows lifetime ratings); true once the
+  // monthly reset-to-1000 has started.
+  resetActive: boolean;
   total: number;
   myRank: number | null;
   myRating: number | null;

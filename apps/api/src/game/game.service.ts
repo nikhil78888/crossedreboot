@@ -4,7 +4,7 @@ import { Game, generateWordSearch, generateTrivia } from "types-and-validators";
 import { onTournamentGameFinished } from "../tournament/tournament.service";
 import { resolveCluesForDifficulty } from "./clue-resolver";
 import { ratingFieldsFor } from "../rating-fields";
-import { currentSeasonKey } from "../season";
+import { currentSeasonKey, currentMonth, isResetSeason } from "../season";
 
 // Time limit scales with puzzle size (7x7/8x8 -> 5 min, 9x9 -> 7 min).
 export const durationForSize = (size: number | null | undefined, base: number) =>
@@ -388,9 +388,11 @@ export const applyRankedRatings = async (
   // Monthly season rating: a separate rating that RESETS to 1000 on the 1st of
   // each month and moves by the same per-game delta as the lifetime rating. The
   // leaderboard's Season view ranks by it (a fresh race each month); the lifetime
-  // rating below is untouched and persists (matchmaking + the player's overall
-  // rating on My Account). Lazy per-player reset when the stored month is stale.
+  // rating is untouched and persists (matchmaking + the player's overall rating on
+  // My Account). Only built once the reset season has started (FIRST_RESET_MONTH);
+  // before that the Season board shows lifetime ratings, so we don't write it.
   const SEASON_BASE = 1000;
+  const resetSeason = isResetSeason(currentMonth());
   const seasonKey = currentSeasonKey(); // 's2:YYYY-MM' — versioned (see season.ts)
   const oldOf = (id: string) => {
     const p = players.find((pl) => pl.id === id);
@@ -399,33 +401,40 @@ export const applyRankedRatings = async (
 
   for (const r of updated) {
     if (botIds.has(r.playerId)) continue; // never drift bot ratings
-    const player = players.find((pl) => pl.id === r.playerId);
-    const rec = player as unknown as { seasonScore?: number; seasonKey?: string };
-    // Season rating moves by the same amount the lifetime rating just did.
-    const delta = Math.round(r.rating) - Math.round(oldOf(r.playerId));
-    const seasonBase =
-      rec?.seasonKey === seasonKey ? rec.seasonScore ?? SEASON_BASE : SEASON_BASE;
-    const nextSeason = seasonBase + delta;
+    const update: Record<string, unknown> = {
+      [f.rating]: Math.round(r.rating),
+      [f.rd]: Math.round(r.rd * 100) / 100,
+      [f.vol]: Math.round(r.vol * 1e6) / 1e6,
+    };
+    if (resetSeason) {
+      const player = players.find((pl) => pl.id === r.playerId);
+      const rec = player as unknown as {
+        seasonScore?: number;
+        seasonKey?: string;
+      };
+      // Season rating moves by the same amount the lifetime rating just did; a
+      // stale seasonKey (new month) resets the base to 1000.
+      const delta = Math.round(r.rating) - Math.round(oldOf(r.playerId));
+      const seasonBase =
+        rec?.seasonKey === seasonKey ? rec.seasonScore ?? SEASON_BASE : SEASON_BASE;
+      update.seasonScore = seasonBase + delta;
+      update.seasonKey = seasonKey;
+    }
 
     const { error } = await supabase
       .from("profiles")
-      .update({
-        [f.rating]: Math.round(r.rating),
-        [f.rd]: Math.round(r.rd * 100) / 100,
-        [f.vol]: Math.round(r.vol * 1e6) / 1e6,
-        seasonScore: nextSeason,
-        seasonKey,
-      } as never)
+      .update(update as never)
       .eq("id", r.playerId);
     if (error) {
       console.log({ ratingUpdateError: error });
+      const fallback: Record<string, unknown> = { [f.rating]: Math.round(r.rating) };
+      if (resetSeason) {
+        fallback.seasonScore = update.seasonScore;
+        fallback.seasonKey = update.seasonKey;
+      }
       await supabase
         .from("profiles")
-        .update({
-          [f.rating]: Math.round(r.rating),
-          seasonScore: nextSeason,
-          seasonKey,
-        } as never)
+        .update(fallback as never)
         .eq("id", r.playerId);
     }
   }

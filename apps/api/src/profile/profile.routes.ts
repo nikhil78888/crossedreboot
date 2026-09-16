@@ -4,7 +4,7 @@ import express, { Router } from "express";
 import { getUsersInLobby } from "./profile.service";
 import { supabase } from "../lib/supabase";
 import { ratingFieldsFor } from "../rating-fields";
-import { currentSeasonKey } from "../season";
+import { currentSeasonKey, currentMonth, isResetSeason } from "../season";
 
 export const profileRouter: Router = express.Router();
 
@@ -54,10 +54,19 @@ profileRouter.get("/leaderboard", async (req, res, next) => {
   }
 });
 
-// Monthly SEASON leaderboard — ranked by the season rating (seasonScore), which
-// resets to 1000 on the 1st of each month. A fresh race every month; the lifetime
-// rating is separate and persists. Public (keyed by the caller's profileId for
-// the "you" row). Also returns the reset countdown.
+// Monthly SEASON leaderboard. From FIRST_RESET_MONTH on, it ranks by the season
+// rating (seasonScore) which resets to 1000 on the 1st — a fresh race each month.
+// BEFORE that (the launch month), it shows the lifetime rating so there's a full
+// board immediately. `resetActive` tells the client which mode it's in. Public
+// (keyed by the caller's profileId for the "you" row).
+type SeasonRow = {
+  profileId: string;
+  username: string | null;
+  avatar: string | null;
+  seasonRating: number;
+  rank: number;
+  isYou: boolean;
+};
 profileRouter.get("/season-leaderboard", async (req, res, next) => {
   try {
     const limit = Math.min(
@@ -65,67 +74,7 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
       200
     );
     const profileId = req.query.profileId as string | undefined;
-    const seasonKey = currentSeasonKey(); // 's2:YYYY-MM' — versioned (see season.ts)
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, avatar, seasonScore, seasonKey")
-      .neq("type", "BOT")
-      .eq("seasonKey", seasonKey)
-      .order("seasonScore", { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-
-    const rows =
-      (data as unknown as {
-        id: string;
-        username: string | null;
-        avatar: string | null;
-        seasonScore: number;
-      }[]) || [];
-
-    // Competition ranking — equal ratings share a rank.
-    let rank = 0;
-    let last: number | null = null;
-    const entries = rows.map((r, i) => {
-      if (last === null || r.seasonScore !== last) {
-        rank = i + 1;
-        last = r.seasonScore;
-      }
-      return {
-        profileId: r.id,
-        username: r.username,
-        avatar: r.avatar,
-        seasonRating: r.seasonScore,
-        rank,
-        isYou: r.id === profileId,
-      };
-    });
-
-    let myRank: number | null = entries.find((e) => e.isYou)?.rank ?? null;
-    let myRating: number | null =
-      entries.find((e) => e.isYou)?.seasonRating ?? null;
-    if (profileId && myRank == null) {
-      const { data: meRow } = await supabase
-        .from("profiles")
-        .select("seasonScore, seasonKey")
-        .eq("id", profileId)
-        .single();
-      const me = meRow as unknown as {
-        seasonScore: number;
-        seasonKey: string | null;
-      } | null;
-      if (me && me.seasonKey === seasonKey) {
-        const { count: above } = await supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .neq("type", "BOT")
-          .eq("seasonKey", seasonKey)
-          .gt("seasonScore", me.seasonScore);
-        myRank = (above || 0) + 1;
-        myRating = me.seasonScore;
-      }
-    }
+    const resetActive = isResetSeason(currentMonth());
 
     const now = new Date();
     const nextMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
@@ -138,10 +87,122 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
       timeZone: "UTC",
     });
 
+    const rankEntries = (
+      raw: { id: string; username: string | null; avatar: string | null }[],
+      ratingOf: (r: { id: string }) => number
+    ): SeasonRow[] => {
+      let rank = 0;
+      let last: number | null = null;
+      return raw.map((r, i) => {
+        const rating = ratingOf(r);
+        if (last === null || rating !== last) {
+          rank = i + 1;
+          last = rating;
+        }
+        return {
+          profileId: r.id,
+          username: r.username,
+          avatar: r.avatar,
+          seasonRating: rating,
+          rank,
+          isYou: r.id === profileId,
+        };
+      });
+    };
+
+    let entries: SeasonRow[];
+    let myRank: number | null;
+    let myRating: number | null;
+
+    if (resetActive) {
+      // Reset season: rank by the monthly season rating.
+      const seasonKey = currentSeasonKey();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, avatar, seasonScore, seasonKey")
+        .neq("type", "BOT")
+        .eq("seasonKey", seasonKey)
+        .order("seasonScore", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      const rows =
+        (data as unknown as {
+          id: string;
+          username: string | null;
+          avatar: string | null;
+          seasonScore: number;
+        }[]) || [];
+      const scoreById = new Map(rows.map((r) => [r.id, r.seasonScore]));
+      entries = rankEntries(rows, (r) => scoreById.get(r.id) ?? 0);
+      myRank = entries.find((e) => e.isYou)?.rank ?? null;
+      myRating = entries.find((e) => e.isYou)?.seasonRating ?? null;
+      if (profileId && myRank == null) {
+        const { data: meRow } = await supabase
+          .from("profiles")
+          .select("seasonScore, seasonKey")
+          .eq("id", profileId)
+          .single();
+        const me = meRow as unknown as {
+          seasonScore: number;
+          seasonKey: string | null;
+        } | null;
+        if (me && me.seasonKey === seasonKey) {
+          const { count: above } = await supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .neq("type", "BOT")
+            .eq("seasonKey", seasonKey)
+            .gt("seasonScore", me.seasonScore);
+          myRank = (above || 0) + 1;
+          myRating = me.seasonScore;
+        }
+      }
+    } else {
+      // Launch month: show the lifetime (crossword) rating board.
+      const f = ratingFieldsFor(undefined);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`id, username, avatar, eloRating:${f.rating}`)
+        .neq("type", "BOT")
+        .or(`${f.rating}.neq.1000,${f.rd}.neq.350`)
+        .order(f.rating, { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      const rows =
+        (data as unknown as {
+          id: string;
+          username: string | null;
+          avatar: string | null;
+          eloRating: number;
+        }[]) || [];
+      const rById = new Map(rows.map((r) => [r.id, Math.round(r.eloRating)]));
+      entries = rankEntries(rows, (r) => rById.get(r.id) ?? 0);
+      myRank = entries.find((e) => e.isYou)?.rank ?? null;
+      myRating = entries.find((e) => e.isYou)?.seasonRating ?? null;
+      if (profileId && myRank == null) {
+        const { data: meRow } = await supabase
+          .from("profiles")
+          .select(`${f.rating}, ${f.rd}`)
+          .eq("id", profileId)
+          .single();
+        const me = meRow as unknown as Record<string, number> | null;
+        if (me && (me[f.rating] !== 1000 || me[f.rd] !== 350)) {
+          const { count: above } = await supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .neq("type", "BOT")
+            .or(`${f.rating}.neq.1000,${f.rd}.neq.350`)
+            .gt(f.rating, me[f.rating]);
+          myRank = (above || 0) + 1;
+          myRating = Math.round(me[f.rating]);
+        }
+      }
+    }
+
     res.send({
-      seasonKey,
       monthName,
       resetsInDays,
+      resetActive,
       total: entries.length,
       myRank,
       myRating,

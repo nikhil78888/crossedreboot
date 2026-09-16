@@ -219,12 +219,17 @@ export default function Leaderboard() {
               🏆 {season?.monthName ?? "This Month"} Season · Top 10% earn a medal
             </Text>
             <Text className="mt-0.5 font-[jost500] text-[12px] text-white/85">
-              Everyone starts at 1000 ·{" "}
-              {season
-                ? `resets in ${season.resetsInDays} day${
-                    season.resetsInDays === 1 ? "" : "s"
-                  }`
-                : "resets monthly"}
+              {season?.resetActive === false
+                ? `Overall ratings · fresh season starts in ${
+                    season?.resetsInDays ?? 0
+                  } day${season?.resetsInDays === 1 ? "" : "s"}`
+                : `Everyone starts at 1000 · ${
+                    season
+                      ? `resets in ${season.resetsInDays} day${
+                          season.resetsInDays === 1 ? "" : "s"
+                        }`
+                      : "resets monthly"
+                  }`}
             </Text>
             {myPct != null && (
               <Text className="mt-1 font-[jost700] text-[12px] text-white">
