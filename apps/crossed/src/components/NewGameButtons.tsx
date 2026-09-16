@@ -100,40 +100,45 @@ export const NewGameButtons = () => {
         <VariantTabs />
       </View>
 
-      {/* Beat My Time — the HERO. The async "play, then send it" challenge is the
-          friend mechanic that actually gets used (live friend matches sit at ~0,
-          async challenges are the real, growing usage), so it leads. */}
+      {/* Play Ranked — the HERO. Ranked bot-races are the most-played mode and
+          the real hook, so it leads. (Beat My Time was demoted from hero: the
+          async "play then send" flow diverted new users into a dead-end — the
+          send goes nowhere for most — which tracked with a retention drop, so it
+          is now a secondary card.) */}
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={onChallengePress}
+        onPress={() => {
+          trackEvent(events.START_RANKED_GAME_CLICK);
+          playRanked();
+        }}
         className="rounded-2xl"
-        style={{ backgroundColor: "#dcfce7" }}
+        style={{ backgroundColor: colors["crossed-blue"]["50"] }}
       >
         <View className="flex-row items-center p-5">
           <View className="flex-1 pr-2">
             <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-              Beat My Time
+              Play Ranked
             </Text>
             <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-              Solve a puzzle, then send it to a friend to beat.
+              Compete worldwide & climb the leaderboard.
             </Text>
             <View
               className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
-              style={{ backgroundColor: "#16a34a" }}
+              style={{ backgroundColor: colors["crossed-blue"]["450"] }}
             >
               <Text className="font-[jost700] text-[14px] text-white">Play</Text>
               <Text className="ml-1 text-white">→</Text>
             </View>
           </View>
           <Image
-            source={images.solo}
+            source={images.play_ranked}
             style={{ height: 104, width: 104 }}
             contentFit="contain"
           />
         </View>
       </TouchableOpacity>
 
-      {/* Play a Friend (live) | Play Ranked — half-width cards below the hero. */}
+      {/* Beat My Time | Play a Friend — half-width cards below the hero. */}
       <View
         style={{
           flexDirection: "row",
@@ -142,23 +147,14 @@ export const NewGameButtons = () => {
           marginTop: 12,
         }}
       >
-        <View
-          style={{
-            flex: 1,
-            borderRadius: 16,
-            backgroundColor: colors["crossed-blue"]["50"],
-          }}
-        >
+        <View style={{ flex: 1, borderRadius: 16, backgroundColor: "#dcfce7" }}>
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => {
-              trackEvent(events.START_RANKED_GAME_CLICK);
-              playRanked();
-            }}
+            onPress={onChallengePress}
             style={{ flex: 1, padding: 14 }}
           >
             <Image
-              source={images.play_ranked}
+              source={images.solo}
               style={{ height: 44, width: 44 }}
               contentFit="contain"
             />
@@ -166,10 +162,10 @@ export const NewGameButtons = () => {
               className="mt-2 font-[jost700] text-[15px] text-crossed-gray-900"
               numberOfLines={3}
             >
-              Play Ranked
+              Beat My Time
             </Text>
             <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/55">
-              Compete worldwide & climb the leaderboard.
+              Solve, then send it to a friend to beat.
             </Text>
           </TouchableOpacity>
         </View>

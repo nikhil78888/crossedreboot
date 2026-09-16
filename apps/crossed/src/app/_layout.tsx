@@ -274,6 +274,7 @@ export default function IndexLayout() {
           name="daily-leaderboard"
           options={{ headerTitle: "Daily Ranking" }}
         />
+        <Stack.Screen name="medals" options={{ headerTitle: "Medals" }} />
         <Stack.Screen
           name="feedback"
           options={{

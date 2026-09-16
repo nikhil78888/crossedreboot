@@ -120,6 +120,17 @@ export default function DailyLeaderboard() {
             : "--"}
         </Text>
       </View>
+      {dailyRank.percentile != null && dailyRank.percentile <= 10 && (
+        <View
+          className="mt-3 flex-row items-center justify-center rounded-2xl px-4 py-2.5"
+          style={{ backgroundColor: "#fef3c7" }}
+        >
+          <Text style={{ fontSize: 20 }}>🏅</Text>
+          <Text className="ml-2 font-[jost700] text-[14px] text-crossed-gray-900">
+            Top 10% — Daily Duel medal earned!
+          </Text>
+        </View>
+      )}
       <Text className="mt-3 font-[jost400] text-[13px] text-crossed-gray-400">
         Everyone who finished today's duel
       </Text>

@@ -53,6 +53,144 @@ profileRouter.get("/leaderboard", async (req, res, next) => {
   }
 });
 
+// Monthly season leaderboard — ranked WINS this calendar month, resetting on the
+// 1st. Separate from the all-time rating board so the "season" has a fresh start
+// each month. Ranks only players with >= 1 win this season. Public (keyed by the
+// caller's profileId for the "you" row). Also returns the reset countdown.
+profileRouter.get("/season-leaderboard", async (req, res, next) => {
+  try {
+    const limit = Math.min(
+      parseInt((req.query.limit as string) || "100", 10) || 100,
+      200
+    );
+    const profileId = req.query.profileId as string | undefined;
+    const seasonKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM' (UTC)
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, avatar, seasonScore, seasonKey")
+      .neq("type", "BOT")
+      .eq("seasonKey", seasonKey)
+      .gt("seasonScore", 0)
+      .order("seasonScore", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+
+    const rows =
+      (data as unknown as {
+        id: string;
+        username: string | null;
+        avatar: string | null;
+        seasonScore: number;
+      }[]) || [];
+
+    // Competition ranking — equal scores share a rank.
+    let rank = 0;
+    let last: number | null = null;
+    const entries = rows.map((r, i) => {
+      if (last === null || r.seasonScore !== last) {
+        rank = i + 1;
+        last = r.seasonScore;
+      }
+      return {
+        profileId: r.id,
+        username: r.username,
+        avatar: r.avatar,
+        seasonScore: r.seasonScore,
+        rank,
+        isYou: r.id === profileId,
+      };
+    });
+
+    // Caller's standing when they're outside the returned page.
+    let myRank: number | null = entries.find((e) => e.isYou)?.rank ?? null;
+    let myScore: number | null =
+      entries.find((e) => e.isYou)?.seasonScore ?? null;
+    if (profileId && myRank == null) {
+      const { data: meRow } = await supabase
+        .from("profiles")
+        .select("seasonScore, seasonKey")
+        .eq("id", profileId)
+        .single();
+      const me = meRow as unknown as {
+        seasonScore: number;
+        seasonKey: string | null;
+      } | null;
+      if (me && me.seasonKey === seasonKey && me.seasonScore > 0) {
+        const { count: above } = await supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .neq("type", "BOT")
+          .eq("seasonKey", seasonKey)
+          .gt("seasonScore", me.seasonScore);
+        myRank = (above || 0) + 1;
+        myScore = me.seasonScore;
+      }
+    }
+
+    // Days until the season resets (00:00 UTC on the 1st of next month).
+    const now = new Date();
+    const nextMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+    const resetsInDays = Math.max(
+      0,
+      Math.ceil((nextMonth - now.getTime()) / (24 * 60 * 60 * 1000))
+    );
+    const monthName = now.toLocaleString("en-US", {
+      month: "long",
+      timeZone: "UTC",
+    });
+
+    res.send({
+      seasonKey,
+      monthName,
+      resetsInDays,
+      total: entries.length,
+      myRank,
+      myScore,
+      entries,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// A player's earned medals (daily-duel + monthly-season), newest first. Public,
+// keyed by profileId — a medal case isn't sensitive.
+profileRouter.get("/medals", async (req, res, next) => {
+  try {
+    const profileId = req.query.profileId as string;
+    if (!profileId) {
+      res.status(400).send("profileId required");
+      return;
+    }
+    const { data, error } = await (
+      supabase as unknown as {
+        from: (t: "medals") => {
+          select: (c: string) => {
+            eq: (
+              k: string,
+              v: string
+            ) => {
+              order: (
+                c: string,
+                o: { ascending: boolean }
+              ) => Promise<{ data: unknown[] | null; error: unknown }>;
+            };
+          };
+        };
+      }
+    )
+      .from("medals")
+      .select("id, type, periodKey, rank, total, percentile, createdAt")
+      .eq("profileId", profileId)
+      .order("createdAt", { ascending: false });
+    if (error) throw error;
+    res.send(data || []);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // A single player's global standing for a variant — works even when they're far
 // outside the top 100. rank = (players rated strictly above them) + 1, over the
 // same "has actually played" population as the board above. Public, keyed by the

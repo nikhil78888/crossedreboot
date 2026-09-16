@@ -7,6 +7,7 @@ import { watchReengagement } from "./reengagement";
 import { watchOnboardingPush } from "./onboarding-push";
 import { watchDailyDuelPush } from "./daily-duel-push";
 import { watchChallengeResults } from "./challenge-notify";
+import { watchSeasonMedals } from "./season-medals";
 import { supabase } from "./lib/supabase";
 
 watchLobby();
@@ -17,6 +18,7 @@ watchReengagement();
 watchOnboardingPush();
 watchDailyDuelPush();
 watchChallengeResults();
+watchSeasonMedals();
 
 // Retention: prune old seenClues rows daily so the table stays bounded and the
 // per-user recency query (word-spacing) stays fast. The DELETE is idempotent,

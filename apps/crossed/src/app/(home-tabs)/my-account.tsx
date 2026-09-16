@@ -104,6 +104,11 @@ export default function MyAccount() {
           />
         </View>
       </View>
+      <AccountPageButton
+        label="My Medals"
+        icon={images.medal}
+        onPress={() => router.push("/medals")}
+      />
       {user.isAnonymous ? (
         <AccountPageButton
           icon={images.account_myprofile}

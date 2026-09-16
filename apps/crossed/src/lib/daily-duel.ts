@@ -1,6 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import {
+  duelMeta,
+  localDay,
+  PUBLISHED_5X5,
+  type DuelMeta,
+  type DuelVariant,
+} from "types-and-validators";
 import { supabase } from "./supabase";
-import { generateWordSearch, wordSearchConfig } from "./word-search";
+import { generateWordSearch } from "./word-search";
 
 // The Daily Duel: every day, a race against a funny-named "opponent" with a
 // preset time. It's fully deterministic from the calendar date — same opponent,
@@ -8,102 +16,42 @@ import { generateWordSearch, wordSearchConfig } from "./word-search";
 // needs no live players or real ghost data (works at any scale). The race itself
 // reuses the existing challenge/ghost pipeline: we persist a system challenge
 // (challengerId null → nobody gets a result) and route into /challenge.
-
-export type DuelVariant = "CROSSWORD" | "WORD_SEARCH";
-
-// ~40 characters. The silly names are the point — they make a win worth sharing.
-const CAST = [
-  "Sir Reginald Puzzlesworth", "Grandma Gladys", "Tony Two-Times",
-  "Captain Anagram", "The Crossword Bandit", "Lil Vowel", "Betty Letters",
-  "Dr. Acrostic", "Vinny Vowels", "Sally Syllable", "The Puzzle Pirate",
-  "Nana Nine-Down", "Speedy Steve", "Clueless Carl", "Wordy Wendy",
-  "Max Verbatim", "Gary Grid", "Penny Pencil", "Chad Checkmate",
-  "Ophelia Overthinks", "Sir Solves-a-Lot", "Ricky Rebus", "Ms. Across",
-  "Barry Backspace", "The Anagram Assassin", "Tilly Timer",
-  "Professor Puzzlebottom", "Nervous Nelly", "Quick Quinn", "Slowpoke Sam",
-  "The Daily Dasher", "Hasty Harriet", "Gigi Gridlock", "The Letterman",
-  "Bingo Bob", "Crossword Karen", "Zippy Zoe", "Larry Lexicon",
-  "Mabel Mini", "The Speed Speller",
-];
-
-// Number of published 5×5 minis to pick from (seeded). A fixed count keeps the
-// pick deterministic without an extra count query.
-const PUBLISHED_5X5 = 384;
-
-// Local calendar day (YYYY-MM-DD) — the streak/day boundary is the player's own
-// midnight, which is fairer than UTC.
-export const localDay = (d: Date = new Date()): string =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-
-// Stable 32-bit hash of the day string → the day's seed.
-const seedFrom = (day: string): number => {
-  let h = 2166136261;
-  for (let i = 0; i < day.length; i += 1) {
-    h ^= day.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-};
-
-export type DuelMeta = {
-  day: string;
-  seed: number;
-  variant: DuelVariant;
-  opponent: string;
-  seconds: number; // the time to beat
-};
-
-// The opponent's time to beat, derived from the ACTUAL puzzle and VARIED day to
-// day so the duel is sometimes tough, sometimes easy.
 //
-// Grounded in real solve data: recorded word-search solves ran ~3–11s per word
-// with a wide skill spread (regular grid; the HARD 12×12 reversed grid is a bit
-// slower). So instead of one fixed pace, each day picks a per-word pace between a
-// FAST pace (a tight target only quick solvers beat) and a SLOW pace (a generous
-// target most players clear). Deterministic per day. Replaces the old flat
-// 30–75s that ignored the puzzle entirely (30s for 8 reversed-grid words was
-// effectively impossible). Re-tune the paces as real HARD solve times accumulate.
-const BASE_SECONDS = 10; // initial scan / getting oriented
-const PACE_FAST = 6.5; // seconds/word on a hard day → tough to beat
-const PACE_SLOW = 11.5; // seconds/word on an easy day → most people beat it
+// The duel DEFINITION (variant / opponent / time-to-beat) now lives in the
+// shared package and is served by the API — see fetchDuelMeta below. Every app
+// version fetches the same meta from the server, so no build can compute a
+// different duel and split the leaderboard. duelMeta() (the identical shared
+// computation) remains as the offline fallback and for synchronous display.
 
-// The day's variant — alternate crossword / word search so it doesn't feel
-// samey. Deterministic per day; a shifted seed slice keeps it uncorrelated with
-// the opponent pick and the difficulty-of-day. It's a pure ghost race (solve →
-// get a time; don't solve → lose, no time), which works the same for both — so
-// the crossword doesn't need to be easy, just like a hard word search.
-const duelVariant = (seed: number): DuelVariant =>
-  (seed >>> 5) % 2 === 0 ? "WORD_SEARCH" : "CROSSWORD";
+// Re-exported so existing "../lib/daily-duel" imports keep resolving. The
+// canonical definitions live in types-and-validators.
+export { duelMeta, localDay } from "types-and-validators";
+export { fmtSeconds } from "types-and-validators";
+export type { DuelMeta, DuelVariant } from "types-and-validators";
 
-export const duelSeconds = (seed: number, variant: DuelVariant): number => {
-  // Which "kind of day" it is, 0 (hardest) .. 1 (easiest). Shifted seed slice so
-  // difficulty isn't correlated with the opponent or variant pick.
-  const dayFactor = ((seed >>> 3) % 1000) / 1000;
-  if (variant === "CROSSWORD") {
-    // A published 5×5 (~10 answers): tight ~45s .. generous ~95s.
-    return Math.round(45 + dayFactor * 50);
+// Today's duel meta, from the SERVER — the single source of truth so every
+// client (any version) races the same duel and lands on one leaderboard. Sends
+// the player's local day so the day boundary stays their own midnight. Falls
+// back to the identical local computation when offline / on error.
+const fetchDuelMeta = async (day: string = localDay()): Promise<DuelMeta> => {
+  try {
+    const { data } = await axios.get<DuelMeta>("/api/games/daily-duel-meta", {
+      params: { day },
+    });
+    if (
+      data &&
+      (data.variant === "CROSSWORD" || data.variant === "WORD_SEARCH") &&
+      typeof data.seconds === "number" &&
+      typeof data.seed === "number" &&
+      typeof data.opponent === "string"
+    ) {
+      return data;
+    }
+  } catch {
+    // offline / server error → identical local computation keeps the duel playable
   }
-  const { count } = wordSearchConfig("HARD");
-  const perWord = PACE_FAST + dayFactor * (PACE_SLOW - PACE_FAST);
-  return Math.round(BASE_SECONDS + perWord * count); // ~62s (hard) .. ~102s (easy)
+  return duelMeta(day);
 };
-
-export const duelMeta = (day: string = localDay()): DuelMeta => {
-  const seed = seedFrom(day);
-  const variant = duelVariant(seed);
-  return {
-    day,
-    seed,
-    variant,
-    opponent: CAST[seed % CAST.length],
-    seconds: duelSeconds(seed, variant),
-  };
-};
-
-export const fmtSeconds = (s: number): string =>
-  `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, "0")}`;
 
 // A slightly human-feeling ghost timeline that reaches 100% exactly at `seconds`.
 const timelineFor = (seed: number, seconds: number) => {
@@ -136,9 +84,11 @@ const challengesTable = supabase as unknown as {
   };
 };
 
-// v6: the duel now alternates crossword / word search by day — ignore duels
-// cached under the word-search-only versions so today matches the new variant.
-const cacheKey = (day: string) => `daily:duelChallenge:v6:${day}`;
+// v7: the duel definition is now server-authoritative (fetchDuelMeta). Bump so a
+// duel already cached today under a locally-computed meta is dropped and
+// re-created against the server's meta — that's what merges every build onto one
+// shared leaderboard.
+const cacheKey = (day: string) => `daily:duelChallenge:v7:${day}`;
 
 // Today's finished-duel result, so the card can show the player's time (and stop
 // offering a re-race) once they've completed it.
@@ -168,7 +118,7 @@ export const getTodaysDuel = async (): Promise<{
   id: string;
   meta: DuelMeta;
 } | null> => {
-  const meta = duelMeta();
+  const meta = await fetchDuelMeta();
   try {
     const cached = await AsyncStorage.getItem(cacheKey(meta.day));
     if (cached) return { id: cached, meta };

@@ -16,6 +16,7 @@ const REVIEW_COUNT_KEY = "eng:reviewCount";
 // One-shot flags so each AppsFlyer ad-optimization event fires exactly once.
 const CAME_BACK_KEY = "eng:cameBackFired";
 const PLAYED3_KEY = "eng:played3Fired";
+const PLAYED11_KEY = "eng:played11Fired";
 // Per-day completed-game count, for the Daily Goal ("play N games today").
 const DAY_GAMES_KEY = (day: string) => `eng:dayGames:${day}`;
 const dayStr = (ms: number = Date.now()) => {
@@ -71,6 +72,14 @@ export const recordGameCompleted = async () => {
     if (newCount >= 3 && !(await AsyncStorage.getItem(PLAYED3_KEY))) {
       await AsyncStorage.setItem(PLAYED3_KEY, "1");
       trackEvent(events.PLAYED_3_GAMES);
+    }
+
+    // played_11_games: the ACTIVATION threshold — users who reach ~11 games
+    // (almost always in their first session) retain at ~40% D7 vs ~5-7% below
+    // it, our strongest depth-based retention predictor. Fire once at the 11th.
+    if (newCount >= 11 && !(await AsyncStorage.getItem(PLAYED11_KEY))) {
+      await AsyncStorage.setItem(PLAYED11_KEY, "1");
+      trackEvent(events.PLAYED_11_GAMES);
     }
 
     // came_back: the real retention signal — fire once the first time they play

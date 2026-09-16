@@ -1,10 +1,27 @@
 import express, { Router } from "express";
 import { supabase } from "../lib/supabase";
-import { Game } from "types-and-validators";
+import { Game, duelMeta } from "types-and-validators";
 import { finalizeGame } from "./game.service";
 import { getProfileIdByUid } from "../friends/friends.service";
 
 export const gameRouter: Router = express.Router();
+
+// Today's Daily Duel definition — the single source of truth. The client sends
+// its local calendar day and gets back the canonical meta (variant, opponent,
+// time-to-beat). Because every app version fetches the duel from here instead of
+// computing it locally, no build can diverge and fork the leaderboard. The meta
+// is a pure function of the day (shared package), so this is cheap and stateless.
+gameRouter.get("/daily-duel-meta", (req, res) => {
+  try {
+    const dayParam = typeof req.query.day === "string" ? req.query.day : undefined;
+    // Only accept a well-formed YYYY-MM-DD; otherwise fall back to server "today".
+    const day = dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : undefined;
+    res.send(duelMeta(day));
+  } catch (error) {
+    console.log({ dailyDuelMetaError: error });
+    res.status(500).send();
+  }
+});
 
 // Daily-duel leaderboard: the caller's rank + percentile among everyone who
 // played the SAME daily duel. Grouped by the deterministic puzzle key
@@ -131,6 +148,41 @@ gameRouter.get("/daily-rank", async (req, res) => {
       myRank && total > 1
         ? Math.round((100 * (total - myRank)) / (total - 1))
         : 100;
+
+    // Award a Daily Duel medal for a top-10% finish (idempotent — one per day).
+    // percentile <= 10 inherently requires a real field (rank 1 needs >= 10
+    // finishers), so tiny boards can't mint medals. Keyed by the UTC date of the
+    // caller's duel. Non-blocking: a medal write must never fail the rank read.
+    if (percentile != null && percentile <= 10 && myRank != null) {
+      const periodKey = myLatest.createdAt.slice(0, 10);
+      try {
+        await (
+          supabase as unknown as {
+            from: (t: "medals") => {
+              upsert: (
+                v: Record<string, unknown>,
+                o: { onConflict: string; ignoreDuplicates: boolean }
+              ) => Promise<{ error: unknown }>;
+            };
+          }
+        )
+          .from("medals")
+          .upsert(
+            {
+              profileId: myId,
+              type: "DAILY_DUEL",
+              periodKey,
+              rank: myRank,
+              total,
+              percentile,
+            },
+            { onConflict: "profileId,type,periodKey", ignoreDuplicates: true }
+          );
+      } catch (medalErr) {
+        console.log({ dailyMedalError: medalErr });
+      }
+    }
+
     res.send({
       played: true,
       yourSeconds: meRow?.seconds ?? null,

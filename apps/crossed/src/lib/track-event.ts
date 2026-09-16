@@ -27,6 +27,12 @@ export const events = {
   // Reached 3 completed games. A weak engagement floor (our data shows day-1
   // depth barely predicts return) — kept only as a secondary value tier.
   PLAYED_3_GAMES: "PLAYED_3_GAMES",
+  // Reached 11 completed games — the ACTIVATION threshold. Retention analysis
+  // shows a sharp cliff here: users who reach ~11 games (almost always in their
+  // first session) stick at ~40% D7 vs ~5-7% for everyone who plays 1-10. This
+  // is the strongest early predictor of a durable user we have, so it's the
+  // high-value AppsFlyer optimization/lookalike target. Fires once per user.
+  PLAYED_11_GAMES: "PLAYED_11_GAMES",
   // gameplay funnel
   RANKED_MATCH_OPPONENT_FOUND: "RANKED_MATCH_OPPONENT_FOUND",
   TOURNAMENT_ENQUEUED: "TOURNAMENT_ENQUEUED",
@@ -75,6 +81,9 @@ const APPSFLYER_EVENTS: Record<string, string> = {
   PUSH_OPT_IN: "push_opt_in",
   CAME_BACK: "came_back",
   PLAYED_3_GAMES: "played_3_games",
+  // Activation: strongest depth-based predictor of retention (~40% D7). A
+  // primary optimization tier alongside came_back.
+  PLAYED_11_GAMES: "played_11_games",
 };
 
 export const trackEvent = (

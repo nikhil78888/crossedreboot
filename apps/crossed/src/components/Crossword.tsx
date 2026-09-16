@@ -61,18 +61,26 @@ export const CrosswordGrid = ({
   const crossword = game?.crossword;
   const { width } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
-  const { height, progress } = useReanimatedKeyboardAnimation();
+  const { height } = useReanimatedKeyboardAnimation();
 
+  // Size the (square) grid to fit BOTH the screen width and the height actually
+  // available above the keyboard, continuously as the keyboard animates. The
+  // grid is top-anchored with the clue bar pinned just above the keyboard, so we
+  // reserve room for the header + clue bar; without this the bottom row slips
+  // behind the keyboard/clue bar and becomes unreachable. `height.value` is used
+  // via Math.abs so it's correct whether the keyboard value arrives +/-.
+  const RESERVED_FOR_CHROME = 200; // header (with opponent bar) + clue bar + padding
   const crosswordContainerStyle = useAnimatedStyle(() => {
     const maxWidth = width * 0.9;
-    if (progress.value !== 1 || !containerHeight) {
+    if (!containerHeight) {
       return { width: maxWidth };
     }
-    const deductible = height.value - 160;
+    const keyboardHeight = Math.abs(height.value);
+    const availableHeight = containerHeight - keyboardHeight - RESERVED_FOR_CHROME;
     return {
-      width: Math.min(containerHeight - Math.abs(deductible), maxWidth),
+      width: Math.max(0, Math.min(availableHeight, maxWidth)),
     };
-  }, [containerHeight]);
+  }, [containerHeight, width]);
 
   const clueContainerStyle = useAnimatedStyle(() => {
     return {
