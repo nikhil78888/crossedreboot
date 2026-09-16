@@ -113,6 +113,7 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
     let entries: SeasonRow[];
     let myRank: number | null;
     let myRating: number | null;
+    let total = 0; // FULL board size (not the page) — the percentile denominator
 
     if (resetActive) {
       // Reset season: rank by the monthly season rating.
@@ -134,6 +135,12 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
         }[]) || [];
       const scoreById = new Map(rows.map((r) => [r.id, r.seasonScore]));
       entries = rankEntries(rows, (r) => scoreById.get(r.id) ?? 0);
+      const { count: t } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .neq("type", "BOT")
+        .eq("seasonKey", seasonKey);
+      total = t || entries.length;
       myRank = entries.find((e) => e.isYou)?.rank ?? null;
       myRating = entries.find((e) => e.isYou)?.seasonRating ?? null;
       if (profileId && myRank == null) {
@@ -177,6 +184,12 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
         }[]) || [];
       const rById = new Map(rows.map((r) => [r.id, Math.round(r.eloRating)]));
       entries = rankEntries(rows, (r) => rById.get(r.id) ?? 0);
+      const { count: t } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .neq("type", "BOT")
+        .or(`${f.rating}.neq.1000,${f.rd}.neq.350`);
+      total = t || entries.length;
       myRank = entries.find((e) => e.isYou)?.rank ?? null;
       myRating = entries.find((e) => e.isYou)?.seasonRating ?? null;
       if (profileId && myRank == null) {
@@ -203,7 +216,7 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
       monthName,
       resetsInDays,
       resetActive,
-      total: entries.length,
+      total,
       myRank,
       myRating,
       entries,

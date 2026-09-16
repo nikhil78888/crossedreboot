@@ -150,10 +150,11 @@ export default function Leaderboard() {
     (myProfile?.eloRating as number | undefined) ??
     0;
 
-  // Season percentile → progress toward the top-10% medal.
+  // Season percentile → progress toward the top-10% medal. Clamped to 1-100 so a
+  // rank beyond the fetched page can never render an impossible ">100%".
   const myPct =
     season?.myRank && season?.total
-      ? Math.max(1, Math.ceil((100 * season.myRank) / season.total))
+      ? Math.min(100, Math.max(1, Math.ceil((100 * season.myRank) / season.total)))
       : null;
 
   const loading = isSeason ? isLoadingSeason : isLoadingLeaderboard;
