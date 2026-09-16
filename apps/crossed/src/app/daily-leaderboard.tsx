@@ -120,7 +120,7 @@ export default function DailyLeaderboard() {
             : "--"}
         </Text>
       </View>
-      {dailyRank.percentile != null && dailyRank.percentile <= 10 && (
+      {dailyRank.percentile != null && dailyRank.percentile <= 10 ? (
         <View
           className="mt-3 flex-row items-center justify-center rounded-2xl px-4 py-2.5"
           style={{ backgroundColor: "#fef3c7" }}
@@ -130,6 +130,18 @@ export default function DailyLeaderboard() {
             Top 10% — Daily Duel medal earned!
           </Text>
         </View>
+      ) : (
+        dailyRank.percentile != null && (
+          <View
+            className="mt-3 flex-row items-center justify-center rounded-2xl px-4 py-2.5"
+            style={{ backgroundColor: colors["crossed-gray"]["100"] }}
+          >
+            <Text style={{ fontSize: 18 }}>🏅</Text>
+            <Text className="ml-2 font-[jost600] text-[13px] text-crossed-gray-600">
+              You're top {dailyRank.percentile}% — reach top 10% to earn a medal
+            </Text>
+          </View>
+        )
       )}
       <Text className="mt-3 font-[jost400] text-[13px] text-crossed-gray-400">
         Everyone who finished today's duel

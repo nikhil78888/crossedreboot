@@ -28,6 +28,7 @@ import { NotificationOptInBanner } from "../../components/NotificationOptInBanne
 import { getRank } from "../../lib/rank";
 import { ratingForVariant } from "../../lib/variant-rating";
 import { useFriends } from "../../hooks/use-friends";
+import { useMedals, useUnseenMedalCount } from "../../hooks/use-medals";
 import { useVariant } from "../../hooks/use-variant";
 import {
   useTournament,
@@ -44,6 +45,8 @@ export default function Home() {
   // once the player has reached the dashboard, i.e. after onboarding).
   usePushRegistration(myProfile?.id);
   const { invites, requests } = useFriends();
+  const { medals } = useMedals(myProfile?.id);
+  const unseenMedals = useUnseenMedalCount(medals?.length);
   const { tournamentInvites, refreshTournamentInvites } =
     useTournamentInvites();
   const { acceptInvite } = useTournament({ tournamentId: undefined });
@@ -199,6 +202,20 @@ export default function Home() {
               <View className="absolute -top-1 -right-1 rounded-full bg-crossed-red-500 min-w-[18px] h-[18px] items-center justify-center px-1">
                 <Text className="text-white font-[jost700] text-[10px]">
                   {requests.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/medals")}
+            className="items-center rounded-2xl px-3 py-2 bg-crossed-gray-50 mr-2"
+          >
+            <Text style={{ fontSize: 28 }}>🏆</Text>
+            <Text className="font-[jost600] text-xs mt-0.5">Trophies</Text>
+            {unseenMedals > 0 && (
+              <View className="absolute -top-1 -right-1 rounded-full bg-crossed-red-500 min-w-[18px] h-[18px] items-center justify-center px-1">
+                <Text className="text-white font-[jost700] text-[10px]">
+                  {unseenMedals}
                 </Text>
               </View>
             )}

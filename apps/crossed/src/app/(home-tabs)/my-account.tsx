@@ -105,7 +105,7 @@ export default function MyAccount() {
         </View>
       </View>
       <AccountPageButton
-        label="My Medals"
+        label="Trophy Case"
         icon={images.medal}
         onPress={() => router.push("/medals")}
       />

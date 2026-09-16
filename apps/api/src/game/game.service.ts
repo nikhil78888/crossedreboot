@@ -402,22 +402,6 @@ export const applyRankedRatings = async (
         .eq("id", r.playerId);
     }
   }
-
-  // Monthly season: a player's ranked wins this calendar month drive the season
-  // leaderboard, which resets on the 1st. Lazy per-player reset — when the stored
-  // seasonKey is stale (a new month, or never set) the score starts at 0 for the
-  // new key. Only the winner scores. Bots never accrue a season score.
-  const seasonKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM' (UTC)
-  for (const p of players) {
-    if (botIds.has(p.id)) continue;
-    const rec = p as unknown as { seasonScore?: number; seasonKey?: string };
-    const carried = rec.seasonKey === seasonKey ? rec.seasonScore ?? 0 : 0;
-    const nextScore = carried + (p.id === winnerId ? 1 : 0);
-    await supabase
-      .from("profiles")
-      .update({ seasonScore: nextScore, seasonKey } as never)
-      .eq("id", p.id);
-  }
 };
 
 // Pick the winner of a finished game from its scores. Solo needs a perfect

@@ -1,6 +1,7 @@
 import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
-import { useMedals, Medal } from "../hooks/use-medals";
+import { useMedals, Medal, markMedalsSeen } from "../hooks/use-medals";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { Button } from "../components/Button";
 import colors from "../lib/colors";
@@ -59,6 +60,12 @@ export default function Medals() {
   const { myProfile } = useMyProfile();
   const { medals, isLoadingMedals } = useMedals(myProfile?.id);
   const done = () => (router.canGoBack() ? router.back() : router.replace("/"));
+
+  // Opening the trophy case acknowledges every medal earned so far — clears the
+  // "new medal" badge on the dashboard.
+  useEffect(() => {
+    if (medals) markMedalsSeen(medals.length);
+  }, [medals]);
 
   const dailyCount =
     medals?.filter((m) => m.type === "DAILY_DUEL").length ?? 0;
