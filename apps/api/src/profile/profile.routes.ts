@@ -158,8 +158,8 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
         }
       }
     } else {
-      // Launch month: show the lifetime (crossword) rating board.
-      const f = ratingFieldsFor(undefined);
+      // Launch month: show the lifetime rating board for the selected variant.
+      const f = ratingFieldsFor(req.query.variant as string | undefined);
       const { data, error } = await supabase
         .from("profiles")
         .select(`id, username, avatar, eloRating:${f.rating}`)

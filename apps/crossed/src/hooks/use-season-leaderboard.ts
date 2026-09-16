@@ -26,13 +26,16 @@ export type SeasonLeaderboard = {
 // 1000 on the 1st of each month (a fresh race). Public; pass the caller's
 // profileId so the server can mark the "you" row and resolve their rank when
 // they're outside the returned page.
-export const useSeasonLeaderboard = (profileId?: string | null) => {
+export const useSeasonLeaderboard = (
+  profileId?: string | null,
+  variant: string = "CROSSWORD"
+) => {
   const { data, isLoading, mutate } = useSWR<SeasonLeaderboard>(
-    ["season-leaderboard", profileId || "anon"],
+    ["season-leaderboard", profileId || "anon", variant],
     async () =>
       (
         await axios.get<SeasonLeaderboard>(
-          `/api/profiles/season-leaderboard?limit=100${
+          `/api/profiles/season-leaderboard?limit=100&variant=${variant}${
             profileId ? `&profileId=${profileId}` : ""
           }`
         )

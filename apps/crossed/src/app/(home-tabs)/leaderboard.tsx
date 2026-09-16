@@ -92,9 +92,11 @@ export default function Leaderboard() {
   const { myProfile } = useMyProfile();
   const isSeason = scope === "SEASON";
 
-  // SEASON = monthly rating that resets to 1000 on the 1st.
+  // SEASON = monthly rating that resets to 1000 on the 1st (per variant; the
+  // launch month shows the variant's lifetime rating).
   const { season, isLoadingSeason, refreshSeason } = useSeasonLeaderboard(
-    isSeason ? myProfile?.id : null
+    isSeason ? myProfile?.id : null,
+    variant
   );
   // FRIENDS = all-time (lifetime) per-variant rating ladder.
   const { leaderboard, isLoadingLeaderboard, refreshLeaderboard } =
@@ -206,8 +208,8 @@ export default function Leaderboard() {
   const header = (
     <View>
       <View className="bg-white px-4 pb-2 pt-2">
-        {/* Variant ladders only apply to the lifetime-rating Friends board. */}
-        {!isSeason && <VariantTabs />}
+        {/* Game-type tabs stay visible on every view. */}
+        <VariantTabs />
         {scopeToggle}
 
         {isSeason ? (
