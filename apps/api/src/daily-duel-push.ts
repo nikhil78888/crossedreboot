@@ -12,16 +12,20 @@ import { sendChunk } from "./reengagement";
 const HOUR = 60 * 60 * 1000;
 const BATCH = 100;
 
-// ~8–11am US Eastern.
-const inMorningWindow = () => {
+// Send in the US evening ramp, when play actually peaks (usage data: heaviest
+// ~4–9pm local). We don't store per-user timezones, so this is one UTC window
+// chosen to land in late-afternoon/evening across the continental US:
+// 21:00–01:00 UTC ≈ 5–9pm Eastern / 2–6pm Pacific. Far better than the old
+// pre-dawn window (13:00 UTC was 6am Pacific), which fought the usage curve.
+const inEveningWindow = () => {
   const h = new Date().getUTCHours();
-  return h >= 13 && h < 16;
+  return h >= 21 || h < 1; // 21,22,23,00 UTC
 };
 
 type PushRow = { id: string; expoPushToken: string | null };
 
 const sweep = async () => {
-  if (!inMorningWindow()) return;
+  if (!inEveningWindow()) return;
   const now = Date.now();
   const activeSince = new Date(now - 7 * 24 * HOUR).toISOString();
   const notTodayBefore = new Date(now - 12 * HOUR).toISOString();
