@@ -27,3 +27,8 @@ export const FIRST_RESET_MONTH = "2026-10";
 // Does this month use the reset (start-at-1000) season, or the lifetime board?
 export const isResetSeason = (yyyymm: string): boolean =>
   yyyymm >= FIRST_RESET_MONTH;
+
+// The earliest month the medal job will award — the system's launch month. Months
+// before this predate the season system, so the job skips them (otherwise, on
+// first deploy it would retroactively mint medals for, e.g., August).
+export const FIRST_MEDAL_PERIOD = "2026-09";

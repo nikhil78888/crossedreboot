@@ -1,5 +1,5 @@
 import { supabase } from "./lib/supabase";
-import { seasonKeyFor, isResetSeason } from "./season";
+import { seasonKeyFor, isResetSeason, FIRST_MEDAL_PERIOD } from "./season";
 import { ratingFieldsFor, ALL_VARIANTS } from "./rating-fields";
 
 // Awards MONTHLY_SEASON medals to the top 10% of the SEASON leaderboard once a
@@ -145,6 +145,10 @@ export const awardMonthlySeasonMedals = async (): Promise<void> => {
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
   );
   const periodKey = prevStart.toISOString().slice(0, 7); // 'YYYY-MM'
+
+  // Don't retroactively award months from before the system launched (e.g. the
+  // old wins-based August medals stay as-is; we don't mint a second set).
+  if (periodKey < FIRST_MEDAL_PERIOD) return;
 
   const medalsDb = supabase as unknown as MedalsDb;
   let awarded = 0;
