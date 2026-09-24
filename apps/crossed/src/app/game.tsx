@@ -704,6 +704,18 @@ export default function Game() {
   return (
     <View className={`flex-1 bg-white`}>
       <ConnectionBanner />
+      {story === "1" && (
+        <View className="items-center pb-1 pt-2">
+          <View
+            className="rounded-full px-4 py-1"
+            style={{ backgroundColor: "#7c3aed" }}
+          >
+            <Text className="font-[jost700] text-[13px] text-white">
+              Level {level}
+            </Text>
+          </View>
+        </View>
+      )}
       {isWordSearch ? (
         <WordSearchGrid gameId={gameId as string} hintable={story === "1"} />
       ) : isTrivia ? (

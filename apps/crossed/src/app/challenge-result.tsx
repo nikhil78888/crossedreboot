@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
@@ -8,7 +7,6 @@ import { fmtSolve } from "./(home-tabs)/stats";
 import { setTodaysResult } from "../lib/daily-duel";
 import { advanceStoryLevel, startStoryLevel } from "../lib/story";
 import { STORY_MAX_LEVEL, bossAvatar } from "types-and-validators";
-import { avatars } from "../lib/images";
 
 // Result of a ghost-race challenge. Crossword / word search are decided by TIME;
 // trivia by ACCURACY (correct answers, tie broken by time). We just say won/lost
@@ -136,17 +134,15 @@ export default function ChallengeResult() {
               backgroundColor: "white",
               borderWidth: 3,
               borderColor: didWin ? "#16a34a" : "#7c3aed",
-              opacity: didWin ? 0.6 : 1,
+              opacity: didWin ? 0.55 : 1,
             }}
           >
-            <Image
-              source={avatars[bossAvatar(storyLevel) as keyof typeof avatars]}
-              style={{ height: 74, width: 74, borderRadius: 37 }}
-              contentFit="cover"
-            />
+            <Text style={{ fontSize: 48, lineHeight: 58 }}>
+              {bossAvatar(storyLevel)}
+            </Text>
           </View>
           <Text className="mt-2 font-[jost700] text-[14px] text-crossed-gray-500">
-            {rival}
+            Level {storyLevel} · {rival}
           </Text>
         </View>
       )}

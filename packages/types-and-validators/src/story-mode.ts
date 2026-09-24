@@ -37,28 +37,41 @@ export type StoryLevel = {
 // uses). Keeps the crossword pick deterministic without a count query.
 export const STORY_PUBLISHED_5X5 = 384;
 
-// ---- Boss names -----------------------------------------------------------
-// Ordered loosely by menace. A level's boss is picked by scaling into the band
-// that matches its difficulty, so early bosses are goofy and late bosses are
-// fearsome. Milestone levels (every 25) get their own distinct "big boss".
-const BOSS_MINIONS = [
-  "Doodle", "Scribbles", "Lil Vowel", "Novice Newt", "Penny Pencil",
-  "Sir Types-a-Lot", "Betty Letters", "Wordy Wendy", "Clueless Carl",
-  "Gary Grid", "Vinny Vowels", "Sally Syllable", "Bingo Bob", "Zippy Zoe",
-  "Tilly Timer", "Max Verbatim", "Ricky Rebus", "Nana Nine-Down",
-  "Speedy Steve", "Quick Quinn", "Hasty Harriet", "Ms. Across",
-  "Barry Backspace", "Chad Checkmate", "Ophelia Overthinks", "Larry Lexicon",
-  "Captain Anagram", "The Crossword Bandit", "Gigi Gridlock", "Professor Puzzlebottom",
-  "The Letterman", "Mabel Mini", "The Daily Dasher", "Wanda Wordsmith",
-  "Dr. Acrostic", "The Puzzle Pirate", "Sir Solves-a-Lot", "Nervous Nelly",
-  "The Anagram Assassin", "Grid Reaper", "The Cruciverbalist", "Vex the Vowel Eater",
-  "The Lexicon", "Cipher Sphinx", "The Gridmaster", "Wraith of Words",
-  "The Puzzle Warden", "Diagonal Dread", "The Wordsmith Warlord", "Omniglot",
-];
+// ---- Bosses ---------------------------------------------------------------
+// Every level has its own boss: a NAME, an emoji AVATAR, and a difficulty tier.
+// Both escalate — early bosses are goofy critters, late bosses are fearsome —
+// and every level differs from its neighbors. Milestone levels (every 25) get a
+// signature named boss with a crown-tier avatar.
 
-// One distinct, escalating name per 25-level milestone (8 of them, levels
-// 25/50/…/200). These are the "bosses" you fight to clear each tier.
-const BIG_BOSSES = [
+const isBossLevel = (level: number) => level % 25 === 0;
+
+// Difficulty tier 0..3 from level (kept here so the boss flavor tracks the same
+// bands as the puzzle difficulty).
+const bossTier = (level: number) => {
+  const p = (level - 1) / (STORY_MAX_LEVEL - 1);
+  return p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.8 ? 2 : 3;
+};
+
+// Emoji boss faces per tier — escalating menace (cute → monstrous). Emoji so
+// they ship over-the-air with no image assets and look distinct at every level.
+const BOSS_EMOJI: string[][] = [
+  ["🐣", "🦆", "🐹", "🐸", "🐨", "🦊", "🐵", "🐧", "🐰", "🦔", "🐤", "🦫"],
+  ["🦝", "🐺", "🦉", "🦇", "🦍", "🐯", "🦈", "🐗", "🦅", "🐍", "🦂", "🕷️"],
+  ["🧙", "🥷", "👻", "🤠", "🧟", "🦹", "👺", "🗿", "🧞", "🕵️", "🧛", "⚔️"],
+  ["👹", "👾", "🤖", "🐉", "💀", "🦾", "🔥", "👽", "☠️", "🌋", "⚡", "🦑"],
+];
+const MILESTONE_EMOJI = ["👹", "🐲", "🧙‍♂️", "🦹", "👾", "🗿", "🐉", "☠️"];
+
+export const bossAvatar = (level: number): string => {
+  if (isBossLevel(level)) {
+    return MILESTONE_EMOJI[Math.min(7, level / 25 - 1)];
+  }
+  const pool = BOSS_EMOJI[bossTier(level)];
+  return pool[(level * 7) % pool.length];
+};
+
+// Signature milestone boss names (levels 25/50/…/200).
+const MILESTONE_NAMES = [
   "Captain Anagram", // 25
   "The Cruciverbalist", // 50
   "Gigi Gridlock", // 75
@@ -69,34 +82,34 @@ const BIG_BOSSES = [
   "OMNIGLOT, the Final Cipher", // 200
 ];
 
-const isBossLevel = (level: number) => level % 25 === 0;
-
-// Avatar key per level's boss (maps to the client's `avatars` image set).
-// Deterministic, so a level always shows the same boss face. Milestone bosses
-// get the fiercest faces; regular levels cycle the rest.
-const STORY_AVATARS = [
-  "avatar_frog", "avatar_bee", "avatar_pig", "avatar_bird", "avatar_penguin",
-  "avatar_monkey", "avatar_panda", "avatar_donkey",
+// A big, tier-escalating name space built from a title + a core, so nearly every
+// level gets a distinct boss without a 200-entry hand list.
+const TITLES: string[][] = [
+  ["Lil", "Baby", "Novice", "Wee", "Sir", "Little", "Young", "Junior"],
+  ["Captain", "Madame", "Tricky", "Swift", "Sneaky", "Clever", "Sly", "Quick"],
+  ["Professor", "Baron", "Mistress", "Grand", "Shadow", "Dark", "Master", "Vex"],
+  ["Lord", "Dread", "Doom", "The Dread", "Warlord", "Nightmare", "Ancient", "Eternal"],
 ];
-export const bossAvatar = (level: number): string => {
-  if (isBossLevel(level)) {
-    return (level / 25) % 2 === 0 ? "avatar_lion" : "avatar_snake";
-  }
-  return STORY_AVATARS[(level * 3) % STORY_AVATARS.length];
-};
+const CORES: string[][] = [
+  ["Doodle", "Scribbles", "Vowel", "Newt", "Pencil", "Bingo", "Sprout", "Giggles",
+    "Puddle", "Button", "Muffin", "Pip"],
+  ["Anagram", "Gridlock", "Cipher", "Riddle", "Rebus", "Syllable", "Verbatim",
+    "Lexicon", "Crossbones", "Tangle", "Puzzler", "Scramble"],
+  ["Wordsmith", "Acrostic", "Vex", "Reaper", "Sphinx", "Warden", "Enigma",
+    "Obelisk", "Phantom", "Hex", "Oracle", "Wraith"],
+  ["Omniglot", "Voidword", "Cataclysm", "Abyss", "Overmind", "Doomscript",
+    "Endgame", "Final Cipher", "Nemesis", "Annihilator", "Grandmaster", "Leviathan"],
+];
 
 const bossNameFor = (level: number): string => {
-  if (isBossLevel(level)) return BIG_BOSSES[Math.min(7, level / 25 - 1)];
-  // Scale into the minion list by overall progress so the flavor escalates.
-  const p = (level - 1) / (STORY_MAX_LEVEL - 1);
-  const idx = Math.min(
-    BOSS_MINIONS.length - 1,
-    Math.floor(p * BOSS_MINIONS.length)
-  );
-  // Vary within the band by level so adjacent levels differ.
-  const bandStart = Math.max(0, idx - 2);
-  const pick = bandStart + (level % Math.max(1, idx - bandStart + 1));
-  return BOSS_MINIONS[Math.min(BOSS_MINIONS.length - 1, pick)];
+  if (isBossLevel(level)) return MILESTONE_NAMES[Math.min(7, level / 25 - 1)];
+  const t = bossTier(level);
+  const titles = TITLES[t];
+  const cores = CORES[t];
+  // Coprime strides spread picks so consecutive levels never collide.
+  const title = titles[(level * 5) % titles.length];
+  const core = cores[(level * 3) % cores.length];
+  return `${title} ${core}`;
 };
 
 // ---- The difficulty / time curve -----------------------------------------

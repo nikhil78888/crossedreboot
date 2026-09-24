@@ -21,27 +21,37 @@ exports.STORY_MAX_LEVEL = 200;
 // Number of published 5x5 minis to seed a pick from (same pool the daily duel
 // uses). Keeps the crossword pick deterministic without a count query.
 exports.STORY_PUBLISHED_5X5 = 384;
-// ---- Boss names -----------------------------------------------------------
-// Ordered loosely by menace. A level's boss is picked by scaling into the band
-// that matches its difficulty, so early bosses are goofy and late bosses are
-// fearsome. Milestone levels (every 25) get their own distinct "big boss".
-var BOSS_MINIONS = [
-    "Doodle", "Scribbles", "Lil Vowel", "Novice Newt", "Penny Pencil",
-    "Sir Types-a-Lot", "Betty Letters", "Wordy Wendy", "Clueless Carl",
-    "Gary Grid", "Vinny Vowels", "Sally Syllable", "Bingo Bob", "Zippy Zoe",
-    "Tilly Timer", "Max Verbatim", "Ricky Rebus", "Nana Nine-Down",
-    "Speedy Steve", "Quick Quinn", "Hasty Harriet", "Ms. Across",
-    "Barry Backspace", "Chad Checkmate", "Ophelia Overthinks", "Larry Lexicon",
-    "Captain Anagram", "The Crossword Bandit", "Gigi Gridlock", "Professor Puzzlebottom",
-    "The Letterman", "Mabel Mini", "The Daily Dasher", "Wanda Wordsmith",
-    "Dr. Acrostic", "The Puzzle Pirate", "Sir Solves-a-Lot", "Nervous Nelly",
-    "The Anagram Assassin", "Grid Reaper", "The Cruciverbalist", "Vex the Vowel Eater",
-    "The Lexicon", "Cipher Sphinx", "The Gridmaster", "Wraith of Words",
-    "The Puzzle Warden", "Diagonal Dread", "The Wordsmith Warlord", "Omniglot",
+// ---- Bosses ---------------------------------------------------------------
+// Every level has its own boss: a NAME, an emoji AVATAR, and a difficulty tier.
+// Both escalate — early bosses are goofy critters, late bosses are fearsome —
+// and every level differs from its neighbors. Milestone levels (every 25) get a
+// signature named boss with a crown-tier avatar.
+var isBossLevel = function (level) { return level % 25 === 0; };
+// Difficulty tier 0..3 from level (kept here so the boss flavor tracks the same
+// bands as the puzzle difficulty).
+var bossTier = function (level) {
+    var p = (level - 1) / (exports.STORY_MAX_LEVEL - 1);
+    return p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.8 ? 2 : 3;
+};
+// Emoji boss faces per tier — escalating menace (cute → monstrous). Emoji so
+// they ship over-the-air with no image assets and look distinct at every level.
+var BOSS_EMOJI = [
+    ["🐣", "🦆", "🐹", "🐸", "🐨", "🦊", "🐵", "🐧", "🐰", "🦔", "🐤", "🦫"],
+    ["🦝", "🐺", "🦉", "🦇", "🦍", "🐯", "🦈", "🐗", "🦅", "🐍", "🦂", "🕷️"],
+    ["🧙", "🥷", "👻", "🤠", "🧟", "🦹", "👺", "🗿", "🧞", "🕵️", "🧛", "⚔️"],
+    ["👹", "👾", "🤖", "🐉", "💀", "🦾", "🔥", "👽", "☠️", "🌋", "⚡", "🦑"],
 ];
-// One distinct, escalating name per 25-level milestone (8 of them, levels
-// 25/50/…/200). These are the "bosses" you fight to clear each tier.
-var BIG_BOSSES = [
+var MILESTONE_EMOJI = ["👹", "🐲", "🧙‍♂️", "🦹", "👾", "🗿", "🐉", "☠️"];
+var bossAvatar = function (level) {
+    if (isBossLevel(level)) {
+        return MILESTONE_EMOJI[Math.min(7, level / 25 - 1)];
+    }
+    var pool = BOSS_EMOJI[bossTier(level)];
+    return pool[(level * 7) % pool.length];
+};
+exports.bossAvatar = bossAvatar;
+// Signature milestone boss names (levels 25/50/…/200).
+var MILESTONE_NAMES = [
     "Captain Anagram",
     "The Cruciverbalist",
     "Gigi Gridlock",
@@ -51,31 +61,34 @@ var BIG_BOSSES = [
     "The Wordsmith Warlord",
     "OMNIGLOT, the Final Cipher", // 200
 ];
-var isBossLevel = function (level) { return level % 25 === 0; };
-// Avatar key per level's boss (maps to the client's `avatars` image set).
-// Deterministic, so a level always shows the same boss face. Milestone bosses
-// get the fiercest faces; regular levels cycle the rest.
-var STORY_AVATARS = [
-    "avatar_frog", "avatar_bee", "avatar_pig", "avatar_bird", "avatar_penguin",
-    "avatar_monkey", "avatar_panda", "avatar_donkey",
+// A big, tier-escalating name space built from a title + a core, so nearly every
+// level gets a distinct boss without a 200-entry hand list.
+var TITLES = [
+    ["Lil", "Baby", "Novice", "Wee", "Sir", "Little", "Young", "Junior"],
+    ["Captain", "Madame", "Tricky", "Swift", "Sneaky", "Clever", "Sly", "Quick"],
+    ["Professor", "Baron", "Mistress", "Grand", "Shadow", "Dark", "Master", "Vex"],
+    ["Lord", "Dread", "Doom", "The Dread", "Warlord", "Nightmare", "Ancient", "Eternal"],
 ];
-var bossAvatar = function (level) {
-    if (isBossLevel(level)) {
-        return (level / 25) % 2 === 0 ? "avatar_lion" : "avatar_snake";
-    }
-    return STORY_AVATARS[(level * 3) % STORY_AVATARS.length];
-};
-exports.bossAvatar = bossAvatar;
+var CORES = [
+    ["Doodle", "Scribbles", "Vowel", "Newt", "Pencil", "Bingo", "Sprout", "Giggles",
+        "Puddle", "Button", "Muffin", "Pip"],
+    ["Anagram", "Gridlock", "Cipher", "Riddle", "Rebus", "Syllable", "Verbatim",
+        "Lexicon", "Crossbones", "Tangle", "Puzzler", "Scramble"],
+    ["Wordsmith", "Acrostic", "Vex", "Reaper", "Sphinx", "Warden", "Enigma",
+        "Obelisk", "Phantom", "Hex", "Oracle", "Wraith"],
+    ["Omniglot", "Voidword", "Cataclysm", "Abyss", "Overmind", "Doomscript",
+        "Endgame", "Final Cipher", "Nemesis", "Annihilator", "Grandmaster", "Leviathan"],
+];
 var bossNameFor = function (level) {
     if (isBossLevel(level))
-        return BIG_BOSSES[Math.min(7, level / 25 - 1)];
-    // Scale into the minion list by overall progress so the flavor escalates.
-    var p = (level - 1) / (exports.STORY_MAX_LEVEL - 1);
-    var idx = Math.min(BOSS_MINIONS.length - 1, Math.floor(p * BOSS_MINIONS.length));
-    // Vary within the band by level so adjacent levels differ.
-    var bandStart = Math.max(0, idx - 2);
-    var pick = bandStart + (level % Math.max(1, idx - bandStart + 1));
-    return BOSS_MINIONS[Math.min(BOSS_MINIONS.length - 1, pick)];
+        return MILESTONE_NAMES[Math.min(7, level / 25 - 1)];
+    var t = bossTier(level);
+    var titles = TITLES[t];
+    var cores = CORES[t];
+    // Coprime strides spread picks so consecutive levels never collide.
+    var title = titles[(level * 5) % titles.length];
+    var core = cores[(level * 3) % cores.length];
+    return "".concat(title, " ").concat(core);
 };
 // ---- The difficulty / time curve -----------------------------------------
 // Diagonal-heavy direction sets, escalating. Diagonals are intentionally

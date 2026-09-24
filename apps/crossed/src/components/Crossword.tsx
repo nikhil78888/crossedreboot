@@ -846,17 +846,19 @@ export const CrosswordGrid = ({
           </Animated.View>
         </View>
         {hintable && !showResults && !paused && (
-          <TouchableOpacity
-            onPress={revealLetter}
-            activeOpacity={0.85}
-            className="absolute right-3 flex-row items-center rounded-full px-4 py-2"
-            style={{ top: 10, backgroundColor: "#7c3aed" }}
-          >
-            <Text style={{ fontSize: 15 }}>💡</Text>
-            <Text className="ml-1.5 font-[jost700] text-[13px] text-white">
-              Letter Hint
-            </Text>
-          </TouchableOpacity>
+          <View className="mt-4 items-center">
+            <TouchableOpacity
+              onPress={revealLetter}
+              activeOpacity={0.85}
+              className="flex-row items-center rounded-full px-5 py-2.5"
+              style={{ backgroundColor: "#7c3aed" }}
+            >
+              <Text style={{ fontSize: 16 }}>💡</Text>
+              <Text className="ml-2 font-[jost700] text-[14px] text-white">
+                Letter Hint
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
         <Animated.View
           className={showResults ? "mt-8 w-full" : "absolute bottom-0 w-full"}
