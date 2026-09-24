@@ -28,7 +28,7 @@ export const DailySection = () => {
     : "Play Daily Duel";
 
   return (
-    <View className="mb-4 flex-row" style={{ gap: 12, alignItems: "stretch" }}>
+    <View className="flex-row" style={{ gap: 12, alignItems: "stretch" }}>
       {/* Day Play Streak */}
       <View
         className="flex-1 justify-between"

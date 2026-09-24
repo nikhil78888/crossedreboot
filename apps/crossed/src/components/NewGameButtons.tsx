@@ -17,6 +17,10 @@ import colors from "../lib/colors";
 // shows on their first Challenge tap and then launches straight in after.
 const CHALLENGE_INTRO_SEEN_KEY = "challenge_intro_seen_v1";
 
+// One spacing value between every stacked element on Home, so the gaps are
+// provably identical (daily tiles → selector → Story → Ranked → Beat/Friendly).
+const GAP = 14;
+
 export const NewGameButtons = () => {
   const router = useRouter();
   const { variant } = useVariant();
@@ -105,7 +109,7 @@ export const NewGameButtons = () => {
       {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard.
           A touch of vertical padding so the bar isn't jammed between the tiles
           above and the hero below. */}
-      <View style={{ marginTop: 10, marginBottom: 10 }}>
+      <View style={{ marginTop: GAP }}>
         <VariantTabs />
       </View>
 
@@ -117,6 +121,7 @@ export const NewGameButtons = () => {
         onPress={playStory}
         disabled={storyLaunching}
         style={{
+          marginTop: GAP,
           flexDirection: "row",
           alignItems: "center",
           borderRadius: 28,
@@ -185,7 +190,7 @@ export const NewGameButtons = () => {
           playRanked();
         }}
         style={{
-          marginTop: 16,
+          marginTop: GAP,
           flexDirection: "row",
           alignItems: "center",
           borderRadius: 28,
@@ -218,7 +223,7 @@ export const NewGameButtons = () => {
 
       {/* Beat My Time + Play a Friend — side by side, below the fold. Taller cards
           with a vertical layout so they read cleanly at half width. */}
-      <View style={{ marginTop: 16, flexDirection: "row", gap: 12 }}>
+      <View style={{ marginTop: GAP, flexDirection: "row", gap: 12 }}>
         {/* flex:1 lives on a plain View wrapper — RNGH TouchableOpacity doesn't
             size correctly under flex:1 (it overflowed the row), so the button
             just fills its wrapper at width 100%. */}
