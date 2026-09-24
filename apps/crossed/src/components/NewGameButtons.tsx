@@ -116,8 +116,14 @@ export const NewGameButtons = () => {
         activeOpacity={0.9}
         onPress={playStory}
         disabled={storyLaunching}
-        className="flex-row items-center rounded-3xl p-6"
-        style={{ backgroundColor: "#ede9fe", minHeight: 188 }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderRadius: 28,
+          padding: 22,
+          backgroundColor: "#ede9fe",
+          minHeight: 188,
+        }}
       >
         <View className="flex-1 pr-4">
           <View className="flex-row flex-wrap items-center" style={{ gap: 8 }}>
@@ -178,12 +184,19 @@ export const NewGameButtons = () => {
           trackEvent(events.START_RANKED_GAME_CLICK);
           playRanked();
         }}
-        className="mt-4 flex-row items-center rounded-3xl p-6"
-        style={{ backgroundColor: colors["crossed-blue"]["50"], minHeight: 172 }}
+        style={{
+          marginTop: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          borderRadius: 28,
+          padding: 22,
+          backgroundColor: colors["crossed-blue"]["50"],
+          minHeight: 172,
+        }}
       >
         <Image
           source={images.play_ranked}
-          style={{ height: 104, width: 104 }}
+          style={{ height: 100, width: 100 }}
           contentFit="contain"
         />
         <View className="ml-4 flex-1">
@@ -209,8 +222,13 @@ export const NewGameButtons = () => {
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={onChallengePress}
-          className="flex-1 rounded-3xl p-4"
-          style={{ backgroundColor: "#dcfce7", minHeight: 150 }}
+          style={{
+            flex: 1,
+            borderRadius: 24,
+            padding: 18,
+            backgroundColor: "#dcfce7",
+            minHeight: 150,
+          }}
         >
           <Image
             source={images.solo}
@@ -231,8 +249,13 @@ export const NewGameButtons = () => {
             trackEvent(events.START_FRIENDLY_GAME_CLICK);
             playFriendly();
           }}
-          className="flex-1 rounded-3xl p-4"
-          style={{ backgroundColor: "#ede9fe", minHeight: 150 }}
+          style={{
+            flex: 1,
+            borderRadius: 24,
+            padding: 18,
+            backgroundColor: "#ede9fe",
+            minHeight: 150,
+          }}
         >
           <Image
             source={images.play_friendly}

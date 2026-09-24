@@ -33,7 +33,7 @@ export const DailySection = () => {
       <View
         className="flex-1 justify-between"
         style={{
-          borderRadius: 16,
+          borderRadius: 22,
           backgroundColor: "#fff7ed",
           padding: 14,
           minHeight: TILE_MIN_HEIGHT,
@@ -57,7 +57,7 @@ export const DailySection = () => {
       <View
         className="flex-1"
         style={{
-          borderRadius: 16,
+          borderRadius: 22,
           backgroundColor: done ? "#dcfce7" : "#ffedd5",
           minHeight: TILE_MIN_HEIGHT,
         }}
