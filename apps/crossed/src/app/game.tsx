@@ -38,7 +38,7 @@ const challengerTriviaCorrect = (
 export default function Game() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { gameId, tournamentId, guided, preview, daily } =
+  const { gameId, tournamentId, guided, preview, daily, story, level } =
     useLocalSearchParams();
   const { myProfile } = useMyProfile();
   const {
@@ -495,7 +495,7 @@ export default function Game() {
             challengeMeta.name ?? "your rival"
           )}&won=${beat ? 1 : 0}&${resultParams}${
             daily === "1" ? "&daily=1" : ""
-          }`
+          }${story === "1" ? `&story=1&level=${level ?? "1"}` : ""}`
         );
         return;
       }
@@ -705,13 +705,13 @@ export default function Game() {
     <View className={`flex-1 bg-white`}>
       <ConnectionBanner />
       {isWordSearch ? (
-        <WordSearchGrid gameId={gameId as string} />
+        <WordSearchGrid gameId={gameId as string} hintable={story === "1"} />
       ) : isTrivia ? (
         <TriviaGame gameId={gameId as string} />
       ) : isSudoku ? (
         <SudokuGrid gameId={gameId as string} />
       ) : (
-        <CrosswordGrid gameId={gameId as string} />
+        <CrosswordGrid gameId={gameId as string} hintable={story === "1"} />
       )}
       <UrgencyPulse progress={opponentProgress} />
     </View>

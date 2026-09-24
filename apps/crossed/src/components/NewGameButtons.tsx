@@ -10,6 +10,7 @@ import { VariantTabs } from "./VariantTabs";
 import { useVariant } from "../hooks/use-variant";
 import { ChallengeIntroSheet } from "./ChallengeIntroSheet";
 import { DailySection } from "./DailySection";
+import { useStory } from "../hooks/use-story";
 import colors from "../lib/colors";
 
 // Set once the player has seen the "how a challenge works" explainer, so it only
@@ -20,6 +21,7 @@ export const NewGameButtons = () => {
   const router = useRouter();
   const { variant } = useVariant();
   const [showChallengeIntro, setShowChallengeIntro] = useState(false);
+  const { level: storyLevel, playStory, launching: storyLaunching } = useStory();
 
   // Every mode first goes to the difficulty picker, which then runs the action
   // (gate check + create/join) with the chosen Regular/Hard. Variant comes from
@@ -100,42 +102,78 @@ export const NewGameButtons = () => {
         <VariantTabs />
       </View>
 
-      {/* Play Ranked — the HERO. Ranked bot-races are the most-played mode and
-          the real hook, so it leads. (Beat My Time was demoted from hero: the
-          async "play then send" flow diverted new users into a dead-end — the
-          send goes nowhere for most — which tracked with a retention drop, so it
-          is now a secondary card.) */}
+      {/* Story Mode — the HERO. A 200-level solo ladder (crossword/word-search
+          alternating) that ramps from trivially easy to a real wall. It leads
+          because it's built to pull new players deep into their first session —
+          the day-0 activation the retention data says matters most. Shows the
+          level you'll resume at. */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={playStory}
+        disabled={storyLaunching}
+        className="rounded-2xl"
+        style={{ backgroundColor: "#ede9fe" }}
+      >
+        <View className="flex-row items-center p-5">
+          <View className="flex-1 pr-2">
+            <View className="flex-row items-center">
+              <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
+                Story Mode
+              </Text>
+              <View
+                className="ml-2 rounded-full px-2.5 py-1"
+                style={{ backgroundColor: "#7c3aed" }}
+              >
+                <Text className="font-[jost700] text-[12px] text-white">
+                  Level {storyLevel}
+                </Text>
+              </View>
+            </View>
+            <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
+              Beat the clock. Climb 200 levels. How far can you get?
+            </Text>
+            <View
+              className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
+              style={{ backgroundColor: "#7c3aed" }}
+            >
+              <Text className="font-[jost700] text-[14px] text-white">
+                {storyLaunching ? "Loading…" : `Play Level ${storyLevel}`}
+              </Text>
+              {!storyLaunching && <Text className="ml-1 text-white">→</Text>}
+            </View>
+          </View>
+          <Image
+            source={images.solo}
+            style={{ height: 104, width: 104 }}
+            contentFit="contain"
+          />
+        </View>
+      </TouchableOpacity>
+
+      {/* Play Ranked — secondary. Full-width but quieter than the Story hero. */}
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
           trackEvent(events.START_RANKED_GAME_CLICK);
           playRanked();
         }}
-        className="rounded-2xl"
+        className="mt-3 flex-row items-center rounded-2xl p-4"
         style={{ backgroundColor: colors["crossed-blue"]["50"] }}
       >
-        <View className="flex-row items-center p-5">
-          <View className="flex-1 pr-2">
-            <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
-              Play Ranked
-            </Text>
-            <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-              Compete worldwide & climb the leaderboard.
-            </Text>
-            <View
-              className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
-              style={{ backgroundColor: colors["crossed-blue"]["450"] }}
-            >
-              <Text className="font-[jost700] text-[14px] text-white">Play</Text>
-              <Text className="ml-1 text-white">→</Text>
-            </View>
-          </View>
-          <Image
-            source={images.play_ranked}
-            style={{ height: 104, width: 104 }}
-            contentFit="contain"
-          />
+        <Image
+          source={images.play_ranked}
+          style={{ height: 46, width: 46 }}
+          contentFit="contain"
+        />
+        <View className="ml-3 flex-1">
+          <Text className="font-[jost700] text-[17px] text-crossed-gray-900">
+            Play Ranked
+          </Text>
+          <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
+            Compete worldwide & climb the leaderboard.
+          </Text>
         </View>
+        <Text className="ml-2 text-crossed-gray-900/40 text-xl">›</Text>
       </TouchableOpacity>
 
       {/* Beat My Time | Play a Friend — half-width cards below the hero. */}

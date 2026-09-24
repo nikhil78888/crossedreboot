@@ -41,6 +41,7 @@ export const CrosswordGrid = ({
   gameId,
   showResults,
   paused,
+  hintable,
 }: {
   gameId: string;
   showResults?: {
@@ -49,6 +50,8 @@ export const CrosswordGrid = ({
   // Freeze the board behind the how-to-play tutorial: no clock, no bot movement,
   // no keyboard. The race starts fresh once the tutorial is dismissed.
   paused?: boolean;
+  // Story Mode: show a "letter hint" button that fills the correct letter.
+  hintable?: boolean;
 }) => {
   const { myProfile } = useMyProfile();
   const { finishGame, game, opponent } = useGame({ gameId });
@@ -510,6 +513,37 @@ export const CrosswordGrid = ({
     );
   };
 
+  // Story Mode letter hint: fill the correct letter into the selected cell (or,
+  // if that cell is already correct/blocked, the first empty fillable cell). The
+  // fill flows through the same effect that writes progress + checks for a solve.
+  const revealLetter = () => {
+    const sol = crossword?.solution;
+    if (!sol) return;
+    const isFillable = (x: number, y: number) =>
+      sol[x]?.[y] != null && sol[x][y] !== "#";
+    const needsLetter = (x: number, y: number) =>
+      isFillable(x, y) && solution[x]?.[y] !== sol[x][y];
+    let target: { x: number; y: number } | null =
+      currentCell && needsLetter(currentCell.x, currentCell.y)
+        ? { x: currentCell.x, y: currentCell.y }
+        : null;
+    if (!target) {
+      for (let x = 0; x < sol.length && !target; x++) {
+        for (let y = 0; y < sol[x].length; y++) {
+          if (needsLetter(x, y)) {
+            target = { x, y };
+            break;
+          }
+        }
+      }
+    }
+    if (!target) return;
+    const letter = sol[target.x][target.y];
+    if (letter == null) return;
+    setCurrentCell(target);
+    setSolution({ cell: target, value: letter });
+  };
+
   const gotoPrevCell = ({
     cell,
     direction,
@@ -811,6 +845,19 @@ export const CrosswordGrid = ({
             </View>
           </Animated.View>
         </View>
+        {hintable && !showResults && !paused && (
+          <TouchableOpacity
+            onPress={revealLetter}
+            activeOpacity={0.85}
+            className="absolute right-3 flex-row items-center rounded-full px-4 py-2"
+            style={{ top: 10, backgroundColor: "#7c3aed" }}
+          >
+            <Text style={{ fontSize: 15 }}>💡</Text>
+            <Text className="ml-1.5 font-[jost700] text-[13px] text-white">
+              Letter Hint
+            </Text>
+          </TouchableOpacity>
+        )}
         <Animated.View
           className={showResults ? "mt-8 w-full" : "absolute bottom-0 w-full"}
           style={showResults ? {} : clueContainerStyle}

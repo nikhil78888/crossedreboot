@@ -4,3 +4,4 @@ export * from "./game-types";
 export * from "./word-search";
 export * from "./trivia";
 export * from "./daily-duel";
+export * from "./story-mode";

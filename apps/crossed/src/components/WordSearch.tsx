@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, Text, View } from "react-native";
+import { Dimensions, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
@@ -33,7 +33,14 @@ const lineBetween = (a: Cell, b: Cell): Cell[] | null => {
   return cells;
 };
 
-export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
+export const WordSearchGrid = ({
+  gameId,
+  hintable,
+}: {
+  gameId: string;
+  // Story Mode: show a hint button that reveals the start of an unfound word.
+  hintable?: boolean;
+}) => {
   const { game, finishGame, opponent } = useGame({ gameId });
   const { myProfile } = useMyProfile();
 
@@ -43,6 +50,16 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
 
   const [found, setFound] = useState<string[]>([]);
   const [sel, setSel] = useState<Cell[]>([]);
+  const [hintCells, setHintCells] = useState<Cell[]>([]);
+
+  // Reveal the first two cells of an as-yet-unfound word (its starting point +
+  // direction), so the player can trace the rest.
+  const revealWordStart = () => {
+    if (!puzzle) return;
+    const target = puzzle.placements.find((p) => !found.includes(p.word));
+    if (!target) return;
+    setHintCells(target.cells.slice(0, 2));
+  };
   const dragStart = useRef<Cell | null>(null);
   const [now, setNow] = useState(Date.now());
   const [contentH, setContentH] = useState(0); // measured column height
@@ -258,6 +275,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
     if (found.includes(pl.word))
       pl.cells.forEach((c) => foundCells.add(`${c.r},${c.c}`));
   const selSet = new Set(sel.map((c) => `${c.r},${c.c}`));
+  const hintSet = new Set(hintCells.map((c) => `${c.r},${c.c}`));
 
   const cellAt = (x: number, y: number): Cell => ({
     r: Math.max(0, Math.min(size - 1, Math.floor(y / cellSize))),
@@ -325,6 +343,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
               {row.map((ch, c) => {
                 const isFound = foundCells.has(`${r},${c}`);
                 const isSel = selSet.has(`${r},${c}`);
+                const isHint = !isFound && hintSet.has(`${r},${c}`);
                 return (
                   <View
                     key={c}
@@ -339,6 +358,8 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
                         ? colors["crossed-blue"]["450"]
                         : isFound
                         ? colors["crossed-green"]["100"]
+                        : isHint
+                        ? "#ddd6fe"
                         : "white",
                     }}
                   >
@@ -346,7 +367,7 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
                       style={{
                         fontFamily: "jost600",
                         fontSize: Math.max(11, cellSize * 0.42),
-                        color: isSel ? "white" : "#111827",
+                        color: isSel ? "white" : isHint ? "#5b21b6" : "#111827",
                       }}
                     >
                       {ch}
@@ -403,6 +424,33 @@ export const WordSearchGrid = ({ gameId }: { gameId: string }) => {
       <Text className="mt-2 text-center font-[jost400] text-[12px] text-crossed-gray-400">
         Drag across the letters to trace a word ({puzzle.theme})
       </Text>
+      {hintable && found.length < puzzle.words.length && (
+        <View className="mt-3 items-center">
+          <Pressable
+            onPress={revealWordStart}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              borderRadius: 9999,
+              paddingHorizontal: 18,
+              paddingVertical: 10,
+              backgroundColor: "#7c3aed",
+            }}
+          >
+            <Text style={{ fontSize: 15 }}>💡</Text>
+            <Text
+              style={{
+                marginLeft: 6,
+                fontFamily: "jost700",
+                fontSize: 14,
+                color: "white",
+              }}
+            >
+              Hint — show a word
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 };

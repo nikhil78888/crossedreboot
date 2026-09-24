@@ -14,7 +14,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 exports.__esModule = true;
-exports.wordSearchProgress = exports.matchSelection = exports.generateWordSearch = exports.wordSearchConfig = void 0;
+exports.wordSearchProgress = exports.matchSelection = exports.generateWordSearch = exports.generateWordSearchFrom = exports.WS_DIR = exports.wordSearchConfig = void 0;
 // Themed banks keep puzzles coherent and give us "categories" for parity with
 // trivia. Words are 3–8 letters, uppercase, no spaces.
 // Themes for the word lists. Each pool is large so a given puzzle samples only a
@@ -320,20 +320,30 @@ var inBounds = function (r, c, size) {
 // Try to place a word into the grid in some direction without conflicting with
 // already-placed letters (shared letters are fine).
 var tryPlace = function (grid, word, size, dirs, rng) {
-    for (var attempt = 0; attempt < 80; attempt++) {
+    var len = word.length;
+    for (var attempt = 0; attempt < 120; attempt++) {
         var dir = dirs[Math.floor(rng() * dirs.length)];
-        var r0 = Math.floor(rng() * size);
-        var c0 = Math.floor(rng() * size);
+        // Pick a start cell within the range that keeps the WHOLE word on the grid
+        // for this direction. Without this, long words on diagonals almost always
+        // run off the edge and fail — so placement silently collapses onto the
+        // straight directions and the "diagonal-heavy" weighting is lost. Bounding
+        // the start to the valid window lets diagonals land as often as straights.
+        var span = len - 1;
+        // Valid start range per axis given the direction's sign.
+        var rMin = dir.dr < 0 ? span : 0;
+        var rMax = dir.dr > 0 ? size - 1 - span : size - 1;
+        var cMin = dir.dc < 0 ? span : 0;
+        var cMax = dir.dc > 0 ? size - 1 - span : size - 1;
+        if (rMax < rMin || cMax < cMin)
+            continue; // word can't fit this direction
+        var r0 = rMin + Math.floor(rng() * (rMax - rMin + 1));
+        var c0 = cMin + Math.floor(rng() * (cMax - cMin + 1));
         var cells = [];
         var ok = true;
-        for (var i = 0; i < word.length; i++) {
+        for (var i = 0; i < len; i++) {
             var r = r0 + dir.dr * i;
             var c = c0 + dir.dc * i;
-            if (!inBounds(r, c, size)) {
-                ok = false;
-                break;
-            }
-            var existing = grid[r][c];
+            var existing = grid[r][c]; // guaranteed in-bounds by the range above
             if (existing !== null && existing !== word[i]) {
                 ok = false;
                 break;
@@ -351,6 +361,76 @@ var wordSearchConfig = function (difficulty) {
         : { size: 9, count: 7, dirs: DIRS_EASY };
 };
 exports.wordSearchConfig = wordSearchConfig;
+// Named direction vectors, exported so callers (e.g. Story Mode) can compose
+// their own diagonal-heavy direction sets per level. A direction may appear more
+// than once in a `dirs` array to bias random placement toward it.
+exports.WS_DIR = {
+    RIGHT: { dr: 0, dc: 1 },
+    DOWN: { dr: 1, dc: 0 },
+    LEFT: { dr: 0, dc: -1 },
+    UP: { dr: -1, dc: 0 },
+    DOWN_RIGHT: { dr: 1, dc: 1 },
+    DOWN_LEFT: { dr: 1, dc: -1 },
+    UP_RIGHT: { dr: -1, dc: 1 },
+    UP_LEFT: { dr: -1, dc: -1 }
+};
+// Core generator: builds a puzzle from an EXPLICIT config (size/count/dirs) so
+// difficulty can be tuned continuously (Story Mode) rather than only the two
+// preset tiers. The difficulty-preset generateWordSearch below just resolves a
+// config and delegates here.
+var generateWordSearchFrom = function (config, seed, themeName, excludeThemes, excludeWords) {
+    var _a;
+    var rng = makeRng(seed);
+    var themes = Object.keys(THEMES);
+    var choices = themes;
+    if (!themeName && excludeThemes && excludeThemes.length) {
+        var fresh = themes.filter(function (t) { return !excludeThemes.includes(t); });
+        if (fresh.length)
+            choices = fresh;
+    }
+    var theme = themeName !== null && themeName !== void 0 ? themeName : choices[Math.floor(rng() * choices.length)];
+    var size = config.size, count = config.count, dirs = config.dirs;
+    var seen = new Set(excludeWords !== null && excludeWords !== void 0 ? excludeWords : []);
+    var pool = __spreadArray([], THEMES[theme], true).filter(function (w) { return w.length <= size; });
+    for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(rng() * (i + 1));
+        _a = [pool[j], pool[i]], pool[i] = _a[0], pool[j] = _a[1];
+    }
+    pool.sort(function (a, b) { return (seen.has(a) ? 1 : 0) - (seen.has(b) ? 1 : 0) || b.length - a.length; });
+    var grid = Array.from({ length: size }, function () {
+        return Array.from({ length: size }, function () { return null; });
+    });
+    var placements = [];
+    var _loop_1 = function (word) {
+        if (placements.length >= count)
+            return "break";
+        var placed = tryPlace(grid, word, size, dirs, rng);
+        if (placed) {
+            placed.cells.forEach(function (_a, i) {
+                var r = _a.r, c = _a.c;
+                return (grid[r][c] = word[i]);
+            });
+            placements.push(placed);
+        }
+    };
+    for (var _i = 0, pool_1 = pool; _i < pool_1.length; _i++) {
+        var word = pool_1[_i];
+        var state_1 = _loop_1(word);
+        if (state_1 === "break")
+            break;
+    }
+    var filled = grid.map(function (row) {
+        return row.map(function (ch) { return ch !== null && ch !== void 0 ? ch : ALPHABET[Math.floor(rng() * 26)]; });
+    });
+    return {
+        size: size,
+        grid: filled,
+        words: placements.map(function (p) { return p.word; }),
+        placements: placements,
+        theme: theme
+    };
+};
+exports.generateWordSearchFrom = generateWordSearchFrom;
 var generateWordSearch = function (difficulty, seed, themeName, 
 // Themes recently shown to this player (avoided so the category varies), and
 // words they've already seen (preferred to be skipped). Both keep successive
@@ -380,7 +460,7 @@ excludeThemes, excludeWords) {
         return Array.from({ length: size }, function () { return null; });
     });
     var placements = [];
-    var _loop_1 = function (word) {
+    var _loop_2 = function (word) {
         if (placements.length >= count)
             return "break";
         var placed = tryPlace(grid, word, size, dirs, rng);
@@ -392,10 +472,10 @@ excludeThemes, excludeWords) {
             placements.push(placed);
         }
     };
-    for (var _i = 0, pool_1 = pool; _i < pool_1.length; _i++) {
-        var word = pool_1[_i];
-        var state_1 = _loop_1(word);
-        if (state_1 === "break")
+    for (var _i = 0, pool_2 = pool; _i < pool_2.length; _i++) {
+        var word = pool_2[_i];
+        var state_2 = _loop_2(word);
+        if (state_2 === "break")
             break;
     }
     // Fill blanks with random letters.

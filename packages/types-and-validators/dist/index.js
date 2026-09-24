@@ -20,3 +20,4 @@ __exportStar(require("./game-types"), exports);
 __exportStar(require("./word-search"), exports);
 __exportStar(require("./trivia"), exports);
 __exportStar(require("./daily-duel"), exports);
+__exportStar(require("./story-mode"), exports);

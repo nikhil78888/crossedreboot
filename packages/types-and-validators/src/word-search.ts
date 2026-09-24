@@ -329,20 +329,29 @@ const tryPlace = (
   dirs: { dr: number; dc: number }[],
   rng: () => number
 ): Placement | null => {
-  for (let attempt = 0; attempt < 80; attempt++) {
+  const len = word.length;
+  for (let attempt = 0; attempt < 120; attempt++) {
     const dir = dirs[Math.floor(rng() * dirs.length)];
-    const r0 = Math.floor(rng() * size);
-    const c0 = Math.floor(rng() * size);
+    // Pick a start cell within the range that keeps the WHOLE word on the grid
+    // for this direction. Without this, long words on diagonals almost always
+    // run off the edge and fail — so placement silently collapses onto the
+    // straight directions and the "diagonal-heavy" weighting is lost. Bounding
+    // the start to the valid window lets diagonals land as often as straights.
+    const span = len - 1;
+    // Valid start range per axis given the direction's sign.
+    const rMin = dir.dr < 0 ? span : 0;
+    const rMax = dir.dr > 0 ? size - 1 - span : size - 1;
+    const cMin = dir.dc < 0 ? span : 0;
+    const cMax = dir.dc > 0 ? size - 1 - span : size - 1;
+    if (rMax < rMin || cMax < cMin) continue; // word can't fit this direction
+    const r0 = rMin + Math.floor(rng() * (rMax - rMin + 1));
+    const c0 = cMin + Math.floor(rng() * (cMax - cMin + 1));
     const cells: Cell[] = [];
     let ok = true;
-    for (let i = 0; i < word.length; i++) {
+    for (let i = 0; i < len; i++) {
       const r = r0 + dir.dr * i;
       const c = c0 + dir.dc * i;
-      if (!inBounds(r, c, size)) {
-        ok = false;
-        break;
-      }
-      const existing = grid[r][c];
+      const existing = grid[r][c]; // guaranteed in-bounds by the range above
       if (existing !== null && existing !== word[i]) {
         ok = false;
         break;
@@ -358,6 +367,83 @@ export const wordSearchConfig = (difficulty: "REGULAR" | "HARD") =>
   difficulty === "HARD"
     ? { size: 12, count: 8, dirs: DIRS_HARD }
     : { size: 9, count: 7, dirs: DIRS_EASY };
+
+// Named direction vectors, exported so callers (e.g. Story Mode) can compose
+// their own diagonal-heavy direction sets per level. A direction may appear more
+// than once in a `dirs` array to bias random placement toward it.
+export const WS_DIR = {
+  RIGHT: { dr: 0, dc: 1 },
+  DOWN: { dr: 1, dc: 0 },
+  LEFT: { dr: 0, dc: -1 },
+  UP: { dr: -1, dc: 0 },
+  DOWN_RIGHT: { dr: 1, dc: 1 }, // ↘ diagonal
+  DOWN_LEFT: { dr: 1, dc: -1 }, // ↙ diagonal
+  UP_RIGHT: { dr: -1, dc: 1 }, // ↗ diagonal
+  UP_LEFT: { dr: -1, dc: -1 }, // ↖ diagonal
+} as const;
+
+export type WordSearchConfig = {
+  size: number;
+  count: number;
+  dirs: { dr: number; dc: number }[];
+};
+
+// Core generator: builds a puzzle from an EXPLICIT config (size/count/dirs) so
+// difficulty can be tuned continuously (Story Mode) rather than only the two
+// preset tiers. The difficulty-preset generateWordSearch below just resolves a
+// config and delegates here.
+export const generateWordSearchFrom = (
+  config: WordSearchConfig,
+  seed: number,
+  themeName?: string,
+  excludeThemes?: string[],
+  excludeWords?: string[]
+): WordSearchPuzzle => {
+  const rng = makeRng(seed);
+  const themes = Object.keys(THEMES);
+  let choices = themes;
+  if (!themeName && excludeThemes && excludeThemes.length) {
+    const fresh = themes.filter((t) => !excludeThemes.includes(t));
+    if (fresh.length) choices = fresh;
+  }
+  const theme = themeName ?? choices[Math.floor(rng() * choices.length)];
+  const { size, count, dirs } = config;
+
+  const seen = new Set(excludeWords ?? []);
+  const pool = [...THEMES[theme]].filter((w) => w.length <= size);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  pool.sort(
+    (a, b) => (seen.has(a) ? 1 : 0) - (seen.has(b) ? 1 : 0) || b.length - a.length
+  );
+
+  const grid: (string | null)[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => null)
+  );
+  const placements: Placement[] = [];
+  for (const word of pool) {
+    if (placements.length >= count) break;
+    const placed = tryPlace(grid, word, size, dirs, rng);
+    if (placed) {
+      placed.cells.forEach(({ r, c }, i) => (grid[r][c] = word[i]));
+      placements.push(placed);
+    }
+  }
+
+  const filled: string[][] = grid.map((row) =>
+    row.map((ch) => ch ?? ALPHABET[Math.floor(rng() * 26)])
+  );
+
+  return {
+    size,
+    grid: filled,
+    words: placements.map((p) => p.word),
+    placements,
+    theme,
+  };
+};
 
 export const generateWordSearch = (
   difficulty: "REGULAR" | "HARD",
