@@ -119,6 +119,13 @@ export const getTodaysDuel = async (): Promise<{
   meta: DuelMeta;
 } | null> => {
   const meta = await fetchDuelMeta();
+  // Ease the time-to-beat: players (even strong ones) were losing the duel most
+  // days, which makes the daily-return hook feel punishing. Give ~30% more time
+  // to beat the ghost. This ONLY changes win/lose vs the opponent — the daily
+  // leaderboard ranks by your ACTUAL solve time, so easing here doesn't advantage
+  // anyone on the board. Applied client-side so it ships to this build only.
+  const DUEL_EASE = 1.3;
+  meta.seconds = Math.max(30, Math.round(meta.seconds * DUEL_EASE));
   try {
     const cached = await AsyncStorage.getItem(cacheKey(meta.day));
     if (cached) return { id: cached, meta };

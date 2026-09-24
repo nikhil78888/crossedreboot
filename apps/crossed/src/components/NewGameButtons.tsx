@@ -109,41 +109,48 @@ export const NewGameButtons = () => {
         <VariantTabs />
       </View>
 
-      {/* Story Mode — the HERO. A 200-level solo ladder that leads because it's
-          built to pull new players deep into their first session. Shows the level
-          you'll resume at and the boss waiting there. */}
+      {/* Story Mode — the HERO. Big card that anchors the page: the 200-level
+          solo ladder that pulls players deep into a session. Shows the level you
+          resume at and the boss waiting there. */}
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={playStory}
         disabled={storyLaunching}
-        className="flex-row items-center rounded-2xl p-5"
-        style={{ backgroundColor: "#ede9fe" }}
+        className="flex-row items-center rounded-3xl p-6"
+        style={{ backgroundColor: "#ede9fe", minHeight: 188 }}
       >
         <View className="flex-1 pr-4">
-          <View className="flex-row items-center">
-            <Text className="font-[jost700] text-[22px] text-crossed-gray-900">
+          <View className="flex-row flex-wrap items-center" style={{ gap: 8 }}>
+            <Text className="font-[jost700] text-[24px] text-crossed-gray-900">
               Story Mode
             </Text>
             <View
-              className="ml-2 rounded-full px-2.5 py-1"
-              style={{ backgroundColor: "#7c3aed" }}
+              className="rounded-full px-3"
+              style={{ backgroundColor: "#7c3aed", paddingVertical: 3 }}
             >
-              <Text className="font-[jost700] text-[12px] text-white">
+              <Text
+                style={{
+                  fontFamily: "jost700",
+                  fontSize: 13,
+                  lineHeight: 18,
+                  color: "white",
+                }}
+              >
                 Lv {storyLevel}
               </Text>
             </View>
           </View>
-          <Text className="mt-1.5 font-[jost400] text-[13px] text-crossed-gray-900/60">
+          <Text className="mt-2 font-[jost400] text-[14px] text-crossed-gray-900/60">
             {storyIsBoss ? "⚔️ Boss: " : "Next up: "}
             <Text className="font-[jost600] text-crossed-gray-900/80">
               {storyBoss}
             </Text>
           </Text>
           <View
-            className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
+            className="mt-4 flex-row items-center self-start rounded-full px-5 py-3"
             style={{ backgroundColor: "#7c3aed" }}
           >
-            <Text className="font-[jost700] text-[14px] text-white">
+            <Text className="font-[jost700] text-[15px] text-white">
               {storyLaunching ? "Loading…" : `Play Level ${storyLevel}`}
             </Text>
             {!storyLaunching && <Text className="ml-1 text-white">→</Text>}
@@ -152,91 +159,94 @@ export const NewGameButtons = () => {
         <View
           className="items-center justify-center rounded-full"
           style={{
-            height: 84,
-            width: 84,
+            height: 104,
+            width: 104,
             backgroundColor: "white",
-            borderWidth: storyIsBoss ? 3 : 2,
+            borderWidth: storyIsBoss ? 4 : 3,
             borderColor: storyIsBoss ? "#dc2626" : "#7c3aed",
           }}
         >
-          <Text style={{ fontSize: 44, lineHeight: 52 }}>{storyAvatar}</Text>
+          <Text style={{ fontSize: 54, lineHeight: 64 }}>{storyAvatar}</Text>
         </View>
       </TouchableOpacity>
 
-      {/* Play Ranked — a tall full-width card (secondary to Story). */}
+      {/* Play Ranked — the SECOND hero. A big card, on par with Story, so the two
+          together fill the first screen. */}
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
           trackEvent(events.START_RANKED_GAME_CLICK);
           playRanked();
         }}
-        className="mt-3 flex-row items-center rounded-2xl p-5"
-        style={{ backgroundColor: colors["crossed-blue"]["50"] }}
+        className="mt-4 flex-row items-center rounded-3xl p-6"
+        style={{ backgroundColor: colors["crossed-blue"]["50"], minHeight: 172 }}
       >
         <Image
           source={images.play_ranked}
-          style={{ height: 84, width: 84 }}
+          style={{ height: 104, width: 104 }}
           contentFit="contain"
         />
         <View className="ml-4 flex-1">
-          <Text className="font-[jost700] text-[20px] text-crossed-gray-900">
+          <Text className="font-[jost700] text-[24px] text-crossed-gray-900">
             Play Ranked
           </Text>
-          <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
+          <Text className="mt-1.5 font-[jost400] text-[14px] text-crossed-gray-900/60">
             Compete worldwide & climb the leaderboard.
           </Text>
+          <View
+            className="mt-4 flex-row items-center self-start rounded-full px-5 py-3"
+            style={{ backgroundColor: colors["crossed-blue"]["450"] }}
+          >
+            <Text className="font-[jost700] text-[15px] text-white">Play</Text>
+            <Text className="ml-1 text-white">→</Text>
+          </View>
         </View>
-        <Text className="ml-2 text-xl text-crossed-gray-900/40">›</Text>
       </TouchableOpacity>
 
-      {/* Beat My Time — thin full-width row. */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={onChallengePress}
-        className="mt-3 flex-row items-center rounded-2xl p-4"
-        style={{ backgroundColor: "#dcfce7" }}
-      >
-        <Image
-          source={images.solo}
-          style={{ height: 44, width: 44 }}
-          contentFit="contain"
-        />
-        <View className="ml-3 flex-1">
-          <Text className="font-[jost700] text-[16px] text-crossed-gray-900">
+      {/* Beat My Time + Play a Friend — side by side, below the fold. Taller cards
+          with a vertical layout so they read cleanly at half width. */}
+      <View className="mt-4 flex-row" style={{ gap: 12 }}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={onChallengePress}
+          className="flex-1 rounded-3xl p-4"
+          style={{ backgroundColor: "#dcfce7", minHeight: 150 }}
+        >
+          <Image
+            source={images.solo}
+            style={{ height: 48, width: 48 }}
+            contentFit="contain"
+          />
+          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
             Beat My Time
           </Text>
-          <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
+          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/60">
             Solve, then send it to a friend to beat.
           </Text>
-        </View>
-        <Text className="ml-2 text-xl text-crossed-gray-900/40">›</Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      {/* Play a Friend — thin full-width row. */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => {
-          trackEvent(events.START_FRIENDLY_GAME_CLICK);
-          playFriendly();
-        }}
-        className="mt-3 flex-row items-center rounded-2xl p-4"
-        style={{ backgroundColor: "#ede9fe" }}
-      >
-        <Image
-          source={images.play_friendly}
-          style={{ height: 44, width: 44 }}
-          contentFit="contain"
-        />
-        <View className="ml-3 flex-1">
-          <Text className="font-[jost700] text-[16px] text-crossed-gray-900">
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => {
+            trackEvent(events.START_FRIENDLY_GAME_CLICK);
+            playFriendly();
+          }}
+          className="flex-1 rounded-3xl p-4"
+          style={{ backgroundColor: "#ede9fe", minHeight: 150 }}
+        >
+          <Image
+            source={images.play_friendly}
+            style={{ height: 48, width: 48 }}
+            contentFit="contain"
+          />
+          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
             Play a Friend
           </Text>
-          <Text className="mt-0.5 font-[jost400] text-[12px] text-crossed-gray-900/60">
+          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/60">
             Text a link to play live.
           </Text>
-        </View>
-        <Text className="ml-2 text-xl text-crossed-gray-900/40">›</Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
 
       {/* Tournaments (public + private) disabled (2026-08): not enough concurrent
           players to fill a bracket. Uncomment both blocks to restore. */}
