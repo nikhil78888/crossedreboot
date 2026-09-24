@@ -25,7 +25,7 @@ const MEDAL_BG: Record<number, string> = {
   3: "#A9712B",
 };
 
-type Scope = "SEASON" | "FRIENDS";
+type Scope = "SEASON" | "LIFETIME" | "FRIENDS";
 
 // One leaderboard row — shared by the season board, the friends rating board, and
 // the pinned "you" row, so they're pixel-identical. `rightValue` is the number on
@@ -91,17 +91,29 @@ export default function Leaderboard() {
   const [scope, setScope] = useState<Scope>("SEASON");
   const { myProfile } = useMyProfile();
   const isSeason = scope === "SEASON";
+  const isLifetime = scope === "LIFETIME";
 
-  // SEASON = monthly rating that resets to 1000 on the 1st (per variant; the
-  // launch month shows the variant's lifetime rating).
+  // SEASON = weekly rating that resets to 1000 (per variant; before the reset
+  // season starts it shows the variant's lifetime rating).
   const { season, isLoadingSeason, refreshSeason } = useSeasonLeaderboard(
     isSeason ? myProfile?.id : null,
     variant
   );
-  // FRIENDS = all-time (lifetime) per-variant rating ladder.
-  const { leaderboard, isLoadingLeaderboard, refreshLeaderboard } =
-    useLeaderboard(variant, "FRIENDS");
-  const { myRank } = useMyRank(variant, !isSeason ? myProfile?.id : null);
+  // LIFETIME = the full GLOBAL all-time rating ladder for this variant.
+  const {
+    leaderboard: lifetimeBoard,
+    isLoadingLeaderboard: isLoadingLifetime,
+    refreshLeaderboard: refreshLifetime,
+  } = useLeaderboard(variant, "GLOBAL");
+  // FRIENDS = the same lifetime rating, but only among your friends.
+  const {
+    leaderboard: friendsBoard,
+    isLoadingLeaderboard: isLoadingFriends,
+    refreshLeaderboard: refreshFriends,
+  } = useLeaderboard(variant, "FRIENDS");
+  // The caller's own GLOBAL standing (used to pin their row on the Lifetime tab
+  // when they're outside the top 100).
+  const { myRank } = useMyRank(variant, isLifetime ? myProfile?.id : null);
 
   const seasonCaption = (
     <Text className="font-[jost400] text-[12px] text-crossed-gray-400">
@@ -137,15 +149,19 @@ export default function Leaderboard() {
     />
   );
 
-  // Friends pinned "you" row values.
-  const ratingList = leaderboard || [];
+  // The rating board shown on the non-season tabs (Lifetime = global, Friends =
+  // friends-only) and the pinned "you" row values for it.
+  const ratingList = (isLifetime ? lifetimeBoard : friendsBoard) || [];
   const myIdx = myProfile
     ? ratingList.findIndex((e) => e.id === myProfile.id)
     : -1;
-  const myRatingPlace = myIdx >= 0 ? myIdx + 1 : myRank?.rank ?? null;
+  // On Lifetime, fall back to the global rank endpoint when you're off the page;
+  // on Friends there's no larger board, so it's just your index.
+  const myRatingPlace =
+    myIdx >= 0 ? myIdx + 1 : isLifetime ? myRank?.rank ?? null : null;
   const myRating =
     (myIdx >= 0 ? ratingList[myIdx].eloRating : undefined) ??
-    myRank?.eloRating ??
+    (isLifetime ? myRank?.eloRating : undefined) ??
     ratingForVariant(myProfile, variant) ??
     (myProfile?.eloRating as number | undefined) ??
     0;
@@ -157,8 +173,16 @@ export default function Leaderboard() {
       ? Math.min(100, Math.max(1, Math.ceil((100 * season.myRank) / season.total)))
       : null;
 
-  const loading = isSeason ? isLoadingSeason : isLoadingLeaderboard;
-  const refresh = isSeason ? refreshSeason : refreshLeaderboard;
+  const loading = isSeason
+    ? isLoadingSeason
+    : isLifetime
+    ? isLoadingLifetime
+    : isLoadingFriends;
+  const refresh = isSeason
+    ? refreshSeason
+    : isLifetime
+    ? refreshLifetime
+    : refreshFriends;
 
   const scopeToggle = (
     <View
@@ -173,8 +197,9 @@ export default function Leaderboard() {
     >
       {(
         [
-          { key: "SEASON", label: "🏆  Season" },
-          { key: "FRIENDS", label: "👥  Friends" },
+          { key: "SEASON", label: "🏆 Season" },
+          { key: "LIFETIME", label: "🌍 Lifetime" },
+          { key: "FRIENDS", label: "👥 Friends" },
         ] as { key: Scope; label: string }[]
       ).map((s) => {
         const active = scope === s.key;
@@ -194,7 +219,8 @@ export default function Leaderboard() {
               }}
             >
               <Text
-                className="font-[jost600] text-[14px]"
+                className="font-[jost600] text-[13px]"
+                numberOfLines={1}
                 style={{ color: active ? "#fff" : colors["crossed-gray"]["400"] }}
               >
                 {s.label}
@@ -244,7 +270,9 @@ export default function Leaderboard() {
           </View>
         ) : (
           <Text className="mt-3 font-[jost400] text-[13px] text-crossed-gray-400">
-            {`Your friends · ${variantLabel(variant)} (overall rating)`}
+            {isLifetime
+              ? `Global all-time · ${variantLabel(variant)} (lifetime rating)`
+              : `Your friends · ${variantLabel(variant)} (lifetime rating)`}
           </Text>
         )}
       </View>
@@ -279,6 +307,8 @@ export default function Leaderboard() {
 
   const emptyText = isSeason
     ? "No ranked games yet this season — play a ranked match to get on the board!"
+    : isLifetime
+    ? "No ranked players yet — play a ranked match to get on the board!"
     : "Add friends to see them ranked here!";
 
   const emptyBlock = loading ? (
@@ -304,7 +334,7 @@ export default function Leaderboard() {
         />
       ) : (
         <FlatList
-          data={leaderboard || []}
+          data={ratingList}
           keyExtractor={(item) => item.id}
           renderItem={renderRatingRow}
           refreshing={loading}
