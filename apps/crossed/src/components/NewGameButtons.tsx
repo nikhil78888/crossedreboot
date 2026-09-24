@@ -105,7 +105,7 @@ export const NewGameButtons = () => {
       {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard.
           A touch of vertical padding so the bar isn't jammed between the tiles
           above and the hero below. */}
-      <View style={{ marginTop: 10, marginBottom: 16 }}>
+      <View style={{ marginTop: 10, marginBottom: 10 }}>
         <VariantTabs />
       </View>
 
