@@ -311,7 +311,10 @@ var makeRng = function (seed) {
         s ^= s >>> 17;
         s ^= s << 5;
         s >>>= 0;
-        return s / 0xffffffff;
+        // Divide by 2^32 (not 2^32-1) so the result is in [0, 1); dividing by
+        // 0xffffffff can return exactly 1.0 at max state and push index math (e.g.
+        // Math.floor(rand()*len)) out of bounds.
+        return s / 0x100000000;
     };
 };
 var inBounds = function (r, c, size) {

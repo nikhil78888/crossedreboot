@@ -393,7 +393,7 @@ export const applyRankedRatings = async (
   // before that the Season board shows lifetime ratings, so we don't write it.
   const SEASON_BASE = 1000;
   const resetSeason = isResetSeason(currentPeriod());
-  const seasonKey = currentSeasonKey(); // 's2:YYYY-MM' — versioned (see season.ts)
+  const seasonKey = currentSeasonKey(); // 's3:YYYY-Www' — versioned (see season.ts)
   const oldOf = (id: string) => {
     const p = players.find((pl) => pl.id === id);
     return p ? toPlayer(p).eloRating : SEASON_BASE;
