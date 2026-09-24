@@ -141,15 +141,16 @@ const DIRS_TIER = [
     D.UP_LEFT, D.UP_LEFT, D.UP_LEFT,
   ],
 ];
-// Config progress — front-loaded (p^0.68) so the grid/word-count/directions
-// visibly grow in the EARLY levels instead of sitting on a long plateau. This is
-// what stops "every level looks the same at the start".
+// Config progress — heavily front-loaded (p^0.55) so the grid/word-count/
+// directions ramp up FAST in the early levels. Combined with the steep time
+// curve below, this makes the game genuinely challenging within the first
+// ~20-25 levels rather than staying trivially easy.
 const configProgress = (level: number) =>
-  Math.pow((level - 1) / (STORY_MAX_LEVEL - 1), 0.68);
+  Math.pow((level - 1) / (STORY_MAX_LEVEL - 1), 0.55);
 
 const tierFor = (level: number) => {
   const cp = configProgress(level);
-  return cp < 0.12 ? 0 : cp < 0.4 ? 1 : cp < 0.7 ? 2 : 3;
+  return cp < 0.1 ? 0 : cp < 0.34 ? 1 : cp < 0.64 ? 2 : 3;
 };
 
 // Average word length across the theme banks (words are 3–9 letters). Used to
@@ -182,23 +183,25 @@ const estimatedSolve = (level: number): number => {
 };
 
 const wsConfigFor = (level: number): WordSearchConfig => {
-  const cp = configProgress(level); // front-loaded — grows early
-  const size = Math.round(7 + cp * 6); // 7 → 13 (lower floor = more granularity)
-  const count = Math.min(11, Math.round(3 + cp * 8)); // 3 → 11
+  const cp = configProgress(level); // heavily front-loaded — grows fast early
+  const size = Math.round(7 + cp * 6); // 7 → 13
+  const count = Math.min(12, Math.round(3 + cp * 9)); // 3 → 12
   return { size, count, dirs: DIRS_TIER[tierFor(level)] };
 };
 
-// Generosity multiplier on the estimated solve time — THE per-level difficulty
-// lever. Felt difficulty = 1 / generosity, and because generosity STRICTLY
-// decreases every single level, every level is a touch harder than the one
-// before, even when the puzzle config is unchanged. Shape: (1-p)^k so it drops
-// meaningfully from the very first levels (not flat at the start like a p^k
-// curve), spanning a generous 2.35× at L1 down to a tight 0.85× at L200.
-const GEN_HI = 2.35; // L1 — huge time cushion, trivially beatable
-const GEN_LO = 0.85; // L200 — must be fast / lean on hints
+// Generosity = time-to-beat / estimated-solve — THE per-level difficulty lever.
+// Felt difficulty = 1 / generosity, and because generosity STRICTLY decreases
+// every single level, every level is harder than the last. The curve drops FAST
+// early (p^0.42, sqrt-like) so the game gets genuinely tight within the first
+// ~20-25 levels — L1 gives 1.55× the solve time (comfortable), by ~L25 you're
+// near 1.2× (must be quick), and it keeps tightening to 0.68× at L200 (needs
+// speed / hints).
+const GEN_HI = 1.55; // L1 — comfortable cushion, not trivial
+const GEN_LO = 0.68; // L200 — must be fast / lean on hints
+const GEN_EXP = 0.42; // < 1 → steep early drop
 export const storyGenerosity = (level: number): number => {
   const p = (level - 1) / (STORY_MAX_LEVEL - 1);
-  return GEN_LO + (GEN_HI - GEN_LO) * Math.pow(1 - p, 1.35);
+  return GEN_LO + (GEN_HI - GEN_LO) * (1 - Math.pow(p, GEN_EXP));
 };
 const generosity = storyGenerosity;
 
