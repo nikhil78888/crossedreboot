@@ -1,6 +1,7 @@
 import { WordSearchConfig, WordSearchPuzzle } from "./word-search";
 export declare const STORY_MAX_LEVEL = 200;
-export type StoryVariant = "CROSSWORD" | "WORD_SEARCH";
+export type StoryVariant = "CROSSWORD" | "WORD_SEARCH" | "WORDSY" | "CATEGORIES";
+export declare const STORY_VARIANTS: StoryVariant[];
 export type StoryLevel = {
     level: number;
     variant: StoryVariant;
@@ -10,9 +11,25 @@ export type StoryLevel = {
     isBoss: boolean;
     ws?: WordSearchConfig;
     crosswordOffset?: number;
+    wordsy?: {
+        length: number;
+        maxGuesses: number;
+    };
+    categories?: {
+        mistakes: number;
+        trickiness: number;
+    };
 };
 export declare const STORY_PUBLISHED_5X5 = 384;
 export declare const bossAvatar: (level: number) => string;
+export declare const wordsyConfigFor: (level: number) => {
+    length: number;
+    maxGuesses: number;
+};
+export declare const categoriesConfigFor: (level: number) => {
+    mistakes: number;
+    trickiness: number;
+};
 export declare const storyGenerosity: (level: number) => number;
 export declare const estimateWordSearchSolve: (puzzle: WordSearchPuzzle) => number;
 export declare const storyTargetSolve: (level: number) => number;

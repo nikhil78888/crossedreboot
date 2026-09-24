@@ -1,6 +1,6 @@
 "use strict";
 exports.__esModule = true;
-exports.storyLevel = exports.isOnDifficulty = exports.storyDifficultyBand = exports.wordSearchSecondsFor = exports.storyTargetSolve = exports.estimateWordSearchSolve = exports.storyGenerosity = exports.bossAvatar = exports.STORY_PUBLISHED_5X5 = exports.STORY_MAX_LEVEL = void 0;
+exports.storyLevel = exports.isOnDifficulty = exports.storyDifficultyBand = exports.wordSearchSecondsFor = exports.storyTargetSolve = exports.estimateWordSearchSolve = exports.storyGenerosity = exports.categoriesConfigFor = exports.wordsyConfigFor = exports.bossAvatar = exports.STORY_PUBLISHED_5X5 = exports.STORY_VARIANTS = exports.STORY_MAX_LEVEL = void 0;
 var word_search_1 = require("./word-search");
 // Story Mode — a 200-level solo ladder. Odd levels are crosswords, even levels
 // are word searches (alternating, starting with a crossword at level 1). Each
@@ -18,6 +18,16 @@ var word_search_1 = require("./word-search");
 // Everything here is a pure function of the level number, so a level always
 // produces the same puzzle + time (progress is stored client-side).
 exports.STORY_MAX_LEVEL = 200;
+// Story Mode rotates through four game types, one per level in order.
+exports.STORY_VARIANTS = [
+    "CROSSWORD",
+    "WORD_SEARCH",
+    "WORDSY",
+    "CATEGORIES",
+];
+var variantForLevel = function (level) {
+    return exports.STORY_VARIANTS[(level - 1) % exports.STORY_VARIANTS.length];
+};
 // Number of published 5x5 minis to seed a pick from (same pool the daily duel
 // uses). Keeps the crossword pick deterministic without a count query.
 exports.STORY_PUBLISHED_5X5 = 384;
@@ -140,15 +150,41 @@ var vectorHardness = function (d) {
     var isReversed = d.dc < 0 || d.dr < 0;
     return 1.0 + (isDiag ? 0.3 : 0) + (isReversed ? 0.35 : 0);
 };
+// Wordsy (guess-the-word): longer words = fewer guesses = harder. Config ramps
+// with the level so the game tightens the same way the others do.
+var wordsyConfigFor = function (level) {
+    var cp = configProgress(level);
+    var length = Math.min(6, 4 + Math.floor(cp * 2.4)); // 4 → 6
+    var maxGuesses = Math.max(4, 7 - Math.floor(cp * 3.2)); // 7 → 4
+    return { length: length, maxGuesses: maxGuesses };
+};
+exports.wordsyConfigFor = wordsyConfigFor;
+// Categories (group 16 words into 4 sets): fewer mistakes allowed = harder, and
+// trickiness rises so higher levels can share words between groups.
+var categoriesConfigFor = function (level) {
+    var cp = configProgress(level);
+    var mistakes = Math.max(1, 4 - Math.floor(cp * 3.2)); // 4 → 1
+    return { mistakes: mistakes, trickiness: cp };
+};
+exports.categoriesConfigFor = categoriesConfigFor;
 // Estimated competent-player solve time for a level's NOMINAL puzzle (before the
-// generosity multiplier) — computed with the same word/direction model as the
-// per-puzzle measurement, so it's a faithful target for the difficulty band.
+// generosity multiplier). For word search it's the word/direction model (also
+// used as the per-puzzle difficulty-band target); the others use a nominal that
+// grows with their config.
 var estimatedSolve = function (level) {
-    if (level % 2 === 1) {
-        // Crossword: a published 5x5 mini (~10 answers). Fixed puzzle, so difficulty
-        // comes from the clock (and hints) rather than the grid.
+    var v = variantForLevel(level);
+    if (v === "CROSSWORD") {
+        // A published 5x5 mini (~10 answers). Fixed puzzle → difficulty from clock.
         return 70;
     }
+    if (v === "WORDSY") {
+        var length = (0, exports.wordsyConfigFor)(level).length;
+        return 45 + (length - 4) * 16; // 45 / 61 / 77
+    }
+    if (v === "CATEGORIES") {
+        return 78; // a 16-tile grouping puzzle
+    }
+    // WORD_SEARCH
     var _a = wsConfigFor(level), size = _a.size, count = _a.count, dirs = _a.dirs;
     var scan = 6 + (size - 8) * 1.6;
     var avgHard = dirs.reduce(function (a, d) { return a + vectorHardness(d); }, 0) / dirs.length;
@@ -231,7 +267,7 @@ var isOnDifficulty = function (level, puzzleEstimate) {
 exports.isOnDifficulty = isOnDifficulty;
 var storyLevel = function (level) {
     var lvl = Math.max(1, Math.min(exports.STORY_MAX_LEVEL, Math.round(level)));
-    var variant = lvl % 2 === 1 ? "CROSSWORD" : "WORD_SEARCH";
+    var variant = variantForLevel(lvl);
     var seconds = Math.max(30, Math.round(estimatedSolve(lvl) * generosity(lvl)));
     var base = {
         level: lvl,
@@ -244,9 +280,15 @@ var storyLevel = function (level) {
     if (variant === "WORD_SEARCH") {
         base.ws = wsConfigFor(lvl);
     }
-    else {
+    else if (variant === "CROSSWORD") {
         // Deterministic pick from the published 5x5 pool (seeded by level).
         base.crosswordOffset = (lvl * 2654435761) % exports.STORY_PUBLISHED_5X5;
+    }
+    else if (variant === "WORDSY") {
+        base.wordsy = (0, exports.wordsyConfigFor)(lvl);
+    }
+    else {
+        base.categories = (0, exports.categoriesConfigFor)(lvl);
     }
     return base;
 };

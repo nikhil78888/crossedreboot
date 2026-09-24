@@ -14,14 +14,14 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 exports.__esModule = true;
-exports.wordSearchProgress = exports.matchSelection = exports.generateWordSearch = exports.generateWordSearchFrom = exports.WS_DIR = exports.wordSearchConfig = void 0;
+exports.wordSearchProgress = exports.matchSelection = exports.generateWordSearch = exports.generateWordSearchFrom = exports.WS_DIR = exports.wordSearchConfig = exports.THEMES = void 0;
 // Themed banks keep puzzles coherent and give us "categories" for parity with
 // trivia. Words are 3–8 letters, uppercase, no spaces.
 // Themes for the word lists. Each pool is large so a given puzzle samples only a
 // subset (see generateWordSearch) — the bigger the pool, the rarer a repeat of
 // the same set of words. Keep every word ≤9 letters (A–Z only) so it fits the
 // regular 9×9 grid as well as the hard 12×12 one.
-var THEMES = {
+exports.THEMES = {
     Animals: [
         "TIGER", "PANDA", "OTTER", "EAGLE", "MOOSE", "ZEBRA", "KOALA", "LEMUR",
         "BISON", "HORSE", "SHARK", "WHALE", "GECKO", "RAVEN", "FERRET", "WALRUS",
@@ -381,7 +381,7 @@ exports.WS_DIR = {
 var generateWordSearchFrom = function (config, seed, themeName, excludeThemes, excludeWords) {
     var _a;
     var rng = makeRng(seed);
-    var themes = Object.keys(THEMES);
+    var themes = Object.keys(exports.THEMES);
     var choices = themes;
     if (!themeName && excludeThemes && excludeThemes.length) {
         var fresh = themes.filter(function (t) { return !excludeThemes.includes(t); });
@@ -391,7 +391,7 @@ var generateWordSearchFrom = function (config, seed, themeName, excludeThemes, e
     var theme = themeName !== null && themeName !== void 0 ? themeName : choices[Math.floor(rng() * choices.length)];
     var size = config.size, count = config.count, dirs = config.dirs;
     var seen = new Set(excludeWords !== null && excludeWords !== void 0 ? excludeWords : []);
-    var pool = __spreadArray([], THEMES[theme], true).filter(function (w) { return w.length <= size; });
+    var pool = __spreadArray([], exports.THEMES[theme], true).filter(function (w) { return w.length <= size; });
     for (var i = pool.length - 1; i > 0; i--) {
         var j = Math.floor(rng() * (i + 1));
         _a = [pool[j], pool[i]], pool[i] = _a[0], pool[j] = _a[1];
@@ -438,7 +438,7 @@ var generateWordSearch = function (difficulty, seed, themeName,
 excludeThemes, excludeWords) {
     var _a;
     var rng = makeRng(seed);
-    var themes = Object.keys(THEMES);
+    var themes = Object.keys(exports.THEMES);
     var choices = themes;
     if (!themeName && excludeThemes && excludeThemes.length) {
         var fresh = themes.filter(function (t) { return !excludeThemes.includes(t); });
@@ -450,7 +450,7 @@ excludeThemes, excludeWords) {
     // Words that fit the grid, shuffled, then ordered UNSEEN-first (for variety)
     // and longest-first within each group (for easier placement).
     var seen = new Set(excludeWords !== null && excludeWords !== void 0 ? excludeWords : []);
-    var pool = __spreadArray([], THEMES[theme], true).filter(function (w) { return w.length <= size; });
+    var pool = __spreadArray([], exports.THEMES[theme], true).filter(function (w) { return w.length <= size; });
     for (var i = pool.length - 1; i > 0; i--) {
         var j = Math.floor(rng() * (i + 1));
         _a = [pool[j], pool[i]], pool[i] = _a[0], pool[j] = _a[1];

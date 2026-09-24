@@ -18,7 +18,21 @@ import { WS_DIR, WordSearchConfig, WordSearchPuzzle } from "./word-search";
 
 export const STORY_MAX_LEVEL = 200;
 
-export type StoryVariant = "CROSSWORD" | "WORD_SEARCH";
+export type StoryVariant =
+  | "CROSSWORD"
+  | "WORD_SEARCH"
+  | "WORDSY"
+  | "CATEGORIES";
+
+// Story Mode rotates through four game types, one per level in order.
+export const STORY_VARIANTS: StoryVariant[] = [
+  "CROSSWORD",
+  "WORD_SEARCH",
+  "WORDSY",
+  "CATEGORIES",
+];
+const variantForLevel = (level: number): StoryVariant =>
+  STORY_VARIANTS[(level - 1) % STORY_VARIANTS.length];
 
 export type StoryLevel = {
   level: number;
@@ -31,6 +45,10 @@ export type StoryLevel = {
   ws?: WordSearchConfig;
   // Present only for crossword levels: which published 5x5 mini to use.
   crosswordOffset?: number;
+  // Present only for Wordsy (guess-the-word) levels.
+  wordsy?: { length: number; maxGuesses: number };
+  // Present only for Categories (group-the-words) levels.
+  categories?: { mistakes: number; trickiness: number };
 };
 
 // Number of published 5x5 minis to seed a pick from (same pool the daily duel
@@ -166,15 +184,45 @@ const vectorHardness = (d: { dr: number; dc: number }) => {
   return 1.0 + (isDiag ? 0.3 : 0) + (isReversed ? 0.35 : 0);
 };
 
+// Wordsy (guess-the-word): longer words = fewer guesses = harder. Config ramps
+// with the level so the game tightens the same way the others do.
+export const wordsyConfigFor = (
+  level: number
+): { length: number; maxGuesses: number } => {
+  const cp = configProgress(level);
+  const length = Math.min(6, 4 + Math.floor(cp * 2.4)); // 4 → 6
+  const maxGuesses = Math.max(4, 7 - Math.floor(cp * 3.2)); // 7 → 4
+  return { length, maxGuesses };
+};
+
+// Categories (group 16 words into 4 sets): fewer mistakes allowed = harder, and
+// trickiness rises so higher levels can share words between groups.
+export const categoriesConfigFor = (
+  level: number
+): { mistakes: number; trickiness: number } => {
+  const cp = configProgress(level);
+  const mistakes = Math.max(1, 4 - Math.floor(cp * 3.2)); // 4 → 1
+  return { mistakes, trickiness: cp };
+};
+
 // Estimated competent-player solve time for a level's NOMINAL puzzle (before the
-// generosity multiplier) — computed with the same word/direction model as the
-// per-puzzle measurement, so it's a faithful target for the difficulty band.
+// generosity multiplier). For word search it's the word/direction model (also
+// used as the per-puzzle difficulty-band target); the others use a nominal that
+// grows with their config.
 const estimatedSolve = (level: number): number => {
-  if (level % 2 === 1) {
-    // Crossword: a published 5x5 mini (~10 answers). Fixed puzzle, so difficulty
-    // comes from the clock (and hints) rather than the grid.
+  const v = variantForLevel(level);
+  if (v === "CROSSWORD") {
+    // A published 5x5 mini (~10 answers). Fixed puzzle → difficulty from clock.
     return 70;
   }
+  if (v === "WORDSY") {
+    const { length } = wordsyConfigFor(level);
+    return 45 + (length - 4) * 16; // 45 / 61 / 77
+  }
+  if (v === "CATEGORIES") {
+    return 78; // a 16-tile grouping puzzle
+  }
+  // WORD_SEARCH
   const { size, count, dirs } = wsConfigFor(level);
   const scan = 6 + (size - 8) * 1.6;
   const avgHard = dirs.reduce((a, d) => a + vectorHardness(d), 0) / dirs.length;
@@ -261,7 +309,7 @@ export const isOnDifficulty = (level: number, puzzleEstimate: number): boolean =
 
 export const storyLevel = (level: number): StoryLevel => {
   const lvl = Math.max(1, Math.min(STORY_MAX_LEVEL, Math.round(level)));
-  const variant: StoryVariant = lvl % 2 === 1 ? "CROSSWORD" : "WORD_SEARCH";
+  const variant = variantForLevel(lvl);
   const seconds = Math.max(
     30,
     Math.round(estimatedSolve(lvl) * generosity(lvl))
@@ -276,9 +324,13 @@ export const storyLevel = (level: number): StoryLevel => {
   };
   if (variant === "WORD_SEARCH") {
     base.ws = wsConfigFor(lvl);
-  } else {
+  } else if (variant === "CROSSWORD") {
     // Deterministic pick from the published 5x5 pool (seeded by level).
     base.crosswordOffset = (lvl * 2654435761) % STORY_PUBLISHED_5X5;
+  } else if (variant === "WORDSY") {
+    base.wordsy = wordsyConfigFor(lvl);
+  } else {
+    base.categories = categoriesConfigFor(lvl);
   }
   return base;
 };

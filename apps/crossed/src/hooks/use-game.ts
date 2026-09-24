@@ -941,7 +941,11 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
         const ch = await loadChallenge(arg.challengeId);
         if (!ch) return;
         const variant = ch.gameVariant || "CROSSWORD";
-        const isInline = variant === "WORD_SEARCH" || variant === "TRIVIA";
+        const isInline =
+          variant === "WORD_SEARCH" ||
+          variant === "TRIVIA" ||
+          variant === "WORDSY" ||
+          variant === "CATEGORIES";
         // Crossword references a puzzle by id; word search / trivia carry it inline.
         if (!isInline && !ch.crosswordsId) return;
         if (isInline && !ch.puzzle) return;
@@ -960,7 +964,13 @@ export const useGame = ({ gameId }: { gameId?: string }) => {
           name: ch.challengerName,
         };
         const inlineKey =
-          variant === "WORD_SEARCH" ? "__wordsearch" : "__trivia";
+          variant === "WORD_SEARCH"
+            ? "__wordsearch"
+            : variant === "WORDSY"
+            ? "__wordsy"
+            : variant === "CATEGORIES"
+            ? "__categories"
+            : "__trivia";
         const gameState = (
           isInline
             ? { [inlineKey]: ch.puzzle, __challenge: challengeMeta }

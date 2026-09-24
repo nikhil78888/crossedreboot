@@ -13,6 +13,7 @@ export type WordSearchPuzzle = {
     placements: Placement[];
     theme: string;
 };
+export declare const THEMES: Record<string, string[]>;
 export declare const wordSearchConfig: (difficulty: "REGULAR" | "HARD") => {
     size: number;
     count: number;

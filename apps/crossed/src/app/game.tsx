@@ -6,6 +6,8 @@ import { CrosswordGrid } from "../components/Crossword";
 import { CrosswordTutorial } from "../components/CrosswordTutorial";
 import { SudokuGrid } from "../components/Sudoku";
 import { WordSearchGrid } from "../components/WordSearch";
+import { WordsyGrid } from "../components/Wordsy";
+import { CategoriesGrid } from "../components/Categories";
 import { TriviaGame } from "../components/Trivia";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { useEffect, useRef, useState } from "react";
@@ -582,15 +584,21 @@ export default function Game() {
   const isSudoku = game?.gameVariant === "SUDOKU";
   const isWordSearch = game?.gameVariant === "WORD_SEARCH";
   const isTrivia = game?.gameVariant === "TRIVIA";
+  const isWordsy = game?.gameVariant === "WORDSY";
+  const isCategories = game?.gameVariant === "CATEGORIES";
   // The guided first-time warm-up (vs a weak bot) — drives the beatable intro.
   const isIntro = guided === "1";
 
-  // Don't render the board until the full puzzle payload is present. Word search
-  // and trivia carry their puzzle inline in gameState (no content join).
+  // Don't render the board until the full puzzle payload is present. Word search,
+  // trivia, wordsy and categories carry their puzzle inline in gameState.
   const puzzleReady = isWordSearch
     ? !!(game?.gameState as { __wordsearch?: unknown } | undefined)?.__wordsearch
     : isTrivia
     ? !!(game?.gameState as { __trivia?: unknown } | undefined)?.__trivia
+    : isWordsy
+    ? !!(game?.gameState as { __wordsy?: unknown } | undefined)?.__wordsy
+    : isCategories
+    ? !!(game?.gameState as { __categories?: unknown } | undefined)?.__categories
     : isSudoku
     ? !!game?.sudoku?.puzzle && !!game?.sudoku?.solution
     : !!game?.crossword?.puzzle && !!game?.crossword?.solution;
@@ -718,6 +726,10 @@ export default function Game() {
       )}
       {isWordSearch ? (
         <WordSearchGrid gameId={gameId as string} hintable={story === "1"} />
+      ) : isWordsy ? (
+        <WordsyGrid gameId={gameId as string} hintable={story === "1"} />
+      ) : isCategories ? (
+        <CategoriesGrid gameId={gameId as string} hintable={story === "1"} />
       ) : isTrivia ? (
         <TriviaGame gameId={gameId as string} />
       ) : isSudoku ? (

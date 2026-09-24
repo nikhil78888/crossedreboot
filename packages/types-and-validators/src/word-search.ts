@@ -20,7 +20,7 @@ export type WordSearchPuzzle = {
 // subset (see generateWordSearch) — the bigger the pool, the rarer a repeat of
 // the same set of words. Keep every word ≤9 letters (A–Z only) so it fits the
 // regular 9×9 grid as well as the hard 12×12 one.
-const THEMES: Record<string, string[]> = {
+export const THEMES: Record<string, string[]> = {
   Animals: [
     "TIGER", "PANDA", "OTTER", "EAGLE", "MOOSE", "ZEBRA", "KOALA", "LEMUR",
     "BISON", "HORSE", "SHARK", "WHALE", "GECKO", "RAVEN", "FERRET", "WALRUS",

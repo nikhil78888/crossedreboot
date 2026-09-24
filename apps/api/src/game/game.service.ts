@@ -4,7 +4,7 @@ import { Game, generateWordSearch, generateTrivia } from "types-and-validators";
 import { onTournamentGameFinished } from "../tournament/tournament.service";
 import { resolveCluesForDifficulty } from "./clue-resolver";
 import { ratingFieldsFor } from "../rating-fields";
-import { currentSeasonKey, currentMonth, isResetSeason } from "../season";
+import { currentSeasonKey, currentPeriod, isResetSeason } from "../season";
 
 // Time limit scales with puzzle size (7x7/8x8 -> 5 min, 9x9 -> 7 min).
 export const durationForSize = (size: number | null | undefined, base: number) =>
@@ -392,7 +392,7 @@ export const applyRankedRatings = async (
   // My Account). Only built once the reset season has started (FIRST_RESET_MONTH);
   // before that the Season board shows lifetime ratings, so we don't write it.
   const SEASON_BASE = 1000;
-  const resetSeason = isResetSeason(currentMonth());
+  const resetSeason = isResetSeason(currentPeriod());
   const seasonKey = currentSeasonKey(); // 's2:YYYY-MM' — versioned (see season.ts)
   const oldOf = (id: string) => {
     const p = players.find((pl) => pl.id === id);

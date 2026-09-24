@@ -4,7 +4,12 @@ import express, { Router } from "express";
 import { getUsersInLobby } from "./profile.service";
 import { supabase } from "../lib/supabase";
 import { ratingFieldsFor } from "../rating-fields";
-import { currentSeasonKey, currentMonth, isResetSeason } from "../season";
+import {
+  currentSeasonKey,
+  currentPeriod,
+  isResetSeason,
+  daysUntilWeekReset,
+} from "../season";
 
 export const profileRouter: Router = express.Router();
 
@@ -74,18 +79,12 @@ profileRouter.get("/season-leaderboard", async (req, res, next) => {
       200
     );
     const profileId = req.query.profileId as string | undefined;
-    const resetActive = isResetSeason(currentMonth());
+    const resetActive = isResetSeason(currentPeriod());
 
-    const now = new Date();
-    const nextMonth = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
-    const resetsInDays = Math.max(
-      0,
-      Math.ceil((nextMonth - now.getTime()) / (24 * 60 * 60 * 1000))
-    );
-    const monthName = now.toLocaleString("en-US", {
-      month: "long",
-      timeZone: "UTC",
-    });
+    // Weekly seasons: reset countdown = days to the next Monday. The client's
+    // banner reads `monthName` (kept for compatibility) — now a weekly label.
+    const resetsInDays = daysUntilWeekReset();
+    const monthName = "This Week";
 
     const rankEntries = (
       raw: { id: string; username: string | null; avatar: string | null }[],

@@ -10,6 +10,8 @@ import {
   isOnDifficulty,
   storyTargetSolve,
   WordSearchPuzzle,
+  generateWordsy,
+  generateCategories,
 } from "types-and-validators";
 import { supabase } from "./supabase";
 
@@ -140,6 +142,39 @@ export const startStoryLevel = async (
       .single();
     if (error || !data?.id) return null;
     return { id: data.id, meta: { ...meta, seconds } };
+  }
+
+  // Wordsy / Categories: generated inline from original word lists. Difficulty
+  // is config-driven (word length + guesses, or mistakes allowed), so a fresh
+  // random puzzle each play keeps the same difficulty; time is the nominal
+  // per-level estimate × generosity (already in meta.seconds).
+  if (
+    (meta.variant === "WORDSY" && meta.wordsy) ||
+    (meta.variant === "CATEGORIES" && meta.categories)
+  ) {
+    const seed = Math.floor(Math.random() * 0xffffffff) >>> 0;
+    const puzzle =
+      meta.variant === "WORDSY"
+        ? generateWordsy(meta.wordsy!, seed)
+        : generateCategories(meta.categories!, seed);
+    const insert = {
+      challengerId: null,
+      challengerName: meta.boss,
+      gameVariant: meta.variant,
+      difficulty: "HARD",
+      solveSeconds: meta.seconds,
+      timeline: paceTimeline(meta.seconds),
+      crosswordsId: null,
+      resolvedClues: null,
+      puzzle,
+    };
+    const { data, error } = await challengesTable
+      .from("challenges")
+      .insert(insert)
+      .select("id")
+      .single();
+    if (error || !data?.id) return null;
+    return { id: data.id, meta };
   }
 
   // Crossword: the grid is always a 5×5 mini, so structural difficulty is

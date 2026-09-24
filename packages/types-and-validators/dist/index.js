@@ -21,3 +21,4 @@ __exportStar(require("./word-search"), exports);
 __exportStar(require("./trivia"), exports);
 __exportStar(require("./daily-duel"), exports);
 __exportStar(require("./story-mode"), exports);
+__exportStar(require("./story-games"), exports);
