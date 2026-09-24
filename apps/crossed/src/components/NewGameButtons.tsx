@@ -105,7 +105,7 @@ export const NewGameButtons = () => {
       {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard.
           A touch of vertical padding so the bar isn't jammed between the tiles
           above and the hero below. */}
-      <View style={{ marginTop: 12, marginBottom: 24 }}>
+      <View style={{ marginTop: 10, marginBottom: 16 }}>
         <VariantTabs />
       </View>
 
@@ -120,9 +120,9 @@ export const NewGameButtons = () => {
           flexDirection: "row",
           alignItems: "center",
           borderRadius: 28,
-          padding: 22,
+          padding: 18,
           backgroundColor: "#ede9fe",
-          minHeight: 188,
+          minHeight: 172,
         }}
       >
         <View className="flex-1 pr-4">
@@ -189,7 +189,7 @@ export const NewGameButtons = () => {
           flexDirection: "row",
           alignItems: "center",
           borderRadius: 28,
-          padding: 22,
+          padding: 18,
           backgroundColor: colors["crossed-blue"]["50"],
           minHeight: 172,
         }}
@@ -229,7 +229,7 @@ export const NewGameButtons = () => {
             style={{
               width: "100%",
               borderRadius: 24,
-              padding: 18,
+              padding: 15,
               backgroundColor: "#dcfce7",
               minHeight: 150,
             }}
@@ -258,7 +258,7 @@ export const NewGameButtons = () => {
             style={{
               width: "100%",
               borderRadius: 24,
-              padding: 18,
+              padding: 15,
               backgroundColor: "#ede9fe",
               minHeight: 150,
             }}
