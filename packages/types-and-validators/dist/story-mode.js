@@ -252,8 +252,10 @@ var estimatedSolve = function (level) {
         return 70;
     }
     if (v === "WORDSY") {
+        // Deducing a hidden word takes real thinking time; give a roomy base so the
+        // clock isn't the thing that beats you (players asked for more time here).
         var length = (0, exports.wordsyConfigFor)(level).length;
-        return 45 + (length - 4) * 16; // 45 / 61 / 77
+        return 66 + (length - 4) * 22; // 66 / 88 / 110
     }
     if (v === "CATEGORIES") {
         return 78; // a 16-tile grouping puzzle

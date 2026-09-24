@@ -308,11 +308,19 @@ const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 // a puzzle (Math.random is unavailable in some contexts; callers pass a seed).
 const makeRng = (seed: number) => {
   let s = seed >>> 0 || 1;
-  return () => {
+  const step = () => {
     s ^= s << 13;
     s ^= s >>> 17;
     s ^= s << 5;
     s >>>= 0;
+  };
+  // Warm up so nearby seeds decorrelate (raw xorshift's first output is highly
+  // correlated across sequential seeds).
+  step();
+  step();
+  step();
+  return () => {
+    step();
     // Divide by 2^32 (not 2^32-1) so the result is in [0, 1); dividing by
     // 0xffffffff can return exactly 1.0 at max state and push index math (e.g.
     // Math.floor(rand()*len)) out of bounds.

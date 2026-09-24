@@ -27,6 +27,34 @@ export type { StoryLevel } from "types-and-validators";
 const CURRENT_KEY = "story:currentLevel"; // the level you're on / resume at
 const HIGHEST_KEY = "story:highestLevel"; // best level reached (for display/pride)
 
+// Recently-served puzzles, so replays don't hand you the same one twice in a
+// row. Small rolling windows per game type (keyed by a stable puzzle id).
+const RECENT_WORDSY_KEY = "story:recentWordsy"; // last answers
+const RECENT_CATEGORIES_KEY = "story:recentCategories"; // last curated ids
+const RECENT_CROSSWORD_KEY = "story:recentCrossword"; // last crossword ids
+const WORDSY_MEMORY = 12;
+const CATEGORIES_MEMORY = 8;
+const CROSSWORD_MEMORY = 12;
+
+const getRecent = async (key: string): Promise<string[]> => {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+const pushRecent = async (key: string, value: string, memory: number) => {
+  try {
+    const prev = await getRecent(key);
+    const next = [...prev.filter((v) => v !== value), value].slice(-memory);
+    await AsyncStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    // non-fatal — repeat-avoidance is best-effort
+  }
+};
+
 // The level to resume at when Story Mode is opened. Always ≥ 1.
 export const getStoryCurrentLevel = async (): Promise<number> => {
   try {
@@ -153,10 +181,18 @@ export const startStoryLevel = async (
     (meta.variant === "CATEGORIES" && meta.categories)
   ) {
     const seed = Math.floor(Math.random() * 0xffffffff) >>> 0;
-    const puzzle =
-      meta.variant === "WORDSY"
-        ? generateWordsy(meta.wordsy!, seed)
-        : generateCategories(meta.categories!, seed);
+    let puzzle;
+    if (meta.variant === "WORDSY") {
+      const avoid = await getRecent(RECENT_WORDSY_KEY);
+      const p = generateWordsy(meta.wordsy!, seed, avoid);
+      void pushRecent(RECENT_WORDSY_KEY, p.answer, WORDSY_MEMORY);
+      puzzle = p;
+    } else {
+      const avoid = await getRecent(RECENT_CATEGORIES_KEY);
+      const p = generateCategories(meta.categories!, seed, avoid);
+      if (p.id) void pushRecent(RECENT_CATEGORIES_KEY, p.id, CATEGORIES_MEMORY);
+      puzzle = p;
+    }
     const insert = {
       challengerId: null,
       challengerName: meta.boss,
@@ -190,17 +226,27 @@ export const startStoryLevel = async (
     timeline: paceTimeline(meta.seconds),
   };
 
-  // Random mini from the published 5×5 pool each play (same size, new puzzle).
-  const offset = Math.floor(Math.random() * STORY_PUBLISHED_5X5);
-  const { data: cw } = await supabase
-    .from("crosswords")
-    .select("id, clues")
-    .eq("isPublished", true)
-    .eq("size", 5)
-    .order("id")
-    .range(offset, offset)
-    .single();
+  // Random mini from the published 5×5 pool each play (same size, new puzzle),
+  // avoiding the last few we served so replays don't repeat. Retry a handful of
+  // fresh offsets; accept whatever we land on if they all happen to be recent.
+  const recentCw = await getRecent(RECENT_CROSSWORD_KEY);
+  let cw: { id: string; clues?: unknown } | null = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const offset = Math.floor(Math.random() * STORY_PUBLISHED_5X5);
+    const { data } = await supabase
+      .from("crosswords")
+      .select("id, clues")
+      .eq("isPublished", true)
+      .eq("size", 5)
+      .order("id")
+      .range(offset, offset)
+      .single();
+    if (!data?.id) continue;
+    cw = data as { id: string; clues?: unknown };
+    if (!recentCw.includes(cw.id)) break; // fresh one — take it
+  }
   if (!cw?.id) return null;
+  void pushRecent(RECENT_CROSSWORD_KEY, cw.id, CROSSWORD_MEMORY);
   const insert = {
     ...base,
     crosswordsId: cw.id,

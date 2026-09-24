@@ -17,6 +17,12 @@ import {
   type WordSearchPuzzle,
 } from "../lib/word-search";
 import { triviaProgress, type TriviaQuiz } from "../lib/trivia";
+import {
+  scoreWordsyGuess,
+  type WordsyPuzzle,
+  type CategoriesPuzzle,
+  type CategoryGroup,
+} from "types-and-validators";
 
 export const FriendlyCrosswordHeader = ({
   gameId,
@@ -50,6 +56,42 @@ export const FriendlyCrosswordHeader = ({
       );
     } else if (game.gameVariant === "TRIVIA") {
       myProgress = triviaProgress(gs?.__trivia, gs?.[myProfile.id]?.answers);
+    } else if (game.gameVariant === "CATEGORIES") {
+      // Progress = groups solved so far (out of 4), so the bar advances each
+      // time you lock in a category.
+      const cats = (
+        game.gameState as { __categories?: CategoriesPuzzle } | undefined
+      )?.__categories;
+      const mine = (
+        game.gameState as
+          | Record<string, { solvedCats?: CategoryGroup[] } | undefined>
+          | undefined
+      )?.[myProfile.id];
+      const total = cats?.groups.length || 4;
+      myProgress = Math.min(100, ((mine?.solvedCats?.length ?? 0) / total) * 100);
+    } else if (game.gameVariant === "WORDSY") {
+      // Progress = how much of the answer you've pinned to the right spot (best
+      // greens across your guesses); a solved word reads as full.
+      const wp = (
+        game.gameState as { __wordsy?: WordsyPuzzle } | undefined
+      )?.__wordsy;
+      const myGuesses = (
+        game.gameState as
+          | Record<string, { guesses?: string[] } | undefined>
+          | undefined
+      )?.[myProfile.id]?.guesses;
+      if (wp && myGuesses?.length) {
+        let bestGreens = 0;
+        let solved = false;
+        for (const gsx of myGuesses) {
+          if (gsx === wp.answer) solved = true;
+          const sc = scoreWordsyGuess(gsx, wp.answer);
+          bestGreens = Math.max(bestGreens, sc.filter((x) => x === 2).length);
+        }
+        myProgress = solved ? 100 : (bestGreens / wp.length) * 100;
+      } else {
+        myProgress = 0;
+      }
     } else {
       myProgress = calculateScore({
         correctSolution: solutionOf(game),

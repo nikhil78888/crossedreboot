@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import {
+  Pressable,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
@@ -25,6 +30,12 @@ export const WordsyGrid = ({
 }) => {
   const { game, finishGame, opponent } = useGame({ gameId });
   const { myProfile } = useMyProfile();
+  const { width: screenW } = useWindowDimensions();
+  // Full-size keyboard: 10 keys fill the row like a normal phone keyboard.
+  const KB_GAP = 5;
+  const KB_PAD = 4;
+  const keyW = Math.floor((screenW - KB_PAD * 2 - KB_GAP * 9) / 10);
+  const actionW = Math.floor(keyW * 1.5);
   const puzzle = (
     game?.gameState as { __wordsy?: WordsyPuzzle } | undefined
   )?.__wordsy;
@@ -250,22 +261,23 @@ export const WordsyGrid = ({
         </View>
       )}
 
-      {/* Keyboard */}
-      <View className="mt-auto pb-3">
+      {/* Keyboard — full width, like the normal phone keyboard */}
+      <View className="mt-auto pb-3" style={{ paddingHorizontal: KB_PAD }}>
         {ROWS_KEYS.map((row, ri) => (
           <View
             key={ri}
-            className="mb-1.5 flex-row justify-center"
-            style={{ gap: 5 }}
+            className="mb-2 flex-row justify-center"
+            style={{ gap: KB_GAP }}
           >
             {ri === 2 && (
               <Pressable
                 onPress={submit}
                 style={{
-                  paddingHorizontal: 12,
-                  height: 46,
+                  width: actionW,
+                  height: 58,
+                  alignItems: "center",
                   justifyContent: "center",
-                  borderRadius: 6,
+                  borderRadius: 7,
                   backgroundColor: colors["crossed-blue"]["450"],
                 }}
               >
@@ -279,19 +291,18 @@ export const WordsyGrid = ({
                 key={k}
                 onPress={() => onKey(k)}
                 style={{
-                  minWidth: 30,
-                  height: 46,
-                  paddingHorizontal: 6,
+                  width: keyW,
+                  height: 58,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderRadius: 6,
+                  borderRadius: 7,
                   backgroundColor: keyColor(k),
                 }}
               >
                 <Text
                   style={{
                     fontFamily: "jost700",
-                    fontSize: 16,
+                    fontSize: 20,
                     color: keyText(k),
                   }}
                 >
@@ -303,14 +314,15 @@ export const WordsyGrid = ({
               <Pressable
                 onPress={onBackspace}
                 style={{
-                  paddingHorizontal: 12,
-                  height: 46,
+                  width: actionW,
+                  height: 58,
+                  alignItems: "center",
                   justifyContent: "center",
-                  borderRadius: 6,
+                  borderRadius: 7,
                   backgroundColor: colors["crossed-gray"]["200"],
                 }}
               >
-                <Text className="font-[jost700] text-[16px]">⌫</Text>
+                <Text className="font-[jost700] text-[20px]">⌫</Text>
               </Pressable>
             )}
           </View>
