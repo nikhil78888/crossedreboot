@@ -141,7 +141,16 @@ const DIRS_TIER = [
     D.UP_LEFT, D.UP_LEFT, D.UP_LEFT,
   ],
 ];
-const tierFor = (p: number) => (p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.8 ? 2 : 3);
+// Config progress — front-loaded (p^0.68) so the grid/word-count/directions
+// visibly grow in the EARLY levels instead of sitting on a long plateau. This is
+// what stops "every level looks the same at the start".
+const configProgress = (level: number) =>
+  Math.pow((level - 1) / (STORY_MAX_LEVEL - 1), 0.68);
+
+const tierFor = (level: number) => {
+  const cp = configProgress(level);
+  return cp < 0.12 ? 0 : cp < 0.4 ? 1 : cp < 0.7 ? 2 : 3;
+};
 
 // Average word length across the theme banks (words are 3–9 letters). Used to
 // anchor the config-based target on the SAME model as the per-puzzle measurement
@@ -173,20 +182,23 @@ const estimatedSolve = (level: number): number => {
 };
 
 const wsConfigFor = (level: number): WordSearchConfig => {
-  const p = (level - 1) / (STORY_MAX_LEVEL - 1);
-  const size = Math.round(8 + p * 5); // 8 → 13
-  const count = Math.round(4 + p * 5); // 4 → 9
-  return { size, count, dirs: DIRS_TIER[tierFor(p)] };
+  const cp = configProgress(level); // front-loaded — grows early
+  const size = Math.round(7 + cp * 6); // 7 → 13 (lower floor = more granularity)
+  const count = Math.min(11, Math.round(3 + cp * 8)); // 3 → 11
+  return { size, count, dirs: DIRS_TIER[tierFor(level)] };
 };
 
-// Generosity multiplier on the estimated solve time. Starts very high (early
-// levels are a breeze) and tightens; a gentle-early, steep-late curve so the
-// first ~20 levels stay trivially beatable. Floored at 0.9 so the hardest
-// levels are tight-but-possible (with hints), never impossible. This is THE
-// strategic time-lowering lever: same shape regardless of the actual puzzle.
+// Generosity multiplier on the estimated solve time — THE per-level difficulty
+// lever. Felt difficulty = 1 / generosity, and because generosity STRICTLY
+// decreases every single level, every level is a touch harder than the one
+// before, even when the puzzle config is unchanged. Shape: (1-p)^k so it drops
+// meaningfully from the very first levels (not flat at the start like a p^k
+// curve), spanning a generous 2.35× at L1 down to a tight 0.85× at L200.
+const GEN_HI = 2.35; // L1 — huge time cushion, trivially beatable
+const GEN_LO = 0.85; // L200 — must be fast / lean on hints
 export const storyGenerosity = (level: number): number => {
   const p = (level - 1) / (STORY_MAX_LEVEL - 1);
-  return Math.max(0.9, 2.6 - 1.7 * Math.pow(p, 1.25));
+  return GEN_LO + (GEN_HI - GEN_LO) * Math.pow(1 - p, 1.35);
 };
 const generosity = storyGenerosity;
 
@@ -238,7 +250,7 @@ export const wordSearchSecondsFor = (
 // A generated puzzle is "on-difficulty" for its level if its measured solve is
 // within this fraction of the level's target — used to reject outlier draws so
 // replays feel like the same difficulty. ±18%.
-export const storyDifficultyBand = 0.18;
+export const storyDifficultyBand = 0.12;
 export const isOnDifficulty = (level: number, puzzleEstimate: number): boolean => {
   const target = storyTargetSolve(level);
   return Math.abs(puzzleEstimate - target) <= target * storyDifficultyBand;
