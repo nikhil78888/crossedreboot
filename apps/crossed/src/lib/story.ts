@@ -86,7 +86,11 @@ export const startStoryLevel = async (
   level: number
 ): Promise<{ id: string; meta: StoryLevel } | null> => {
   const meta = storyLevel(level);
-  const seed = (level * 2654435761) >>> 0;
+  // A FRESH random seed each play, so replaying a level gives a DIFFERENT puzzle
+  // every time — but the difficulty knobs (meta.ws grid/word-count/directions
+  // for word search, the fixed 5×5 for crossword) and the time-to-beat
+  // (meta.seconds) are unchanged, so it's the same difficulty, different puzzle.
+  const seed = Math.floor(Math.random() * 0xffffffff) >>> 0;
 
   const base: Record<string, unknown> = {
     challengerId: null, // system challenge — nobody is notified of a result
@@ -106,7 +110,8 @@ export const startStoryLevel = async (
       puzzle: generateWordSearchFrom(meta.ws, seed),
     };
   } else {
-    const offset = (meta.crosswordOffset ?? 0) % STORY_PUBLISHED_5X5;
+    // Random mini from the published 5×5 pool each play (same size, new puzzle).
+    const offset = Math.floor(Math.random() * STORY_PUBLISHED_5X5);
     const { data: cw } = await supabase
       .from("crosswords")
       .select("id, clues")
