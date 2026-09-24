@@ -105,7 +105,7 @@ export const NewGameButtons = () => {
       {/* Crosswords / Sudoku tabs — drive every mode button below + leaderboard.
           A touch of vertical padding so the bar isn't jammed between the tiles
           above and the hero below. */}
-      <View className="mb-5 mt-3">
+      <View style={{ marginTop: 12, marginBottom: 24 }}>
         <VariantTabs />
       </View>
 
@@ -218,57 +218,64 @@ export const NewGameButtons = () => {
 
       {/* Beat My Time + Play a Friend — side by side, below the fold. Taller cards
           with a vertical layout so they read cleanly at half width. */}
-      <View className="mt-4 flex-row" style={{ gap: 12 }}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={onChallengePress}
-          style={{
-            flex: 1,
-            borderRadius: 24,
-            padding: 18,
-            backgroundColor: "#dcfce7",
-            minHeight: 150,
-          }}
-        >
-          <Image
-            source={images.solo}
-            style={{ height: 48, width: 48 }}
-            contentFit="contain"
-          />
-          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
-            Beat My Time
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/60">
-            Solve, then send it to a friend to beat.
-          </Text>
-        </TouchableOpacity>
+      <View style={{ marginTop: 16, flexDirection: "row", gap: 12 }}>
+        {/* flex:1 lives on a plain View wrapper — RNGH TouchableOpacity doesn't
+            size correctly under flex:1 (it overflowed the row), so the button
+            just fills its wrapper at width 100%. */}
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onChallengePress}
+            style={{
+              width: "100%",
+              borderRadius: 24,
+              padding: 18,
+              backgroundColor: "#dcfce7",
+              minHeight: 150,
+            }}
+          >
+            <Image
+              source={images.solo}
+              style={{ height: 48, width: 48 }}
+              contentFit="contain"
+            />
+            <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
+              Beat My Time
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/60">
+              Solve, then send it to a friend to beat.
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => {
-            trackEvent(events.START_FRIENDLY_GAME_CLICK);
-            playFriendly();
-          }}
-          style={{
-            flex: 1,
-            borderRadius: 24,
-            padding: 18,
-            backgroundColor: "#ede9fe",
-            minHeight: 150,
-          }}
-        >
-          <Image
-            source={images.play_friendly}
-            style={{ height: 48, width: 48 }}
-            contentFit="contain"
-          />
-          <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
-            Play a Friend
-          </Text>
-          <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/60">
-            Text a link to play live.
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              trackEvent(events.START_FRIENDLY_GAME_CLICK);
+              playFriendly();
+            }}
+            style={{
+              width: "100%",
+              borderRadius: 24,
+              padding: 18,
+              backgroundColor: "#ede9fe",
+              minHeight: 150,
+            }}
+          >
+            <Image
+              source={images.play_friendly}
+              style={{ height: 48, width: 48 }}
+              contentFit="contain"
+            />
+            <Text className="mt-3 font-[jost700] text-[16px] text-crossed-gray-900">
+              Play a Friend
+            </Text>
+            <Text className="mt-1 font-[jost400] text-[12px] text-crossed-gray-900/60">
+              Text a link to play live.
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tournaments (public + private) disabled (2026-08): not enough concurrent
