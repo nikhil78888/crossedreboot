@@ -155,7 +155,9 @@ export const CategoriesGrid = ({
       setSelected([]);
       setHintWords([]);
       if (nextSolved.length >= 4) {
-        persist(nextSolved, mistakesLeft);
+        // Only the winning write — win() persists solvedCats + solvedInSeconds.
+        // A separate persist() here would race it and could clobber
+        // solvedInSeconds, making a solved game read as "ran out of time".
         win(nextSolved);
       } else {
         persist(nextSolved, mistakesLeft);

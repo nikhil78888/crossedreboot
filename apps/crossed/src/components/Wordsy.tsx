@@ -124,7 +124,9 @@ export const WordsyGrid = ({
     setGuesses(next);
     setCurrent("");
     if (guess === answer) {
-      persist(next);
+      // Only win() writes here — it persists guesses + solvedInSeconds. A
+      // separate persist() would race and could clobber solvedInSeconds, making
+      // a solved word read as "ran out of time".
       win(next);
       return;
     }

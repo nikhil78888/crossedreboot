@@ -174,17 +174,80 @@ export type CategoriesPuzzle = {
 // Each puzzle's 16 words are unique within that puzzle (validated at build).
 type CuratedPuzzle = { id: string; groups: CategoryGroup[] };
 const CATEGORIES_PUZZLES: CuratedPuzzle[] = [
+  // The cleverness is the TRAP: several words plausibly fit more than one group
+  // (a bird that's also a verb, a snake that's also a coding language), but each
+  // belongs to exactly one group in the intended solution.
+  { id: "duck", groups: [
+    { category: "Verbs (that are also animals)", words: ["DUCK", "CROW", "BADGER", "CLAM"] },
+    { category: "Birds", words: ["ROBIN", "WREN", "FINCH", "HERON"] },
+    { category: "Flowers (and girls' names)", words: ["HOLLY", "IVY", "ROSE", "HEATHER"] },
+    { category: "Trees", words: ["OAK", "PINE", "BIRCH", "ELM"] },
+  ]},
+  { id: "spell", groups: [
+    { category: "Witchcraft", words: ["SPELL", "CHARM", "HEX", "WAND"] },
+    { category: "Snakes", words: ["VIPER", "MAMBA", "ADDER", "PYTHON"] },
+    { category: "Coding languages", words: ["JAVA", "RUST", "SWIFT", "RUBY"] },
+    { category: "Coffee orders", words: ["MOCHA", "BREW", "ROAST", "DECAF"] },
+  ]},
+  { id: "firefly", groups: [
+    { category: "FIRE ___", words: ["PLACE", "WOOD", "WORKS", "ARM"] },
+    { category: "___ FLY", words: ["BUTTER", "DRAGON", "HORSE", "MAY"] },
+    { category: "Camping gear", words: ["TENT", "LANTERN", "CANOE", "TRAIL"] },
+    { category: "Neon colors", words: ["LIME", "CORAL", "GOLD", "PINK"] },
+  ]},
+  { id: "pitch", groups: [
+    { category: "Verbs (that are also animals)", words: ["BAT", "FLY", "HOUND", "PARROT"] },
+    { category: "Baseball", words: ["PITCH", "BUNT", "STEAL", "INNING"] },
+    { category: "Music terms", words: ["TEMPO", "CHORD", "SCALE", "REST"] },
+    { category: "Weather", words: ["SLEET", "HAIL", "FROST", "GALE"] },
+  ]},
+  { id: "starfish", groups: [
+    { category: "___ FISH", words: ["STAR", "JELLY", "SWORD", "CAT"] },
+    { category: "___ LIGHT", words: ["SUN", "MOON", "SPOT", "DAY"] },
+    { category: "Space", words: ["COMET", "ORBIT", "NOVA", "METEOR"] },
+    { category: "Fabrics", words: ["DENIM", "LINEN", "SILK", "WOOL"] },
+  ]},
+  { id: "hook", groups: [
+    { category: "Boxing", words: ["JAB", "CLINCH", "BOUT", "SPAR"] },
+    { category: "Fishing", words: ["HOOK", "CAST", "LINE", "REEL"] },
+    { category: "Trees", words: ["CEDAR", "ASPEN", "WILLOW", "ASH"] },
+    { category: "Pasta shapes", words: ["PENNE", "ZITI", "ORZO", "FUSILLI"] },
+  ]},
+  { id: "sole", groups: [
+    { category: "Fish", words: ["BASS", "PIKE", "SOLE", "CARP"] },
+    { category: "Shoe parts", words: ["HEEL", "LACE", "TONGUE", "ARCH"] },
+    { category: "Body parts", words: ["SHIN", "RIB", "HIP", "JAW"] },
+    { category: "Complain", words: ["GRIPE", "WHINE", "MOAN", "FUSS"] },
+  ]},
+  { id: "bark", groups: [
+    { category: "Dog sounds", words: ["BARK", "GROWL", "YELP", "HOWL"] },
+    { category: "Tree parts", words: ["TRUNK", "ROOT", "BRANCH", "LEAF"] },
+    { category: "Car parts", words: ["HOOD", "WHEEL", "BRAKE", "CLUTCH"] },
+    { category: "Math words", words: ["SUM", "ANGLE", "PRIME", "POWER"] },
+  ]},
+  { id: "crane", groups: [
+    { category: "Tall birds", words: ["SWAN", "STORK", "EGRET", "CRANE"] },
+    { category: "Construction machines", words: ["DIGGER", "LOADER", "DOZER", "DERRICK"] },
+    { category: "Yoga poses", words: ["PLANK", "BRIDGE", "LUNGE", "COBRA"] },
+    { category: "At the pool", words: ["LANE", "DIVE", "LAP", "KICK"] },
+  ]},
+  { id: "jam", groups: [
+    { category: "Traffic words", words: ["JAM", "RUSH", "MERGE", "LANE"] },
+    { category: "Spreads", words: ["JELLY", "HONEY", "BUTTER", "HUMMUS"] },
+    { category: "Basketball", words: ["DUNK", "DRIBBLE", "ASSIST", "REBOUND"] },
+    { category: "Office supplies", words: ["TONER", "STAPLE", "PAPER", "INK"] },
+  ]},
+  { id: "bill", groups: [
+    { category: "Parts of a bird", words: ["BILL", "WING", "TALON", "PLUME"] },
+    { category: "At a restaurant", words: ["MENU", "TIP", "TABLE", "CHECK"] },
+    { category: "Chess", words: ["PAWN", "MATE", "CASTLE", "RANK"] },
+    { category: "Currencies", words: ["PESO", "EURO", "YEN", "RAND"] },
+  ]},
   { id: "ball", groups: [
     { category: "___ BALL", words: ["BASE", "BASKET", "FOOT", "EYE"] },
     { category: "Planets", words: ["MARS", "VENUS", "SATURN", "NEPTUNE"] },
     { category: "Coffee drinks", words: ["LATTE", "MOCHA", "ESPRESSO", "CORTADO"] },
     { category: "Card suits", words: ["HEART", "SPADE", "CLUB", "DIAMOND"] },
-  ]},
-  { id: "fly", groups: [
-    { category: "___ FLY", words: ["BUTTER", "DRAGON", "FIRE", "HORSE"] },
-    { category: "Shades of blue", words: ["NAVY", "AZURE", "COBALT", "TEAL"] },
-    { category: "Chess pieces", words: ["KING", "QUEEN", "ROOK", "BISHOP"] },
-    { category: "Pizza toppings", words: ["OLIVE", "PEPPER", "ONION", "BACON"] },
   ]},
   { id: "berry", groups: [
     { category: "___ BERRY", words: ["STRAW", "BLUE", "RASP", "BLACK"] },
@@ -192,77 +255,11 @@ const CATEGORIES_PUZZLES: CuratedPuzzle[] = [
     { category: "Dog breeds", words: ["BOXER", "POODLE", "BEAGLE", "HUSKY"] },
     { category: "Units of time", words: ["SECOND", "MINUTE", "HOUR", "DECADE"] },
   ]},
-  { id: "work", groups: [
-    { category: "___ WORK", words: ["HOME", "NET", "ART", "FRAME"] },
-    { category: "Herbs", words: ["BASIL", "THYME", "SAGE", "MINT"] },
-    { category: "Boxing terms", words: ["JAB", "HOOK", "CROSS", "BOUT"] },
-    { category: "Rivers", words: ["NILE", "AMAZON", "THAMES", "VOLGA"] },
-  ]},
   { id: "storm", groups: [
     { category: "Types of bread", words: ["RYE", "NAAN", "PITA", "BAGEL"] },
     { category: "___ STORM", words: ["BRAIN", "THUNDER", "SAND", "SNOW"] },
     { category: "Greek letters", words: ["ALPHA", "BETA", "DELTA", "OMEGA"] },
     { category: "Playing cards", words: ["JACK", "QUEEN", "KING", "ACE"] },
-  ]},
-  { id: "ship", groups: [
-    { category: "___ SHIP", words: ["FRIEND", "HARD", "CHAMPION", "PARTNER"] },
-    { category: "Sushi", words: ["TUNA", "EEL", "ROLL", "CRAB"] },
-    { category: "Mountains", words: ["EVEREST", "DENALI", "FUJI", "RAINIER"] },
-    { category: "Emotions", words: ["JOY", "ANGER", "FEAR", "PRIDE"] },
-  ]},
-  { id: "cake", groups: [
-    { category: "___ CAKE", words: ["PAN", "CUP", "CHEESE", "FISH"] },
-    { category: "Nuts", words: ["ALMOND", "CASHEW", "PECAN", "WALNUT"] },
-    { category: "Wind instruments", words: ["FLUTE", "OBOE", "CLARINET", "TUBA"] },
-    { category: "Continents", words: ["ASIA", "EUROPE", "AFRICA", "OCEANIA"] },
-  ]},
-  { id: "room", groups: [
-    { category: "___ ROOM", words: ["BED", "BATH", "CLASS", "MUSH"] },
-    { category: "Precious stones", words: ["RUBY", "PEARL", "OPAL", "JADE"] },
-    { category: "Tennis terms", words: ["ACE", "LOVE", "SET", "FAULT"] },
-    { category: "Farm animals", words: ["COW", "GOAT", "SHEEP", "HEN"] },
-  ]},
-  { id: "rain", groups: [
-    { category: "RAIN ___", words: ["BOW", "COAT", "FALL", "DROP"] },
-    { category: "Spanish numbers", words: ["UNO", "DOS", "TRES", "CUATRO"] },
-    { category: "Trees", words: ["OAK", "PINE", "BIRCH", "MAPLE"] },
-    { category: "Dances", words: ["SALSA", "TANGO", "WALTZ", "RUMBA"] },
-  ]},
-  { id: "fish", groups: [
-    { category: "___ FISH", words: ["JELLY", "STAR", "SWORD", "CAT"] },
-    { category: "Currencies", words: ["EURO", "YEN", "PESO", "RUPEE"] },
-    { category: "Superhero gear", words: ["CAPE", "MASK", "HERO", "POWER"] },
-    { category: "Body parts", words: ["ANKLE", "ELBOW", "WRIST", "SHIN"] },
-  ]},
-  { id: "fire", groups: [
-    { category: "FIRE ___", words: ["PLACE", "WOOD", "WORKS", "FLIES"] },
-    { category: "Pasta shapes", words: ["PENNE", "ZITI", "FUSILLI", "ORZO"] },
-    { category: "Weather", words: ["SLEET", "HAIL", "FOG", "FROST"] },
-    { category: "Roman gods", words: ["JUNO", "MARS", "VENUS", "APOLLO"] },
-  ]},
-  { id: "line", groups: [
-    { category: "___ LINE", words: ["DEAD", "COAST", "OUT", "TIME"] },
-    { category: "Cheeses", words: ["BRIE", "GOUDA", "FETA", "SWISS"] },
-    { category: "Martial arts", words: ["KARATE", "JUDO", "AIKIDO", "SUMO"] },
-    { category: "Birds", words: ["ROBIN", "FINCH", "WREN", "HERON"] },
-  ]},
-  { id: "sun", groups: [
-    { category: "SUN ___", words: ["FLOWER", "SHINE", "RISE", "BURN"] },
-    { category: "Kitchen tools", words: ["WHISK", "LADLE", "GRATER", "TONGS"] },
-    { category: "Poker hands", words: ["PAIR", "FLUSH", "STRAIGHT", "ROYAL"] },
-    { category: "Insects", words: ["ANT", "BEE", "MOTH", "WASP"] },
-  ]},
-  { id: "case", groups: [
-    { category: "___ CASE", words: ["BRIEF", "SUIT", "STAIR", "BOOK"] },
-    { category: "Oceans", words: ["PACIFIC", "ATLANTIC", "INDIAN", "ARCTIC"] },
-    { category: "Painting gear", words: ["BRUSH", "EASEL", "PALETTE", "CANVAS"] },
-    { category: "Citrus fruits", words: ["LEMON", "LIME", "ORANGE", "KUMQUAT"] },
-  ]},
-  { id: "man", groups: [
-    { category: "___ MAN", words: ["SNOW", "POST", "FIRE", "SPIDER"] },
-    { category: "Salad greens", words: ["KALE", "SPINACH", "ARUGULA", "ROMAINE"] },
-    { category: "Piano parts", words: ["KEY", "PEDAL", "CHORD", "SCALE"] },
-    { category: "Reptiles", words: ["GECKO", "IGUANA", "COBRA", "SKINK"] },
   ]},
   { id: "drop", groups: [
     { category: "___ DROP", words: ["RAIN", "DEW", "TEAR", "GUM"] },
@@ -270,41 +267,17 @@ const CATEGORIES_PUZZLES: CuratedPuzzle[] = [
     { category: "Constellations", words: ["ORION", "LYRA", "DRACO", "LEO"] },
     { category: "Tools", words: ["HAMMER", "WRENCH", "PLIERS", "DRILL"] },
   ]},
-  { id: "board", groups: [
-    { category: "___ BOARD", words: ["KEY", "SURF", "CARD", "CHALK"] },
-    { category: "Shades of red", words: ["CRIMSON", "SCARLET", "RUBY", "CORAL"] },
-    { category: "Months", words: ["MARCH", "MAY", "JUNE", "APRIL"] },
-    { category: "Grains", words: ["WHEAT", "CORN", "BARLEY", "OATS"] },
-  ]},
-  { id: "hand", groups: [
-    { category: "HAND ___", words: ["SHAKE", "BAG", "CUFF", "MADE"] },
-    { category: "Cocktails", words: ["MOJITO", "MARTINI", "MARGARITA", "NEGRONI"] },
-    { category: "Capital cities", words: ["TOKYO", "CAIRO", "LIMA", "OSLO"] },
-    { category: "Fabrics", words: ["SILK", "WOOL", "LINEN", "DENIM"] },
-  ]},
-  { id: "proof", groups: [
-    { category: "___ PROOF", words: ["WATER", "BULLET", "FOOL", "CHILD"] },
-    { category: "Elements", words: ["IRON", "GOLD", "NEON", "ZINC"] },
-    { category: "Beehive words", words: ["HONEY", "QUEEN", "DRONE", "SWARM"] },
-    { category: "Pastries", words: ["SCONE", "DONUT", "ECLAIR", "STRUDEL"] },
-  ]},
-  { id: "stick", groups: [
-    { category: "___ STICK", words: ["CHOP", "DRUM", "LIP", "YARD"] },
-    { category: "Winter gear", words: ["SCARF", "MITTEN", "PARKA", "BOOTS"] },
-    { category: "Fish", words: ["TROUT", "SALMON", "BASS", "PERCH"] },
-    { category: "Countries", words: ["BRAZIL", "KENYA", "NEPAL", "CHILE"] },
-  ]},
-  { id: "over", groups: [
-    { category: "OVER ___", words: ["FLOW", "COAT", "TIME", "LOAD"] },
-    { category: "Spices", words: ["CUMIN", "PAPRIKA", "NUTMEG", "CLOVE"] },
-    { category: "Tennis words", words: ["RACKET", "NET", "COURT", "SERVE"] },
-    { category: "Moons", words: ["LUNA", "TITAN", "EUROPA", "PHOBOS"] },
-  ]},
   { id: "black", groups: [
     { category: "BLACK ___", words: ["BIRD", "BOARD", "SMITH", "OUT"] },
     { category: "Root vegetables", words: ["CARROT", "TURNIP", "RADISH", "BEET"] },
     { category: "Card games", words: ["POKER", "BRIDGE", "RUMMY", "HEARTS"] },
-    { category: "Sea creatures", words: ["SQUID", "CORAL", "PRAWN", "WHALE"] },
+    { category: "Sea creatures", words: ["SQUID", "PRAWN", "WHALE", "OYSTER"] },
+  ]},
+  { id: "board", groups: [
+    { category: "___ BOARD", words: ["KEY", "SURF", "CARD", "CHALK"] },
+    { category: "Shades of red", words: ["CRIMSON", "SCARLET", "MAROON", "CORAL"] },
+    { category: "Months", words: ["MARCH", "MAY", "JUNE", "APRIL"] },
+    { category: "Grains", words: ["WHEAT", "CORN", "BARLEY", "OATS"] },
   ]},
   { id: "pot", groups: [
     { category: "___ POT", words: ["JACK", "TEA", "CROCK", "HOT"] },
@@ -312,11 +285,29 @@ const CATEGORIES_PUZZLES: CuratedPuzzle[] = [
     { category: "Bicycle parts", words: ["PEDAL", "CHAIN", "BRAKE", "SADDLE"] },
     { category: "Cloud types", words: ["CIRRUS", "STRATUS", "CUMULUS", "NIMBUS"] },
   ]},
-  { id: "light", groups: [
-    { category: "___ LIGHT", words: ["MOON", "SPOT", "DAY", "STAR"] },
-    { category: "Billiards words", words: ["CUE", "RACK", "POCKET", "BREAK"] },
-    { category: "Seeds", words: ["PEANUT", "SESAME", "POPPY", "FLAX"] },
-    { category: "Dog commands", words: ["SIT", "STAY", "HEEL", "FETCH"] },
+  { id: "stick", groups: [
+    { category: "___ STICK", words: ["CHOP", "DRUM", "LIP", "YARD"] },
+    { category: "Winter gear", words: ["SCARF", "MITTEN", "PARKA", "BOOTS"] },
+    { category: "Fish", words: ["TROUT", "SALMON", "MARLIN", "PERCH"] },
+    { category: "Countries", words: ["BRAZIL", "KENYA", "NEPAL", "CHILE"] },
+  ]},
+  { id: "hand", groups: [
+    { category: "HAND ___", words: ["SHAKE", "BAG", "CUFF", "MADE"] },
+    { category: "Cocktails", words: ["MOJITO", "MARTINI", "MARGARITA", "NEGRONI"] },
+    { category: "Capital cities", words: ["TOKYO", "CAIRO", "LIMA", "OSLO"] },
+    { category: "Dances", words: ["SALSA", "TANGO", "WALTZ", "RUMBA"] },
+  ]},
+  { id: "proof", groups: [
+    { category: "___ PROOF", words: ["WATER", "BULLET", "FOOL", "CHILD"] },
+    { category: "Elements", words: ["IRON", "GOLD", "NEON", "ZINC"] },
+    { category: "Beehive words", words: ["HONEY", "QUEEN", "DRONE", "SWARM"] },
+    { category: "Pastries", words: ["SCONE", "DONUT", "ECLAIR", "STRUDEL"] },
+  ]},
+  { id: "over", groups: [
+    { category: "OVER ___", words: ["FLOW", "COAT", "TIME", "LOAD"] },
+    { category: "Spices", words: ["CUMIN", "PAPRIKA", "NUTMEG", "CLOVE"] },
+    { category: "Tennis words", words: ["RACKET", "NET", "COURT", "SERVE"] },
+    { category: "Moons", words: ["LUNA", "TITAN", "EUROPA", "PHOBOS"] },
   ]},
 ];
 
