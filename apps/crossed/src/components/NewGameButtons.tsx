@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
-import { images } from "../lib/images";
+import { avatars, images } from "../lib/images";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -21,7 +21,14 @@ export const NewGameButtons = () => {
   const router = useRouter();
   const { variant } = useVariant();
   const [showChallengeIntro, setShowChallengeIntro] = useState(false);
-  const { level: storyLevel, playStory, launching: storyLaunching } = useStory();
+  const {
+    level: storyLevel,
+    boss: storyBoss,
+    avatar: storyAvatar,
+    isBoss: storyIsBoss,
+    playStory,
+    launching: storyLaunching,
+  } = useStory();
 
   // Every mode first goes to the difficulty picker, which then runs the action
   // (gate check + create/join) with the chosen Regular/Hard. Variant comes from
@@ -130,7 +137,10 @@ export const NewGameButtons = () => {
               </View>
             </View>
             <Text className="mt-1 font-[jost400] text-[13px] text-crossed-gray-900/60">
-              Beat the clock. Climb 200 levels. How far can you get?
+              {storyIsBoss ? "⚔️ Boss level — " : "Next up: "}
+              <Text className="font-[jost600] text-crossed-gray-900/80">
+                {storyBoss}
+              </Text>
             </Text>
             <View
               className="mt-3 flex-row items-center self-start rounded-full px-4 py-2"
@@ -142,11 +152,24 @@ export const NewGameButtons = () => {
               {!storyLaunching && <Text className="ml-1 text-white">→</Text>}
             </View>
           </View>
-          <Image
-            source={images.solo}
-            style={{ height: 104, width: 104 }}
-            contentFit="contain"
-          />
+          <View className="items-center">
+            <View
+              className="items-center justify-center rounded-full"
+              style={{
+                height: 96,
+                width: 96,
+                backgroundColor: "white",
+                borderWidth: storyIsBoss ? 3 : 2,
+                borderColor: storyIsBoss ? "#dc2626" : "#7c3aed",
+              }}
+            >
+              <Image
+                source={avatars[storyAvatar as keyof typeof avatars]}
+                style={{ height: 78, width: 78, borderRadius: 39 }}
+                contentFit="cover"
+              />
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
 

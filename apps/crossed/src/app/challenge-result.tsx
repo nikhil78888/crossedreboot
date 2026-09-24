@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { fmtSolve } from "./(home-tabs)/stats";
 import { setTodaysResult } from "../lib/daily-duel";
 import { advanceStoryLevel, startStoryLevel } from "../lib/story";
-import { STORY_MAX_LEVEL } from "types-and-validators";
+import { STORY_MAX_LEVEL, bossAvatar } from "types-and-validators";
+import { avatars } from "../lib/images";
 
 // Result of a ghost-race challenge. Crossword / word search are decided by TIME;
 // trivia by ACCURACY (correct answers, tie broken by time). We just say won/lost
@@ -124,6 +126,30 @@ export default function ChallengeResult() {
 
   return (
     <View className="flex-1 bg-white px-6" style={{ paddingTop: top + 48 }}>
+      {isStory && (
+        <View className="mb-4 items-center">
+          <View
+            className="items-center justify-center rounded-full"
+            style={{
+              height: 92,
+              width: 92,
+              backgroundColor: "white",
+              borderWidth: 3,
+              borderColor: didWin ? "#16a34a" : "#7c3aed",
+              opacity: didWin ? 0.6 : 1,
+            }}
+          >
+            <Image
+              source={avatars[bossAvatar(storyLevel) as keyof typeof avatars]}
+              style={{ height: 74, width: 74, borderRadius: 37 }}
+              contentFit="cover"
+            />
+          </View>
+          <Text className="mt-2 font-[jost700] text-[14px] text-crossed-gray-500">
+            {rival}
+          </Text>
+        </View>
+      )}
       <Text
         className="text-center font-[jost700] text-crossed-gray-900"
         style={{ fontSize: 38 }}

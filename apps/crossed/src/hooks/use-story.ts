@@ -1,14 +1,16 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
+import { storyLevel } from "types-and-validators";
 import { getStoryCurrentLevel, startStoryLevel } from "../lib/story";
 
 // Drives the Story Mode home button: shows the level to resume at (refreshed
-// whenever Home regains focus, so it updates after you clear levels) and
-// launches the current level into the challenge play pipeline.
+// whenever Home regains focus, so it updates after you clear levels), the boss
+// waiting there, and launches the current level into the challenge play pipeline.
 export const useStory = () => {
   const router = useRouter();
   const [level, setLevel] = useState<number>(1);
   const [launching, setLaunching] = useState(false);
+  const meta = storyLevel(level);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,5 +38,12 @@ export const useStory = () => {
     }
   }, [launching, router]);
 
-  return { level, playStory, launching };
+  return {
+    level,
+    boss: meta.boss,
+    avatar: meta.avatar,
+    isBoss: meta.isBoss,
+    playStory,
+    launching,
+  };
 };

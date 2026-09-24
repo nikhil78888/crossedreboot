@@ -5,6 +5,11 @@ import {
   STORY_MAX_LEVEL,
   STORY_PUBLISHED_5X5,
   generateWordSearchFrom,
+  estimateWordSearchSolve,
+  wordSearchSecondsFor,
+  isOnDifficulty,
+  storyTargetSolve,
+  WordSearchPuzzle,
 } from "types-and-validators";
 import { supabase } from "./supabase";
 
@@ -86,12 +91,61 @@ export const startStoryLevel = async (
   level: number
 ): Promise<{ id: string; meta: StoryLevel } | null> => {
   const meta = storyLevel(level);
-  // A FRESH random seed each play, so replaying a level gives a DIFFERENT puzzle
-  // every time — but the difficulty knobs (meta.ws grid/word-count/directions
-  // for word search, the fixed 5×5 for crossword) and the time-to-beat
-  // (meta.seconds) are unchanged, so it's the same difficulty, different puzzle.
-  const seed = Math.floor(Math.random() * 0xffffffff) >>> 0;
 
+  // Word search: generate a FRESH random puzzle each play, but keep the real
+  // difficulty consistent and the time fair to the actual draw:
+  //  1. Generate up to N candidates with random seeds (same config → same grid
+  //     size / word count / direction set).
+  //  2. MEASURE each candidate's true solve difficulty (word lengths + the
+  //     directions they actually landed in) and keep the first that lands within
+  //     the level's difficulty band; if none do, keep the closest to target — so
+  //     replays feel like the same difficulty, never a lucky-easy or unfair-hard
+  //     draw.
+  //  3. Set the time-to-beat from THAT puzzle's estimate × the level's
+  //     generosity, so the challenge (pace vs. slack) is identical every play.
+  if (meta.variant === "WORD_SEARCH" && meta.ws) {
+    const target = storyTargetSolve(level);
+    let best: WordSearchPuzzle | null = null;
+    let bestEst = 0;
+    let bestGap = Infinity;
+    for (let i = 0; i < 8; i++) {
+      const seed = Math.floor(Math.random() * 0xffffffff) >>> 0;
+      const cand = generateWordSearchFrom(meta.ws, seed);
+      const est = estimateWordSearchSolve(cand);
+      const gap = Math.abs(est - target);
+      if (gap < bestGap) {
+        best = cand;
+        bestEst = est;
+        bestGap = gap;
+      }
+      if (isOnDifficulty(level, est)) break; // on-difficulty → good enough
+    }
+    if (!best) return null;
+    const seconds = wordSearchSecondsFor(level, bestEst);
+    const insert = {
+      challengerId: null,
+      challengerName: meta.boss,
+      gameVariant: meta.variant,
+      difficulty: "HARD",
+      solveSeconds: seconds,
+      timeline: paceTimeline(seconds),
+      crosswordsId: null,
+      resolvedClues: null,
+      puzzle: best,
+    };
+    const { data, error } = await challengesTable
+      .from("challenges")
+      .insert(insert)
+      .select("id")
+      .single();
+    if (error || !data?.id) return null;
+    return { id: data.id, meta: { ...meta, seconds } };
+  }
+
+  // Crossword: the grid is always a 5×5 mini, so structural difficulty is
+  // constant — only clue difficulty varies (inherent to any crossword; hints
+  // mitigate). Keep the nominal per-level time (generosity lowers it over the
+  // ladder). Pick a random mini each play for variety.
   const base: Record<string, unknown> = {
     challengerId: null, // system challenge — nobody is notified of a result
     challengerName: meta.boss,
@@ -101,33 +155,23 @@ export const startStoryLevel = async (
     timeline: paceTimeline(meta.seconds),
   };
 
-  let insert: Record<string, unknown>;
-  if (meta.variant === "WORD_SEARCH" && meta.ws) {
-    insert = {
-      ...base,
-      crosswordsId: null,
-      resolvedClues: null,
-      puzzle: generateWordSearchFrom(meta.ws, seed),
-    };
-  } else {
-    // Random mini from the published 5×5 pool each play (same size, new puzzle).
-    const offset = Math.floor(Math.random() * STORY_PUBLISHED_5X5);
-    const { data: cw } = await supabase
-      .from("crosswords")
-      .select("id, clues")
-      .eq("isPublished", true)
-      .eq("size", 5)
-      .order("id")
-      .range(offset, offset)
-      .single();
-    if (!cw?.id) return null;
-    insert = {
-      ...base,
-      crosswordsId: cw.id,
-      resolvedClues: (cw as { clues?: unknown }).clues ?? null,
-      puzzle: null,
-    };
-  }
+  // Random mini from the published 5×5 pool each play (same size, new puzzle).
+  const offset = Math.floor(Math.random() * STORY_PUBLISHED_5X5);
+  const { data: cw } = await supabase
+    .from("crosswords")
+    .select("id, clues")
+    .eq("isPublished", true)
+    .eq("size", 5)
+    .order("id")
+    .range(offset, offset)
+    .single();
+  if (!cw?.id) return null;
+  const insert = {
+    ...base,
+    crosswordsId: cw.id,
+    resolvedClues: (cw as { clues?: unknown }).clues ?? null,
+    puzzle: null,
+  };
 
   const { data, error } = await challengesTable
     .from("challenges")

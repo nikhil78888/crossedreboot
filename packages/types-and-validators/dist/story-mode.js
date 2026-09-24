@@ -1,6 +1,6 @@
 "use strict";
 exports.__esModule = true;
-exports.storyLevel = exports.STORY_PUBLISHED_5X5 = exports.STORY_MAX_LEVEL = void 0;
+exports.storyLevel = exports.isOnDifficulty = exports.storyDifficultyBand = exports.wordSearchSecondsFor = exports.storyTargetSolve = exports.estimateWordSearchSolve = exports.storyGenerosity = exports.bossAvatar = exports.STORY_PUBLISHED_5X5 = exports.STORY_MAX_LEVEL = void 0;
 var word_search_1 = require("./word-search");
 // Story Mode — a 200-level solo ladder. Odd levels are crosswords, even levels
 // are word searches (alternating, starting with a crossword at level 1). Each
@@ -52,6 +52,20 @@ var BIG_BOSSES = [
     "OMNIGLOT, the Final Cipher", // 200
 ];
 var isBossLevel = function (level) { return level % 25 === 0; };
+// Avatar key per level's boss (maps to the client's `avatars` image set).
+// Deterministic, so a level always shows the same boss face. Milestone bosses
+// get the fiercest faces; regular levels cycle the rest.
+var STORY_AVATARS = [
+    "avatar_frog", "avatar_bee", "avatar_pig", "avatar_bird", "avatar_penguin",
+    "avatar_monkey", "avatar_panda", "avatar_donkey",
+];
+var bossAvatar = function (level) {
+    if (isBossLevel(level)) {
+        return (level / 25) % 2 === 0 ? "avatar_lion" : "avatar_snake";
+    }
+    return STORY_AVATARS[(level * 3) % STORY_AVATARS.length];
+};
+exports.bossAvatar = bossAvatar;
 var bossNameFor = function (level) {
     if (isBossLevel(level))
         return BIG_BOSSES[Math.min(7, level / 25 - 1)];
@@ -91,23 +105,32 @@ var DIRS_TIER = [
         D.UP_LEFT, D.UP_LEFT, D.UP_LEFT,
     ],
 ];
-// Per-word solve pace (seconds) assumed for each tier — reversed/upward
-// diagonals take longer to spot, so the pace rises with the tier.
-var TIER_PACE = [5.5, 7.5, 9.5, 11.5];
 var tierFor = function (p) { return (p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.8 ? 2 : 3); };
-// Estimated competent-player solve time for a level's puzzle (before the
-// generosity multiplier). This is the anchor the time-to-beat scales off.
+// Average word length across the theme banks (words are 3–9 letters). Used to
+// anchor the config-based target on the SAME model as the per-puzzle measurement
+// so the two agree and the difficulty band holds.
+var AVG_WORD_LEN = 6;
+// Hardness of a direction VECTOR — the same scale estimateWordSearchSolve()
+// applies to a placed word's actual direction, so target and measurement match.
+var vectorHardness = function (d) {
+    var isDiag = d.dr !== 0 && d.dc !== 0;
+    var isReversed = d.dc < 0 || d.dr < 0;
+    return 1.0 + (isDiag ? 0.3 : 0) + (isReversed ? 0.35 : 0);
+};
+// Estimated competent-player solve time for a level's NOMINAL puzzle (before the
+// generosity multiplier) — computed with the same word/direction model as the
+// per-puzzle measurement, so it's a faithful target for the difficulty band.
 var estimatedSolve = function (level) {
-    var p = (level - 1) / (exports.STORY_MAX_LEVEL - 1);
     if (level % 2 === 1) {
         // Crossword: a published 5x5 mini (~10 answers). Fixed puzzle, so difficulty
         // comes from the clock (and hints) rather than the grid.
         return 70;
     }
-    // Word search: scan time grows with grid size; per-word pace with the tier.
-    var _a = wsConfigFor(level), size = _a.size, count = _a.count;
+    var _a = wsConfigFor(level), size = _a.size, count = _a.count, dirs = _a.dirs;
     var scan = 6 + (size - 8) * 1.6;
-    return scan + TIER_PACE[tierFor(p)] * count;
+    var avgHard = dirs.reduce(function (a, d) { return a + vectorHardness(d); }, 0) / dirs.length;
+    var perWord = (2.0 + 0.7 * AVG_WORD_LEN) * avgHard;
+    return scan + perWord * count;
 };
 var wsConfigFor = function (level) {
     var p = (level - 1) / (exports.STORY_MAX_LEVEL - 1);
@@ -118,11 +141,66 @@ var wsConfigFor = function (level) {
 // Generosity multiplier on the estimated solve time. Starts very high (early
 // levels are a breeze) and tightens; a gentle-early, steep-late curve so the
 // first ~20 levels stay trivially beatable. Floored at 0.9 so the hardest
-// levels are tight-but-possible (with hints), never impossible.
-var generosity = function (level) {
+// levels are tight-but-possible (with hints), never impossible. This is THE
+// strategic time-lowering lever: same shape regardless of the actual puzzle.
+var storyGenerosity = function (level) {
     var p = (level - 1) / (exports.STORY_MAX_LEVEL - 1);
     return Math.max(0.9, 2.6 - 1.7 * Math.pow(p, 1.25));
 };
+exports.storyGenerosity = storyGenerosity;
+var generosity = exports.storyGenerosity;
+// ---- Measuring a puzzle's ACTUAL difficulty -------------------------------
+//
+// Because Story Mode generates a fresh random puzzle each play, two draws of the
+// same level can differ in real difficulty (word lengths, and — crucially — the
+// DIRECTIONS the words landed in: a reversed diagonal takes far longer to spot
+// than a forward across). We measure the generated puzzle so both the accepted
+// difficulty band AND the time-to-beat track the puzzle you actually got, not
+// just the level's nominal config.
+// How much longer a word takes to find given its direction. Forward straight = 1;
+// a forward diagonal is harder to scan; anything reversed (leftward/upward) is
+// harder still; a reversed diagonal is the worst.
+var dirHardness = function (a, b) {
+    var isDiag = a.r !== b.r && a.c !== b.c;
+    var isReversed = b.c < a.c || b.r < a.r; // travels left and/or up
+    var f = 1.0;
+    if (isDiag)
+        f += 0.3;
+    if (isReversed)
+        f += 0.35;
+    return f; // 1.0 (fwd straight) … 1.65 (reversed diagonal)
+};
+// Estimated seconds a competent player needs to fully solve THIS puzzle.
+var estimateWordSearchSolve = function (puzzle) {
+    var scan = 6 + (puzzle.size - 8) * 1.6; // orient to the grid
+    var find = 0;
+    for (var _i = 0, _a = puzzle.placements; _i < _a.length; _i++) {
+        var pl = _a[_i];
+        var len = pl.word.length;
+        var hard = pl.cells.length >= 2 ? dirHardness(pl.cells[0], pl.cells[1]) : 1;
+        find += (2.0 + 0.7 * len) * hard; // base + per-letter, scaled by direction
+    }
+    return scan + find;
+};
+exports.estimateWordSearchSolve = estimateWordSearchSolve;
+// The level's NOMINAL (config-average) solve estimate — the target the accepted
+// random draw should sit near, so difficulty stays consistent across replays.
+var storyTargetSolve = function (level) { return estimatedSolve(level); };
+exports.storyTargetSolve = storyTargetSolve;
+// The time-to-beat for a word-search level given the ACTUAL generated puzzle's
+// estimated solve: estimate × the level's generosity. Same challenge every play
+// (beat your expected pace × the level's slack), fair to the specific draw.
+var wordSearchSecondsFor = function (level, puzzleEstimate) { return Math.max(30, Math.round(puzzleEstimate * generosity(level))); };
+exports.wordSearchSecondsFor = wordSearchSecondsFor;
+// A generated puzzle is "on-difficulty" for its level if its measured solve is
+// within this fraction of the level's target — used to reject outlier draws so
+// replays feel like the same difficulty. ±18%.
+exports.storyDifficultyBand = 0.18;
+var isOnDifficulty = function (level, puzzleEstimate) {
+    var target = (0, exports.storyTargetSolve)(level);
+    return Math.abs(puzzleEstimate - target) <= target * exports.storyDifficultyBand;
+};
+exports.isOnDifficulty = isOnDifficulty;
 var storyLevel = function (level) {
     var lvl = Math.max(1, Math.min(exports.STORY_MAX_LEVEL, Math.round(level)));
     var variant = lvl % 2 === 1 ? "CROSSWORD" : "WORD_SEARCH";
@@ -132,6 +210,7 @@ var storyLevel = function (level) {
         variant: variant,
         seconds: seconds,
         boss: bossNameFor(lvl),
+        avatar: (0, exports.bossAvatar)(lvl),
         isBoss: isBossLevel(lvl)
     };
     if (variant === "WORD_SEARCH") {
