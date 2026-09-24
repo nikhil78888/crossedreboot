@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
@@ -26,6 +32,13 @@ export const CategoriesGrid = ({
 }) => {
   const { game, finishGame } = useGame({ gameId });
   const { myProfile } = useMyProfile();
+  const { width: screenW } = useWindowDimensions();
+  // Explicit 4-column grid: compute each tile's width from the real screen width
+  // (px-3 padding on each side = 12px, 3 gaps of 7px between 4 columns) instead
+  // of relying on percentage width + flex-wrap, which was collapsing to a single
+  // visible row on device (only 4 of the 16 tiles showed).
+  const GAP = 7;
+  const tileW = Math.floor((screenW - 24 - GAP * 3) / 4);
   const puzzle = (
     game?.gameState as { __categories?: CategoriesPuzzle } | undefined
   )?.__categories;
@@ -164,7 +177,10 @@ export const CategoriesGrid = ({
   };
 
   return (
-    <View className="flex-1 bg-white px-3 pt-2">
+    <ScrollView
+      className="flex-1 bg-white"
+      contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 24 }}
+    >
       <View className="mb-2">
         <FriendlyCrosswordHeader gameId={gameId} />
       </View>
@@ -194,11 +210,8 @@ export const CategoriesGrid = ({
         </View>
       ))}
 
-      {/* Remaining tiles */}
-      <View
-        className="mt-1 flex-row flex-wrap justify-center"
-        style={{ gap: 7 }}
-      >
+      {/* Remaining tiles — explicit 4-column grid so all 16 always show. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
         {remaining.map((w) => {
           const isSel = selected.includes(w);
           const isHint = hintWords.includes(w);
@@ -207,7 +220,7 @@ export const CategoriesGrid = ({
               key={w}
               onPress={() => toggle(w)}
               style={{
-                width: "22.5%",
+                width: tileW,
                 minHeight: 58,
                 alignItems: "center",
                 justifyContent: "center",
@@ -278,6 +291,6 @@ export const CategoriesGrid = ({
           <Text className="font-[jost700] text-[15px] text-white">Submit</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 };

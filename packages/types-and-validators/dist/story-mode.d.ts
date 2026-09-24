@@ -21,7 +21,12 @@ export type StoryLevel = {
     };
 };
 export declare const STORY_PUBLISHED_5X5 = 384;
+export declare const HARD_LEVEL = 100;
 export declare const bossAvatar: (level: number) => string;
+export declare const bossNameFor: (level: number) => string;
+export type RacePhase = "start" | "mid" | "late" | "clinch";
+export declare const racePhaseFor: (opponentProgress: number) => RacePhase;
+export declare const bossTaunt: (level: number, opponentProgress: number) => string;
 export declare const wordsyConfigFor: (level: number) => {
     length: number;
     maxGuesses: number;

@@ -55,6 +55,35 @@ export type StoryLevel = {
 // uses). Keeps the crossword pick deterministic without a count query.
 export const STORY_PUBLISHED_5X5 = 384;
 
+// ---- The master difficulty ramp -------------------------------------------
+//
+// One curve drives EVERYTHING (puzzle config + time-to-beat). It is compressed
+// on purpose: the game is meant to feel "really hard" by ~level 50 and "nearly
+// impossible" by ~level 100, then keep inching up to the absolute wall at 200.
+//
+// rampProgress(level) → 0..1 where 0 = easiest (L1) and 1 = the hardest the game
+// gets (L200). It reaches ~0.95 (near-max) by HARD_LEVEL (100), so 100 already
+// feels brutal; the last 100 levels are a slow grind up the final 5%.
+//   • L1  → 0.00   (gentle head start)
+//   • L25 → ~0.52  (getting tight)
+//   • L50 → ~0.71  ("really hard")
+//   • L100→ 0.95   ("nearly impossible")
+//   • L200→ 1.00   (the wall)
+// Strictly increasing every level, so each level is harder than the last.
+export const HARD_LEVEL = 100; // where difficulty is meant to feel near-max
+const NEAR_MAX = 0.95; // fraction of max difficulty reached by HARD_LEVEL
+const rampProgress = (level: number): number => {
+  const L = Math.max(1, Math.min(STORY_MAX_LEVEL, level));
+  if (L <= HARD_LEVEL) {
+    // 0 → NEAR_MAX across L1..L100, front-loaded (exp < 1 → steep early climb).
+    const u = (L - 1) / (HARD_LEVEL - 1);
+    return NEAR_MAX * Math.pow(u, 0.42);
+  }
+  // NEAR_MAX → 1.0 across L100..L200 (the final grind).
+  const u = (L - HARD_LEVEL) / (STORY_MAX_LEVEL - HARD_LEVEL);
+  return NEAR_MAX + (1 - NEAR_MAX) * u;
+};
+
 // ---- Bosses ---------------------------------------------------------------
 // Every level has its own boss: a NAME, an emoji AVATAR, and a difficulty tier.
 // Both escalate — early bosses are goofy critters, late bosses are fearsome —
@@ -64,10 +93,10 @@ export const STORY_PUBLISHED_5X5 = 384;
 const isBossLevel = (level: number) => level % 25 === 0;
 
 // Difficulty tier 0..3 from level (kept here so the boss flavor tracks the same
-// bands as the puzzle difficulty).
+// compressed ramp as the puzzle difficulty — fearsome bosses show up EARLY).
 const bossTier = (level: number) => {
-  const p = (level - 1) / (STORY_MAX_LEVEL - 1);
-  return p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.8 ? 2 : 3;
+  const p = rampProgress(level);
+  return p < 0.25 ? 0 : p < 0.55 ? 1 : p < 0.85 ? 2 : 3;
 };
 
 // Emoji boss faces per tier — escalating menace (cute → monstrous). Emoji so
@@ -119,7 +148,7 @@ const CORES: string[][] = [
     "Endgame", "Final Cipher", "Nemesis", "Annihilator", "Grandmaster", "Leviathan"],
 ];
 
-const bossNameFor = (level: number): string => {
+export const bossNameFor = (level: number): string => {
   if (isBossLevel(level)) return MILESTONE_NAMES[Math.min(7, level / 25 - 1)];
   const t = bossTier(level);
   const titles = TITLES[t];
@@ -128,6 +157,58 @@ const bossNameFor = (level: number): string => {
   const title = titles[(level * 5) % titles.length];
   const core = cores[(level * 3) % cores.length];
   return `${title} ${core}`;
+};
+
+// ---- Boss trash talk ------------------------------------------------------
+// The rival you're racing has PERSONALITY: a line that reacts to how the race is
+// going. Goofy critters early, cocky villains late. `phase` is derived from how
+// far the rival's ghost has run (0..100): "start" | "mid" | "late" | "clinch".
+export type RacePhase = "start" | "mid" | "late" | "clinch";
+export const racePhaseFor = (opponentProgress: number): RacePhase =>
+  opponentProgress >= 90
+    ? "clinch"
+    : opponentProgress >= 55
+    ? "late"
+    : opponentProgress >= 18
+    ? "mid"
+    : "start";
+
+// Taunts per difficulty tier (0 cute → 3 monstrous) and per race phase. Kept
+// short so they fit a one-line rival bubble.
+const TAUNTS: Record<RacePhase, string[][]> = {
+  start: [
+    ["Let's play! Good luck!", "I'm just a lil guy… go easy!", "Ready when you are!", "Ooh, a challenger!"],
+    ["Try to keep up.", "I've been practicing.", "Let's see what you've got.", "Don't blink."],
+    ["You're out of your depth.", "This ends quickly.", "I don't lose.", "Kneel before the grid."],
+    ["You should not have come.", "Your defeat is written.", "I am inevitable.", "Despair."],
+  ],
+  mid: [
+    ["Ooh, you're fast!", "Hey, no fair!", "Wowee, nice one!", "Uh oh…"],
+    ["Not bad. Not enough.", "I'm still ahead.", "Feeling the heat yet?", "Cute pace."],
+    ["You'll tire soon.", "Is that your best?", "I'm barely trying.", "Predictable."],
+    ["Struggle harder.", "It won't matter.", "You delay the end.", "Pathetic effort."],
+  ],
+  late: [
+    ["So close!", "Aaah you might win!", "My paws are sweating!", "Go go go!"],
+    ["Neck and neck!", "Don't choke now.", "I can taste it.", "So it's a race after all."],
+    ["The end nears.", "Falter. Please.", "You're fading.", "Almost mine."],
+    ["Feel the abyss.", "Your clock betrays you.", "Yield.", "The wall is here."],
+  ],
+  clinch: [
+    ["I did it! …oh, did you?", "So close, friend!", "Phew!", "Rematch?"],
+    ["Beat you to it.", "Told you.", "Better luck next level.", "GG."],
+    ["Bow to the champion.", "As expected.", "You were never close.", "Next."],
+    ["It is finished.", "You lose. As foretold.", "Silence.", "Ascend, or perish."],
+  ],
+};
+
+// A rival taunt for the level, reacting to the race. Deterministic per level so
+// the same rival keeps a consistent voice, but different across levels.
+export const bossTaunt = (level: number, opponentProgress: number): string => {
+  const phase = racePhaseFor(opponentProgress);
+  const tier = bossTier(level);
+  const pool = TAUNTS[phase][tier];
+  return pool[(level * 3 + phase.length) % pool.length];
 };
 
 // ---- The difficulty / time curve -----------------------------------------
@@ -159,12 +240,11 @@ const DIRS_TIER = [
     D.UP_LEFT, D.UP_LEFT, D.UP_LEFT,
   ],
 ];
-// Config progress — heavily front-loaded (p^0.55) so the grid/word-count/
-// directions ramp up FAST in the early levels. Combined with the steep time
-// curve below, this makes the game genuinely challenging within the first
-// ~20-25 levels rather than staying trivially easy.
-const configProgress = (level: number) =>
-  Math.pow((level - 1) / (STORY_MAX_LEVEL - 1), 0.55);
+// Config progress = the master ramp: grid size, word count, Wordsy length/
+// guesses, and Categories mistakes all max out by ~level 100 (rampProgress hits
+// ~0.95 there), so the PUZZLES themselves — not just the clock — are near their
+// hardest by the time you reach 100.
+const configProgress = (level: number) => rampProgress(level);
 
 const tierFor = (level: number) => {
   const cp = configProgress(level);
@@ -238,19 +318,18 @@ const wsConfigFor = (level: number): WordSearchConfig => {
 };
 
 // Generosity = time-to-beat / estimated-solve — THE per-level difficulty lever.
-// Felt difficulty = 1 / generosity, and because generosity STRICTLY decreases
-// every single level, every level is harder than the last. The curve drops FAST
-// early (p^0.42, sqrt-like) so the game gets genuinely tight within the first
-// ~20-25 levels — L1 gives 1.55× the solve time (comfortable), by ~L25 you're
-// near 1.2× (must be quick), and it keeps tightening to 0.68× at L200 (needs
-// speed / hints).
+// Felt difficulty = 1 / generosity. It rides the master ramp, so it drops FAST:
+//   • L1   → 1.55× the solve time  (comfortable head start)
+//   • L25  → ~1.10× (must be quick)
+//   • L50  → ~0.93× ("really hard" — you must beat your own expected pace)
+//   • L100 → ~0.72× ("nearly impossible" — needs speed + hints)
+//   • L200 → 0.68×  (the wall)
+// rampProgress strictly increases every level, so generosity strictly decreases
+// every level — each level is harder than the one before it.
 const GEN_HI = 1.55; // L1 — comfortable cushion, not trivial
 const GEN_LO = 0.68; // L200 — must be fast / lean on hints
-const GEN_EXP = 0.42; // < 1 → steep early drop
-export const storyGenerosity = (level: number): number => {
-  const p = (level - 1) / (STORY_MAX_LEVEL - 1);
-  return GEN_LO + (GEN_HI - GEN_LO) * (1 - Math.pow(p, GEN_EXP));
-};
+export const storyGenerosity = (level: number): number =>
+  GEN_HI - (GEN_HI - GEN_LO) * rampProgress(level);
 const generosity = storyGenerosity;
 
 // ---- Measuring a puzzle's ACTUAL difficulty -------------------------------
