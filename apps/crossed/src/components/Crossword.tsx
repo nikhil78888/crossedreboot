@@ -62,7 +62,7 @@ export const CrosswordGrid = ({
   // was intermittently dropping solve times from the DB).
   const solvedRef = useRef(false);
   const crossword = game?.crossword;
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const [containerHeight, setContainerHeight] = useState<number | null>();
   const { height } = useReanimatedKeyboardAnimation();
 
@@ -72,9 +72,16 @@ export const CrosswordGrid = ({
   // reserve room for the header + clue bar; without this the bottom row slips
   // behind the keyboard/clue bar and becomes unreachable. `height.value` is used
   // via Math.abs so it's correct whether the keyboard value arrives +/-.
-  const RESERVED_FOR_CHROME = 200; // header (with opponent bar) + clue bar + padding
+  // Room to leave above the keyboard for the header (opponent bar) + clue bar +
+  // padding. The header/clue TEXT grows with the OS font-zoom, so scale the
+  // reserve up with fontScale — this shrinks the grid on big zoom just enough
+  // that its bottom row can never slip behind the clue bar / keyboard, while
+  // normal-zoom users get the full-size grid.
+  const RESERVED_FOR_CHROME = 196 + Math.max(0, fontScale - 1) * 120;
   const crosswordContainerStyle = useAnimatedStyle(() => {
-    const maxWidth = width * 0.9;
+    // Let the grid use nearly the full width when height allows (it's usually
+    // height-limited, so this mainly helps once the reserve is small).
+    const maxWidth = width * 0.95;
     if (!containerHeight) {
       return { width: maxWidth };
     }
@@ -83,7 +90,7 @@ export const CrosswordGrid = ({
     return {
       width: Math.max(0, Math.min(availableHeight, maxWidth)),
     };
-  }, [containerHeight, width]);
+  }, [containerHeight, width, fontScale]);
 
   const clueContainerStyle = useAnimatedStyle(() => {
     return {

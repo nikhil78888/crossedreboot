@@ -718,42 +718,53 @@ export default function Game() {
           const lvl = Number(level) || 1;
           const taunt = bossTaunt(lvl, opponentProgress);
           return (
-            <View className="flex-row items-center px-3 pb-1 pt-2">
-              {/* Rival avatar — the guy you're racing */}
+            // Compact single-row rival strip — kept slim so the puzzle grid below
+            // gets as much height as possible.
+            <View
+              className="flex-row items-center px-3 py-1"
+              style={{ gap: 6 }}
+            >
               <View
                 className="items-center justify-center rounded-full"
                 style={{
-                  width: 44,
-                  height: 44,
+                  width: 30,
+                  height: 30,
                   backgroundColor: "#f3e8ff",
                   borderWidth: 2,
                   borderColor: "#7c3aed",
                 }}
               >
-                <Text style={{ fontSize: 24 }}>{bossAvatar(lvl)}</Text>
-              </View>
-              {/* Name + live taunt speech bubble */}
-              <View className="ml-2 flex-1">
-                <View className="flex-row items-center">
-                  <Text className="font-[jost700] text-[14px] text-crossed-gray-800">
-                    {bossNameFor(lvl)}
-                  </Text>
-                  <View
-                    className="ml-2 rounded-full px-2 py-[1px]"
-                    style={{ backgroundColor: "#7c3aed" }}
-                  >
-                    <Text className="font-[jost700] text-[11px] text-white">
-                      Lv {lvl}
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  numberOfLines={1}
-                  className="font-[jost500] text-[12px] text-crossed-gray-500"
-                >
-                  “{taunt}”
+                <Text style={{ fontSize: 17, lineHeight: 21 }}>
+                  {bossAvatar(lvl)}
                 </Text>
               </View>
+              <Text
+                className="font-[jost700] text-[13px] text-crossed-gray-800"
+                numberOfLines={1}
+              >
+                {bossNameFor(lvl)}
+              </Text>
+              <View
+                className="rounded-full px-2"
+                style={{ backgroundColor: "#7c3aed", paddingVertical: 1 }}
+              >
+                <Text
+                  style={{
+                    fontFamily: "jost700",
+                    fontSize: 10,
+                    lineHeight: 14,
+                    color: "white",
+                  }}
+                >
+                  Lv {lvl}
+                </Text>
+              </View>
+              <Text
+                numberOfLines={1}
+                className="flex-1 font-[jost500] text-[11px] text-crossed-gray-500"
+              >
+                “{taunt}”
+              </Text>
             </View>
           );
         })()}
