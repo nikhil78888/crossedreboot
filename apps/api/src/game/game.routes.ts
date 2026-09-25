@@ -1,10 +1,17 @@
 import express, { Router } from "express";
 import { supabase } from "../lib/supabase";
-import { Game, duelMeta } from "types-and-validators";
+import { Game, duelMeta, bossNameFor, STORY_MAX_LEVEL } from "types-and-validators";
 import { finalizeGame } from "./game.service";
 import { getProfileIdByUid } from "../friends/friends.service";
 
 export const gameRouter: Router = express.Router();
+
+// Every Story Mode opponent name. Story reuses the daily-duel pipeline (a FRIENDLY
+// game with a null-challenger boss), so the daily-rank board must exclude these or
+// a Story game masquerades as "today's duel".
+const STORY_BOSS_NAMES: Set<string> = new Set(
+  Array.from({ length: STORY_MAX_LEVEL }, (_, i) => bossNameFor(i + 1))
+);
 
 // Today's Daily Duel definition — the single source of truth. The client sends
 // its local calendar day and gets back the canonical meta (variant, opponent,
@@ -83,9 +90,24 @@ gameRouter.get("/daily-rank", async (req, res) => {
       // null) so it doesn't create its own bogus one-person board.
       if (!ch || ch.challengerId != null || !ch.name || ch.name === "the record")
         continue;
+      // Story Mode also uses a null-challenger FRIENDLY game (opponent = a boss,
+      // variants incl. Wordsy/Categories). Exclude it so a Story game can't be
+      // mistaken for today's duel (which was returning played:false / an empty
+      // board when the caller's most recent such game was a Story level).
+      if (
+        g.gameVariant === "WORDSY" ||
+        g.gameVariant === "CATEGORIES" ||
+        STORY_BOSS_NAMES.has(ch.name)
+      ) {
+        continue;
+      }
       const human = (g.players ?? []).find((p) => p.type !== "BOT");
       if (!human) continue; // keep test accounts here; filtered from the list below
-      const key = `${g.gameVariant}|${ch.name}|${ch.seconds}`;
+      // Group by variant + opponent only — NOT time-to-beat. The client-side duel
+      // ease means ch.seconds now differs between app builds on the SAME day, which
+      // was splitting one day's players onto separate boards. Ranking still uses
+      // the actual solve time; the opponent name already separates days.
+      const key = `${g.gameVariant}|${ch.name}`;
       const solved = (
         g.gameState as Record<string, { solvedInSeconds?: number }> | null
       )?.[human.id]?.solvedInSeconds;
