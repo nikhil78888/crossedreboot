@@ -1,17 +1,32 @@
 import express, { Router } from "express";
 import { supabase } from "../lib/supabase";
-import { Game, duelMeta, bossNameFor, STORY_MAX_LEVEL } from "types-and-validators";
+import { Game, duelMeta } from "types-and-validators";
 import { finalizeGame } from "./game.service";
 import { getProfileIdByUid } from "../friends/friends.service";
 
 export const gameRouter: Router = express.Router();
 
-// Every Story Mode opponent name. Story reuses the daily-duel pipeline (a FRIENDLY
-// game with a null-challenger boss), so the daily-rank board must exclude these or
-// a Story game masquerades as "today's duel".
-const STORY_BOSS_NAMES: Set<string> = new Set(
-  Array.from({ length: STORY_MAX_LEVEL }, (_, i) => bossNameFor(i + 1))
-);
+// The set of `${variant}|${opponent}` pairs that are REAL daily duels right now —
+// i.e. duelMeta's output for the days any caller could currently be on. Story Mode
+// reuses the same pipeline (null-challenger FRIENDLY vs a boss), and some Story
+// boss names even collide with duel opponent names ("Captain Anagram"), so we
+// can't exclude Story by name. Instead we WHITELIST: a game counts as a duel only
+// if its (variant, opponent) matches an actual duel definition. A ±1 day UTC
+// window covers every timezone (local day is always within UTC today ±1).
+const validDuelPairs = (): Set<string> => {
+  const set = new Set<string>();
+  const now = Date.now();
+  for (let off = -1; off <= 1; off++) {
+    const day = new Date(now + off * 86400000).toISOString().slice(0, 10);
+    try {
+      const m = duelMeta(day);
+      if (m?.opponent && m?.variant) set.add(`${m.variant}|${m.opponent}`);
+    } catch {
+      // ignore a bad day
+    }
+  }
+  return set;
+};
 
 // Today's Daily Duel definition — the single source of truth. The client sends
 // its local calendar day and gets back the canonical meta (variant, opponent,
@@ -42,6 +57,7 @@ gameRouter.get("/daily-rank", async (req, res) => {
       res.send({ played: false });
       return;
     }
+    const DUEL_PAIRS = validDuelPairs();
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data: games } = await supabase
       .from("games")
@@ -90,17 +106,11 @@ gameRouter.get("/daily-rank", async (req, res) => {
       // null) so it doesn't create its own bogus one-person board.
       if (!ch || ch.challengerId != null || !ch.name || ch.name === "the record")
         continue;
-      // Story Mode also uses a null-challenger FRIENDLY game (opponent = a boss,
-      // variants incl. Wordsy/Categories). Exclude it so a Story game can't be
-      // mistaken for today's duel (which was returning played:false / an empty
-      // board when the caller's most recent such game was a Story level).
-      if (
-        g.gameVariant === "WORDSY" ||
-        g.gameVariant === "CATEGORIES" ||
-        STORY_BOSS_NAMES.has(ch.name)
-      ) {
-        continue;
-      }
+      // Only real daily duels — a game whose (variant, opponent) matches an
+      // actual duel definition. This excludes Story Mode (which shares the
+      // pipeline) even when a boss name collides with a duel opponent name, and
+      // it can't accidentally hide the real duel.
+      if (!DUEL_PAIRS.has(`${g.gameVariant}|${ch.name}`)) continue;
       const human = (g.players ?? []).find((p) => p.type !== "BOT");
       if (!human) continue; // keep test accounts here; filtered from the list below
       // Group by variant + opponent only — NOT time-to-beat. The client-side duel
