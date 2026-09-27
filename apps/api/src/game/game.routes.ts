@@ -67,9 +67,11 @@ gameRouter.get("/daily-rank", async (req, res) => {
       .eq("gameType", "FRIENDLY")
       .gte("createdAt", since);
 
+    // Hide only automated test accounts (player.*). nigelman/leomans are the
+    // creators — real players — so they DO appear on the daily-duel board.
     const isTest = (u?: string | null) => {
       const n = (u || "").toLowerCase();
-      return !n || /^player\./.test(n) || ["nigelman", "leomans"].includes(n);
+      return !n || /^player\./.test(n);
     };
 
     type Entry = {
