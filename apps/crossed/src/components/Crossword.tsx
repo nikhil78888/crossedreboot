@@ -734,16 +734,117 @@ export const CrosswordGrid = ({
     }
   };
 
-  const handleKey = ({ x, y, key }: { x: number; y: number; key: string }) => {
-    if (!isGameFinished) {
-      if (solution[x][y] === "") {
-        setSolution({ cell: { x, y }, value: key });
-        gotoNextCell({ cell: currentCell, direction, allowLoop: true });
-      } else {
-        setSolution({ cell: { x, y }, value: key });
-        gotoNextCell({ cell: currentCell, direction, allowLoop: true });
+  // --- auto-advance to the next word when the current one is completed ---
+  // The maximal run of playable (non-null) cells through `cell` in `dir`.
+  const wordCells = (
+    cell: { x: number; y: number },
+    dir: "Across" | "Down"
+  ): { x: number; y: number }[] => {
+    const cells: { x: number; y: number }[] = [];
+    if (dir === "Across") {
+      let y0 = cell.y;
+      while (y0 - 1 >= 0 && solution[cell.x]?.[y0 - 1] != null) y0 -= 1;
+      let y1 = cell.y;
+      while (y1 + 1 < crossword.size && solution[cell.x]?.[y1 + 1] != null)
+        y1 += 1;
+      for (let y = y0; y <= y1; y += 1) cells.push({ x: cell.x, y });
+    } else {
+      let x0 = cell.x;
+      while (x0 - 1 >= 0 && solution[x0 - 1]?.[cell.y] != null) x0 -= 1;
+      let x1 = cell.x;
+      while (x1 + 1 < crossword.size && solution[x1 + 1]?.[cell.y] != null)
+        x1 += 1;
+      for (let x = x0; x <= x1; x += 1) cells.push({ x, y: cell.y });
+    }
+    return cells;
+  };
+
+  // Every 2+ cell word in reading order (all Across, then all Down) — mirrors the
+  // clue-bar's ordering so "next word" matches the arrows.
+  const allWords = (): {
+    dir: "Across" | "Down";
+    cells: { x: number; y: number }[];
+  }[] => {
+    const words: { dir: "Across" | "Down"; cells: { x: number; y: number }[] }[] =
+      [];
+    for (let x = 0; x < crossword.size; x += 1) {
+      let y = 0;
+      while (y < crossword.size) {
+        if (solution[x]?.[y] == null) {
+          y += 1;
+          continue;
+        }
+        let y1 = y;
+        while (y1 + 1 < crossword.size && solution[x]?.[y1 + 1] != null) y1 += 1;
+        if (y1 > y)
+          words.push({ dir: "Across", cells: wordCells({ x, y }, "Across") });
+        y = y1 + 1;
       }
     }
+    for (let y = 0; y < crossword.size; y += 1) {
+      let x = 0;
+      while (x < crossword.size) {
+        if (solution[x]?.[y] == null) {
+          x += 1;
+          continue;
+        }
+        let x1 = x;
+        while (x1 + 1 < crossword.size && solution[x1 + 1]?.[y] != null) x1 += 1;
+        if (x1 > x)
+          words.push({ dir: "Down", cells: wordCells({ x, y }, "Down") });
+        x = x1 + 1;
+      }
+    }
+    return words;
+  };
+
+  // A cell counts as filled if it holds a letter — with the just-typed cell
+  // (typed) treated as filled, since `solution` state hasn't updated yet.
+  const isFilled = (
+    c: { x: number; y: number },
+    typed: { x: number; y: number }
+  ) => {
+    if (c.x === typed.x && c.y === typed.y) return true;
+    const v = solution[c.x]?.[c.y];
+    return typeof v === "string" && v !== "";
+  };
+
+  // After typing `typed`, jump to the first empty cell of the next word (reading
+  // order, wrapping) that still has a blank. Returns false if the grid is full.
+  const gotoNextIncompleteWord = (
+    from: { x: number; y: number },
+    dir: "Across" | "Down",
+    typed: { x: number; y: number }
+  ): boolean => {
+    const words = allWords();
+    if (!words.length) return false;
+    const curIdx = words.findIndex(
+      (w) =>
+        w.dir === dir && w.cells.some((c) => c.x === from.x && c.y === from.y)
+    );
+    for (let i = 1; i <= words.length; i += 1) {
+      const w = words[(Math.max(0, curIdx) + i) % words.length];
+      const empty = w.cells.find((c) => !isFilled(c, typed));
+      if (empty) {
+        setCurrentCell(empty);
+        setDirection(w.dir);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const handleKey = ({ x, y, key }: { x: number; y: number; key: string }) => {
+    if (isGameFinished) return;
+    setSolution({ cell: { x, y }, value: key });
+    // If that keystroke completed the current word, jump straight to the next
+    // unfinished word instead of stepping to the (now full) next cell.
+    const cells = wordCells({ x, y }, direction);
+    const justCompleted =
+      cells.length >= 2 && cells.every((c) => isFilled(c, { x, y }));
+    if (justCompleted && gotoNextIncompleteWord({ x, y }, direction, { x, y }))
+      return;
+    gotoNextCell({ cell: currentCell, direction, allowLoop: true });
   };
 
   const toggleDirection = () => {

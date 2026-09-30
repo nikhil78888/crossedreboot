@@ -62,8 +62,18 @@ export default function VariantResult() {
       // Replays count against the daily free limit like any other game.
       const gate = await checkCanPlay();
       if (!gate.allowed) {
-        trackEvent(events.GATE_BLOCKED, { mode: "SOLO", variant });
+        trackEvent(events.GATE_BLOCKED, { mode: type ?? "SOLO", variant });
         router.replace("/upgrade-to-pro");
+        return;
+      }
+      // A ranked match's "Play again" should re-enter matchmaking for another
+      // RANKED game (same variant + difficulty), not drop into a solo puzzle.
+      if (type === "RANKED") {
+        router.replace(
+          `/ranked-lobby?variant=${variant ?? "WORD_SEARCH"}&difficulty=${
+            difficulty ?? "REGULAR"
+          }`
+        );
         return;
       }
       const id = await createSoloGame({

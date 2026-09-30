@@ -118,6 +118,17 @@ export const FriendlyGameResult = ({
                 router.replace("/upgrade-to-pro");
                 return;
               }
+              // A ranked match's "Play Again" should re-enter ranked matchmaking
+              // for a fresh RANKED game (same variant + difficulty), not spin up a
+              // friendly rematch of the same puzzle.
+              if (game.gameType === "RANKED") {
+                router.replace(
+                  `/ranked-lobby?variant=${game.gameVariant}&difficulty=${
+                    game.difficulty ?? "REGULAR"
+                  }`
+                );
+                return;
+              }
               const targetId = await playAgainFriendly();
               if (targetId) {
                 router.replace(`/game?gameId=${targetId}`);
