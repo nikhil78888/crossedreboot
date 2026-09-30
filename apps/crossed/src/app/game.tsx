@@ -25,8 +25,9 @@ import { ratingForVariant } from "../lib/variant-rating";
 import { bossAvatar, bossNameFor, bossTaunt } from "types-and-validators";
 
 // Set once a player has seen the crossword how-to-play tutorial, so it only shows
-// on their first crossword game (the guided intro) and never again.
-const CROSSWORD_TUTORIAL_SEEN_KEY = "crossword_tutorial_seen_v1";
+// on their first crossword game (Story Mode Level 1) and never again. Exported so
+// the in-app new-user PREVIEW can clear it and faithfully re-show the walkthrough.
+export const CROSSWORD_TUTORIAL_SEEN_KEY = "crossword_tutorial_seen_v1";
 
 // The challenger's trivia score, recovered from their ghost timeline (progress %
 // == correct / total). Used to decide a trivia challenge by accuracy.
@@ -57,10 +58,11 @@ export default function Game() {
   });
   const [opponentRating, setOpponentRating] = useState(0);
   // "How to play" overlay for the crossword race. It shows on a player's FIRST
-  // crossword game (which is essentially always the guided intro), then never
-  // again — tracked by a persistent flag. The settings "Preview new-user
-  // experience" run (preview=1) always shows it, ignoring the flag, so it stays
-  // testable. It's presented as a gate BEFORE the race: the board (and its clock
+  // crossword game — now Story Mode Level 1 (the new-user intro), or the legacy
+  // guided intro — then never again, tracked by a persistent flag. The settings
+  // "Preview new-user experience" run (preview=1) always shows it, ignoring the
+  // flag, so it stays testable. It's presented as a gate BEFORE the race: the
+  // board (and its clock
   // + keyboard) only mount once the tutorial is closed, and the race clock is
   // restarted on close so no time is spent reading it.
   const [tutorialClosed, setTutorialClosed] = useState(false);
@@ -88,13 +90,17 @@ export default function Game() {
   // The how-to-play tutorial is active. While it's up we render a frozen board
   // with a bottom-sheet tutorial and hide the header's Quit button so it can't
   // collide with the sheet's Skip. Preview always shows it. Real players see it
-  // once, on the guided intro (guided=1) — a player's first crossword is always
-  // the intro, and scoping to it keeps the on-close clock restart off real live
-  // matches (which share the game row, so a restart would desync the opponent).
+  // once, before their FIRST crossword — which is now Story Mode Level 1 (the
+  // new-user intro, story=1) or the legacy guided intro (guided=1). The
+  // once-only `tutorialSeen` flag means it never repeats on later crossword
+  // levels. Scoping to guided/story keeps the on-close clock restart off real
+  // live matches (which share the game row, so a restart would desync the
+  // opponent); story games race a bot/ghost, so the restart is safe there too.
   const tutorialActive =
     game?.gameVariant === "CROSSWORD" &&
     !tutorialClosed &&
-    (preview === "1" || (guided === "1" && tutorialSeen === false));
+    (preview === "1" ||
+      ((guided === "1" || story === "1") && tutorialSeen === false));
 
   // Ticks once a second so the pre-game countdown updates.
   const [now, setNow] = useState(Date.now());

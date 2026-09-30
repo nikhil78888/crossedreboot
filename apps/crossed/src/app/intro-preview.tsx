@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { WelcomeContent } from "../components/WelcomeContent";
 import { ChooseUsernameView } from "../components/ChooseUsernameView";
 import { IntroGamePrompt } from "../components/IntroGamePrompt";
 import { Logo } from "../components/Logo";
 import { startStoryLevel } from "../lib/story";
+import { CROSSWORD_TUTORIAL_SEEN_KEY } from "./game";
 import { useMyProfile } from "../hooks/use-my-profile";
 
 type Phase = "loading" | "welcome" | "username" | "prompt";
@@ -30,11 +32,16 @@ export default function IntroPreview() {
   // Launch Story Mode Level 1 — always level 1 here (not the tester's saved
   // level), because the point of the preview is to show what a brand-new
   // player sees. A win only ever advances the saved level via max(), so this
-  // can't roll an existing account's progress backward.
+  // can't roll an existing account's progress backward. We also clear the
+  // "tutorial seen" flag first so the how-to-play walkthrough re-shows (a real
+  // new player has never seen it); closing it in-game sets the flag back.
   const runRace = async () => {
     if (launching) return;
     setLaunching(true);
     try {
+      await AsyncStorage.removeItem(CROSSWORD_TUTORIAL_SEEN_KEY).catch(
+        () => undefined
+      );
       const started = await startStoryLevel(1);
       if (started) {
         router.replace(`/challenge?id=${started.id}&story=1&level=1`);
