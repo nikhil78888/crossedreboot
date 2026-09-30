@@ -318,7 +318,7 @@ type RankedPlayer = {
 const updateGlicko2Ratings = (
   playerOne: RankedPlayer,
   playerTwo: RankedPlayer,
-  winnerId: string
+  s1: number // player one's outcome: 1 = win, 0.5 = draw, 0 = loss
 ) => {
   const p1 = {
     rating: playerOne.eloRating,
@@ -330,7 +330,6 @@ const updateGlicko2Ratings = (
     rd: playerTwo.ratingDeviation ?? 350,
     vol: playerTwo.volatility ?? 0.06,
   };
-  const s1 = winnerId === playerOne.id ? 1 : 0;
   const r1 = glicko2Update(p1, p2, s1);
   const r2 = glicko2Update(p2, p1, 1 - s1);
   return [
@@ -347,13 +346,13 @@ const updateGlicko2Ratings = (
 // (they're fixed anchors for matchmaking), but the human still moves vs the bot.
 export const applyRankedRatings = async (
   game: Game,
-  winnerId: string | null
+  winnerId: string | null,
+  opts?: { draw?: boolean }
 ) => {
-  if (
-    (game.gameType !== "RANKED" && game.gameType !== "TOURNAMENT") ||
-    winnerId == null
-  )
-    return;
+  // A decisive game needs a winner; a draw has none but still moves both ratings
+  // (Glicko score 0.5). Anything else (no-contest) is a no-op.
+  if (game.gameType !== "RANKED" && game.gameType !== "TOURNAMENT") return;
+  if (winnerId == null && !opts?.draw) return;
   const players = game.players as unknown as (RankedPlayer & {
     type?: string;
     eloRatingSudoku?: number;
@@ -380,10 +379,12 @@ export const applyRankedRatings = async (
     };
   };
 
+  // Player one's outcome: 0.5 for a draw, else 1 if they won and 0 if they lost.
+  const s1 = opts?.draw ? 0.5 : winnerId === players[0].id ? 1 : 0;
   const updated = updateGlicko2Ratings(
     toPlayer(players[0]),
     toPlayer(players[1]),
-    winnerId
+    s1
   );
   // Monthly season rating: a separate rating that RESETS to 1000 on the 1st of
   // each month and moves by the same per-game delta as the lifetime rating. The
@@ -455,6 +456,22 @@ const pickWinner = (
   const [a, b] = sorted;
   if (!a) return null;
   if (!b) return a.score > 0 ? a.playerId : null;
+  // Ranked/tournament vs a BOT: the bot never records a solve, so scoring it 0
+  // let the human win by a single cell and turned every unfinished game into a
+  // 0-0 "dead heat" (null winner → no rating change) — the human could never
+  // actually lose. Model the bot as a competent opponent: the human wins only by
+  // fully solving in time; otherwise the bot wins and the human takes the loss.
+  if (game.gameType === "RANKED" || game.gameType === "TOURNAMENT") {
+    const ps = game.players as unknown as (RankedPlayer & { type?: string })[];
+    const botIds = new Set(
+      ps.filter((p) => p.type === "BOT").map((p) => p.id)
+    );
+    if (botIds.size) {
+      const human = scores.find((s) => !botIds.has(s.playerId));
+      const bot = scores.find((s) => botIds.has(s.playerId));
+      if (human && bot) return human.score >= 100 ? human.playerId : bot.playerId;
+    }
+  }
   if (a.score !== b.score) {
     return a.score > 0 || game.gameType === "TOURNAMENT" ? a.playerId : null;
   }
@@ -568,7 +585,20 @@ export const finalizeGame = async (
       .eq("gamesId", gameId)
       .eq("profilesId", s.playerId);
   }
-  await applyRankedRatings(game, winnerId);
+  // A genuine draw (equal scores between two humans, no bot to make it decisive)
+  // still moves both ratings symmetrically instead of leaving them untouched.
+  const drawPlayers = game.players as unknown as (RankedPlayer & {
+    type?: string;
+  })[];
+  const humanCount = drawPlayers.filter((p) => p.type !== "BOT").length;
+  const topTwo = scores.slice().sort((x, y) => y.score - x.score);
+  const isRealDraw =
+    winnerId == null &&
+    game.gameType === "RANKED" &&
+    humanCount >= 2 &&
+    topTwo.length >= 2 &&
+    topTwo[0].score === topTwo[1].score;
+  await applyRankedRatings(game, winnerId, { draw: isRealDraw });
 
   // Advance the bracket if this game backs a tournament match.
   if (game.gameType === "TOURNAMENT") {
