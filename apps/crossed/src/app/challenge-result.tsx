@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Share, Text, View } from "react-native";
+import { Platform, Share, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import { Button } from "../components/Button";
+import { DailyDuelShareCard } from "../components/DailyDuelShareCard";
 import { fmtSolve } from "./(home-tabs)/stats";
 import { setTodaysResult } from "../lib/daily-duel";
+import { getPlayStreak } from "../lib/streak";
 import { advanceStoryLevel, startStoryLevel } from "../lib/story";
 import { STORY_MAX_LEVEL, bossAvatar } from "types-and-validators";
 
@@ -35,6 +39,20 @@ export default function ChallengeResult() {
   const nextLevel = Math.min(STORY_MAX_LEVEL, storyLevel + 1);
   const [storyBusy, setStoryBusy] = useState(false);
   const didWin = params.won === "1";
+
+  // Daily-duel image share: an offscreen branded card captured to a PNG.
+  const shareCardRef = useRef<View>(null);
+  const [streak, setStreak] = useState(0);
+  useEffect(() => {
+    if (isDaily)
+      getPlayStreak()
+        .then((s) => setStreak(s.current))
+        .catch(() => undefined);
+  }, [isDaily]);
+  const dateLabel = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 
   // On a story win, advance the saved level once so Home resumes at the next one
   // even if the player exits here instead of tapping "Next Level".
@@ -273,7 +291,7 @@ export default function ChallengeResult() {
               rounded="full"
               mode="outline"
               label="📲  Share my result"
-              onPress={() => {
+              onPress={async () => {
                 const link =
                   "https://apps.apple.com/us/app/crossed/id6448530256";
                 const me = fmtSolve(yourSeconds);
@@ -283,7 +301,31 @@ export default function ChallengeResult() {
                     ? `⚔️ Crossed · Daily Duel\n🏆 I beat ${rival} — ${me} to ${them}!\nThink you can beat my time? 🧩\n${link}`
                     : `⚔️ Crossed · Daily Duel\n⏱️ Solved today's in ${me} — ${rival} edged me by a hair.\nCan you go faster? 🧩\n${link}`
                   : `⚔️ Crossed · Daily Duel\n😤 ${rival} beat the clock today and I didn't.\nThink you can take them down? 🧩\n${link}`;
-                Share.share({ message: msg }).catch(() => {});
+                try {
+                  if (!shareCardRef.current) throw new Error("no card");
+                  const uri = await captureRef(shareCardRef, {
+                    format: "png",
+                    quality: 1,
+                    result: "tmpfile",
+                  });
+                  const fileUri = uri.startsWith("file://")
+                    ? uri
+                    : `file://${uri}`;
+                  if (Platform.OS === "ios") {
+                    // iOS carries the image + a tappable link in one share sheet.
+                    await Share.share({ url: fileUri, message: link });
+                  } else if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(fileUri, {
+                      mimeType: "image/png",
+                      dialogTitle: "Share your Daily Duel",
+                    });
+                  } else {
+                    await Share.share({ message: msg });
+                  }
+                } catch {
+                  // Capture/share unavailable → fall back to the text brag.
+                  Share.share({ message: msg }).catch(() => undefined);
+                }
               }}
             />
           </View>
@@ -308,6 +350,26 @@ export default function ChallengeResult() {
             />
           </View>
         </>
+      )}
+
+      {/* Offscreen share card — kept in the tree (positioned out of view) so
+          react-native-view-shot can capture it to a PNG on demand. */}
+      {isDaily && (
+        <View
+          style={{ position: "absolute", left: -10000, top: 0 }}
+          pointerEvents="none"
+        >
+          <DailyDuelShareCard
+            ref={shareCardRef}
+            won={didWin}
+            youSolved={youSolved}
+            yourSeconds={yourSeconds}
+            theirSeconds={theirSeconds}
+            rival={rival}
+            dateLabel={dateLabel}
+            streak={streak}
+          />
+        </View>
       )}
     </View>
   );
