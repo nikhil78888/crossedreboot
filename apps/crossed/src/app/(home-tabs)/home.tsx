@@ -77,7 +77,8 @@ export default function Home() {
 
   // New-user intro flow. A challenge deep-link (acquisition) still AUTO-launches
   // — it's the user's very first experience. The generic intro is now
-  // username-first: we PROMPT a warm-up vs a bot and launch it on tap.
+  // username-first: we PROMPT the player, then drop them into Story Mode Level 1
+  // as their first game.
   const challengeLaunched = useRef(false);
   const [launchingChallenge, setLaunchingChallenge] = useState(
     !!peekPendingChallenge()

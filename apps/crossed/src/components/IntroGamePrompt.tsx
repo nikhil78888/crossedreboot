@@ -2,8 +2,9 @@ import { Text, View } from "react-native";
 import { Button } from "./Button";
 import { Logo } from "./Logo";
 
-// Shown on Home for a brand-new (just-named) player. The intro match is a
-// friendly warm-up vs a bot — we say so up front, then drop them in on tap.
+// Shown on Home for a brand-new (just-named) player. Their first game IS Story
+// Mode Level 1 — an easy, generous puzzle vs the first boss — so the copy sets
+// that up: begin the 200-level journey, beat the clock to advance.
 export const IntroGamePrompt = ({
   username,
   onPlay,
@@ -27,16 +28,18 @@ export const IntroGamePrompt = ({
         className="mt-3 text-center font-[jost500] text-crossed-gray-500"
         style={{ fontSize: 16, lineHeight: 24 }}
       >
-        Tap below to start a quick practice match against a{" "}
-        <Text className="font-[jost700] text-crossed-gray-700">friendly bot</Text>{" "}
-        so you can learn the ropes. You’ll race real people after.
+        Your journey starts in{" "}
+        <Text className="font-[jost700] text-crossed-gray-700">Story Mode</Text> —
+        200 levels of puzzles, one boss at a time. First up:{" "}
+        <Text className="font-[jost700] text-crossed-gray-700">Level 1</Text>. Solve
+        it before the clock to advance!
       </Text>
       <View className="mt-10 w-full px-2">
         <Button
           intent="primary"
           size="xl"
           rounded="full"
-          label="Start warm-up vs bot"
+          label="Start Level 1 →"
           isLoading={isLoading}
           onPress={onPlay}
         />
