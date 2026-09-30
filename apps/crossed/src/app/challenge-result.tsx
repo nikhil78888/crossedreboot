@@ -264,24 +264,25 @@ export default function ChallengeResult() {
               onPress={() => router.replace("/home")}
             />
           )}
-          {/* Shareable daily-duel result — texts a spoiler-free brag + app link. */}
-          <View className="mt-3">
+          {/* Shareable daily-duel result — a clean, multi-line spoiler-free
+              brag + app link. Full-size button so it reads as a real action. */}
+          <View className="mt-4">
             <Button
               intent="primary"
-              mode="text"
-              label="📲  Share result"
+              size="lg"
+              rounded="full"
+              mode="outline"
+              label="📲  Share my result"
               onPress={() => {
                 const link =
                   "https://apps.apple.com/us/app/crossed/id6448530256";
+                const me = fmtSolve(yourSeconds);
+                const them = fmtSolve(theirSeconds);
                 const msg = youSolved
                   ? didWin
-                    ? `⚔️ Crossed Daily Duel — I beat ${rival} in ${fmtSolve(
-                        yourSeconds
-                      )}! Think you can beat me? 🧩 ${link}`
-                    : `⚔️ Crossed Daily Duel — solved today's in ${fmtSolve(
-                        yourSeconds
-                      )}. Can you go faster? 🧩 ${link}`
-                  : `⚔️ Crossed Daily Duel — ${rival} got me today 😤 Can you beat them? 🧩 ${link}`;
+                    ? `⚔️ Crossed · Daily Duel\n🏆 I beat ${rival} — ${me} to ${them}!\nThink you can beat my time? 🧩\n${link}`
+                    : `⚔️ Crossed · Daily Duel\n⏱️ Solved today's in ${me} — ${rival} edged me by a hair.\nCan you go faster? 🧩\n${link}`
+                  : `⚔️ Crossed · Daily Duel\n😤 ${rival} beat the clock today and I didn't.\nThink you can take them down? 🧩\n${link}`;
                 Share.share({ message: msg }).catch(() => {});
               }}
             />
