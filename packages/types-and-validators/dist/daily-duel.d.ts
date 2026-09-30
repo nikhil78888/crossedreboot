@@ -1,4 +1,4 @@
-export type DuelVariant = "CROSSWORD" | "WORD_SEARCH";
+export type DuelVariant = "CROSSWORD" | "WORD_SEARCH" | "WORDSY" | "CATEGORIES";
 export type DuelMeta = {
     day: string;
     seed: number;

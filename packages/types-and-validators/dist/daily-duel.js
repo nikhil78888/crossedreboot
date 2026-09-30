@@ -40,11 +40,17 @@ var seedFrom = function (day) {
     return h >>> 0;
 };
 exports.seedFrom = seedFrom;
-// The day's variant — alternate crossword / word search so it doesn't feel
-// samey. Deterministic per day; a shifted seed slice keeps it uncorrelated with
-// the opponent pick and the difficulty-of-day.
+// The day's variant — rotates across all four game modes so the duel doesn't
+// feel samey. Deterministic per day; a shifted seed slice keeps it uncorrelated
+// with the opponent pick and the difficulty-of-day.
+var DUEL_VARIANTS = [
+    "WORD_SEARCH",
+    "CROSSWORD",
+    "WORDSY",
+    "CATEGORIES",
+];
 var duelVariant = function (seed) {
-    return (seed >>> 5) % 2 === 0 ? "WORD_SEARCH" : "CROSSWORD";
+    return DUEL_VARIANTS[(seed >>> 5) % DUEL_VARIANTS.length];
 };
 exports.duelVariant = duelVariant;
 var duelSeconds = function (seed, variant) {
@@ -54,6 +60,14 @@ var duelSeconds = function (seed, variant) {
     if (variant === "CROSSWORD") {
         // A published 5×5 (~10 answers): tight ~45s .. generous ~95s.
         return Math.round(45 + dayFactor * 50);
+    }
+    if (variant === "WORDSY") {
+        // 5-letter, 6 guesses: brisk ~50s .. generous ~120s.
+        return Math.round(50 + dayFactor * 70);
+    }
+    if (variant === "CATEGORIES") {
+        // 16 words / 4 groups: ~70s .. ~150s.
+        return Math.round(70 + dayFactor * 80);
     }
     var count = (0, word_search_1.wordSearchConfig)("HARD").count;
     var perWord = PACE_FAST + dayFactor * (PACE_SLOW - PACE_FAST);

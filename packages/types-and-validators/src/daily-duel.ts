@@ -10,7 +10,11 @@ import { wordSearchConfig } from "./word-search";
 // owns the puzzle build + challenge insert + caching; the server owns "which
 // duel is today".
 
-export type DuelVariant = "CROSSWORD" | "WORD_SEARCH";
+export type DuelVariant =
+  | "CROSSWORD"
+  | "WORD_SEARCH"
+  | "WORDSY"
+  | "CATEGORIES";
 
 export type DuelMeta = {
   day: string;
@@ -61,11 +65,17 @@ export const seedFrom = (day: string): number => {
   return h >>> 0;
 };
 
-// The day's variant — alternate crossword / word search so it doesn't feel
-// samey. Deterministic per day; a shifted seed slice keeps it uncorrelated with
-// the opponent pick and the difficulty-of-day.
+// The day's variant — rotates across all four game modes so the duel doesn't
+// feel samey. Deterministic per day; a shifted seed slice keeps it uncorrelated
+// with the opponent pick and the difficulty-of-day.
+const DUEL_VARIANTS: DuelVariant[] = [
+  "WORD_SEARCH",
+  "CROSSWORD",
+  "WORDSY",
+  "CATEGORIES",
+];
 export const duelVariant = (seed: number): DuelVariant =>
-  (seed >>> 5) % 2 === 0 ? "WORD_SEARCH" : "CROSSWORD";
+  DUEL_VARIANTS[(seed >>> 5) % DUEL_VARIANTS.length];
 
 export const duelSeconds = (seed: number, variant: DuelVariant): number => {
   // Which "kind of day" it is, 0 (hardest) .. 1 (easiest). Shifted seed slice so
@@ -74,6 +84,14 @@ export const duelSeconds = (seed: number, variant: DuelVariant): number => {
   if (variant === "CROSSWORD") {
     // A published 5×5 (~10 answers): tight ~45s .. generous ~95s.
     return Math.round(45 + dayFactor * 50);
+  }
+  if (variant === "WORDSY") {
+    // 5-letter, 6 guesses: brisk ~50s .. generous ~120s.
+    return Math.round(50 + dayFactor * 70);
+  }
+  if (variant === "CATEGORIES") {
+    // 16 words / 4 groups: ~70s .. ~150s.
+    return Math.round(70 + dayFactor * 80);
   }
   const { count } = wordSearchConfig("HARD");
   const perWord = PACE_FAST + dayFactor * (PACE_SLOW - PACE_FAST);

@@ -4,6 +4,8 @@ import {
   duelMeta,
   localDay,
   PUBLISHED_5X5,
+  generateWordsy,
+  generateCategories,
   type DuelMeta,
   type DuelVariant,
 } from "types-and-validators";
@@ -40,7 +42,9 @@ const fetchDuelMeta = async (day: string = localDay()): Promise<DuelMeta> => {
     });
     if (
       data &&
-      (data.variant === "CROSSWORD" || data.variant === "WORD_SEARCH") &&
+      ["CROSSWORD", "WORD_SEARCH", "WORDSY", "CATEGORIES"].includes(
+        data.variant
+      ) &&
       typeof data.seconds === "number" &&
       typeof data.seed === "number" &&
       typeof data.opponent === "string"
@@ -150,6 +154,23 @@ export const getTodaysDuel = async (): Promise<{
       resolvedClues: null,
       // Always HARD for the daily duel (bigger grid + reversed directions).
       puzzle: generateWordSearch("HARD", meta.seed),
+    };
+  } else if (meta.variant === "WORDSY") {
+    // Seeded so everyone races the same 5-letter word today. No hints in a duel
+    // (the grid is only hintable in story mode).
+    insert = {
+      ...base,
+      crosswordsId: null,
+      resolvedClues: null,
+      puzzle: generateWordsy({ length: 5, maxGuesses: 6 }, meta.seed),
+    };
+  } else if (meta.variant === "CATEGORIES") {
+    // Seeded so everyone gets the same grouping puzzle today (red-herring bank).
+    insert = {
+      ...base,
+      crosswordsId: null,
+      resolvedClues: null,
+      puzzle: generateCategories({ mistakes: 4, trickiness: 0.6 }, meta.seed),
     };
   } else {
     // Seeded pick of a published 5×5 mini — same crossword for everyone today.
