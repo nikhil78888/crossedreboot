@@ -6,21 +6,22 @@ import { getProfileIdByUid } from "../friends/friends.service";
 
 export const gameRouter: Router = express.Router();
 
-// The set of `${variant}|${opponent}` pairs that are REAL daily duels right now —
-// i.e. duelMeta's output for the days any caller could currently be on. Story Mode
-// reuses the same pipeline (null-challenger FRIENDLY vs a boss), and some Story
-// boss names even collide with duel opponent names ("Captain Anagram"), so we
-// can't exclude Story by name. Instead we WHITELIST: a game counts as a duel only
-// if its (variant, opponent) matches an actual duel definition. A ±1 day UTC
-// window covers every timezone (local day is always within UTC today ±1).
-const validDuelPairs = (): Set<string> => {
+// The set of OPPONENT NAMES that are REAL daily duels right now — i.e. duelMeta's
+// opponent for the days any caller could currently be on. We match on the
+// opponent alone (not variant+opponent): the opponent is a deterministic,
+// timezone-agnostic key for the day's duel, and — unlike the variant — it stays
+// stable when the duel's variant/time definition changes. Keying on variant too
+// meant that changing the rotation orphaned duels already played that day (their
+// stored variant no longer matched the new definition), emptying the board. A ±1
+// day UTC window covers every timezone (local day is always within UTC today ±1).
+const validDuelOpponents = (): Set<string> => {
   const set = new Set<string>();
   const now = Date.now();
   for (let off = -1; off <= 1; off++) {
     const day = new Date(now + off * 86400000).toISOString().slice(0, 10);
     try {
       const m = duelMeta(day);
-      if (m?.opponent && m?.variant) set.add(`${m.variant}|${m.opponent}`);
+      if (m?.opponent) set.add(m.opponent);
     } catch {
       // ignore a bad day
     }
@@ -57,7 +58,7 @@ gameRouter.get("/daily-rank", async (req, res) => {
       res.send({ played: false });
       return;
     }
-    const DUEL_PAIRS = validDuelPairs();
+    const DUEL_OPPONENTS = validDuelOpponents();
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data: games } = await supabase
       .from("games")
@@ -116,18 +117,19 @@ gameRouter.get("/daily-rank", async (req, res) => {
       // null) so it doesn't create its own bogus one-person board.
       if (!ch || ch.challengerId != null || !ch.name || ch.name === "the record")
         continue;
-      // Only real daily duels — a game whose (variant, opponent) matches an
-      // actual duel definition. This excludes Story Mode (which shares the
-      // pipeline) even when a boss name collides with a duel opponent name, and
-      // it can't accidentally hide the real duel.
-      if (!DUEL_PAIRS.has(`${g.gameVariant}|${ch.name}`)) continue;
+      // Only real daily duels — a game whose OPPONENT matches an actual duel
+      // definition for today (±1 day). Excludes Story Mode (shares the pipeline)
+      // unless a boss name happens to equal today's duel opponent — a rare
+      // collision we accept in exchange for a board that survives variant changes.
+      if (!DUEL_OPPONENTS.has(ch.name)) continue;
       const human = (g.players ?? []).find((p) => p.type !== "BOT");
       if (!human) continue; // keep test accounts here; filtered from the list below
-      // Group by variant + opponent only — NOT time-to-beat. The client-side duel
-      // ease means ch.seconds now differs between app builds on the SAME day, which
-      // was splitting one day's players onto separate boards. Ranking still uses
-      // the actual solve time; the opponent name already separates days.
-      const key = `${g.gameVariant}|${ch.name}`;
+      // Group by OPPONENT only. The opponent name uniquely identifies the day's
+      // duel (deterministic per day) and is stable across variant/time changes, so
+      // everyone who raced today's opponent lands on one board regardless of which
+      // app build (or duel definition) they played under. Ranking uses actual
+      // solve time; the opponent already separates days.
+      const key = ch.name;
       const solved = (
         g.gameState as Record<string, { solvedInSeconds?: number }> | null
       )?.[human.id]?.solvedInSeconds;
