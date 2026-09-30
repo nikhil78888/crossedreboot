@@ -347,12 +347,30 @@ const MAX_CLUE_SCORE = 24;
 
 // Reject broken harvested clues: cross-references to other entries ("See 42",
 // "11d-27a-5d", "11-Across") that make no sense in a freshly generated grid.
+//
+// EVAL: also reject "un-gettable" clues — ones a solver has no real shot at
+// without the crossings. The worst offenders are bare name/category clues like
+// "Common man's name", "A woman's name", "Girl's name", "Name for a dog" — you
+// can't deduce the answer from them. A SPECIFIC name clue ("Actress Thurman")
+// is fine; these regexes only catch the generic-category phrasings.
 const isBadClue = (c) =>
   /\b\d{1,3}\s*[ad]\b/i.test(c) ||
   /\bsee\s+\d/i.test(c) ||
   /\d+\s*[- ]\s*(across|down)\b/i.test(c) ||
   /\b(across|down)\b/i.test(c) ||
-  /\d[ad]-\d/i.test(c);
+  /\d[ad]-\d/i.test(c) ||
+  // generic "<person>('s) name" — man's/woman's/boy's/girl's/guy's/… name
+  /\b(man|woman|men|women|boy|girl|guy|lady|male|female|person|baby|kid|pet|dog|cat)'?s?\s+name\b/i.test(
+    c
+  ) ||
+  // "name for a boy/girl/…" and "___ name" category phrasings
+  /\bname\s+(for\s+)?(a\s+)?(boy|girl|man|woman|baby|pet|dog|cat|child)\b/i.test(
+    c
+  ) ||
+  /\b(common|popular|typical|old-fashioned|classic)\s+(first\s+|boy'?s?\s+|girl'?s?\s+|male\s+|female\s+)?name\b/i.test(
+    c
+  ) ||
+  /^(a|an|the)\s+(common\s+|popular\s+)?(first\s+)?name\b/i.test(c.trim());
 
 // Never allow offensive/slur/adult/crude words in the fill (the frequency list
 // and dictionary include some). Block-list + a couple of stem checks.

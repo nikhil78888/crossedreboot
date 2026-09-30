@@ -23,10 +23,15 @@ export default function DailyLeaderboard() {
   const renderRow = ({ item }: { item: DailyRankEntry }) => (
     <View
       className="mx-3 my-1 flex-row items-center rounded-2xl px-3 py-2.5"
-      style={{ backgroundColor: item.isYou ? colors["crossed-blue"]["50"] : "#fff" }}
+      style={{
+        backgroundColor: item.isYou ? colors["crossed-blue"]["50"] : "#fff",
+        opacity: item.dnf ? 0.7 : 1,
+      }}
     >
       <View className="w-8 items-center">
-        {item.rank <= 3 ? (
+        {item.dnf ? (
+          <Text className="text-crossed-gray-300">—</Text>
+        ) : item.rank != null && item.rank <= 3 ? (
           <View
             className="h-7 w-7 items-center justify-center rounded-full"
             style={{ backgroundColor: MEDAL_BG[item.rank] }}
@@ -56,9 +61,15 @@ export default function DailyLeaderboard() {
           {item.isYou ? " (You)" : ""}
         </Text>
       </View>
-      <Text className="ml-2 font-[jost700] text-[17px] text-crossed-gray-900">
-        {fmtSeconds(item.seconds)}
-      </Text>
+      {item.dnf ? (
+        <Text className="ml-2 font-[jost700] text-[13px] text-crossed-gray-400">
+          DNF
+        </Text>
+      ) : (
+        <Text className="ml-2 font-[jost700] text-[17px] text-crossed-gray-900">
+          {fmtSeconds(item.seconds ?? 0)}
+        </Text>
+      )}
     </View>
   );
 
@@ -98,27 +109,42 @@ export default function DailyLeaderboard() {
       {/* Your standing */}
       <View
         className="mt-3 flex-row items-center rounded-2xl px-4 py-3"
-        style={{ backgroundColor: colors["crossed-blue"]["450"] }}
+        style={{
+          backgroundColor: dailyRank.youDnf
+            ? colors["crossed-gray"]["400"]
+            : colors["crossed-blue"]["450"],
+        }}
       >
         <Text className="font-[jost800] text-white" style={{ fontSize: 26 }}>
-          #{dailyRank.rank}
+          {dailyRank.youDnf ? "DNF" : `#${dailyRank.rank}`}
         </Text>
         <View className="ml-3 flex-1">
-          <Text className="font-[jost700] text-[16px] text-white">
-            Top {dailyRank.percentile}%
-          </Text>
-          <Text
-            className="font-[jost500] text-[12px] text-white/80"
-            numberOfLines={1}
-          >
-            Faster than {dailyRank.beatPct ?? 0}% of {dailyRank.total} players today
-          </Text>
+          {dailyRank.youDnf ? (
+            <Text className="font-[jost700] text-[15px] text-white">
+              You didn't beat the clock — try again tomorrow!
+            </Text>
+          ) : (
+            <>
+              <Text className="font-[jost700] text-[16px] text-white">
+                Top {dailyRank.percentile}%
+              </Text>
+              <Text
+                className="font-[jost500] text-[12px] text-white/80"
+                numberOfLines={1}
+              >
+                Faster than {dailyRank.beatPct ?? 0}% of {dailyRank.total} players
+                today
+              </Text>
+            </>
+          )}
         </View>
-        <Text className="ml-2 font-[jost700] text-[19px] text-white">
-          {dailyRank.yourSeconds != null
-            ? fmtSeconds(dailyRank.yourSeconds)
-            : "--"}
-        </Text>
+        {!dailyRank.youDnf && (
+          <Text className="ml-2 font-[jost700] text-[19px] text-white">
+            {dailyRank.yourSeconds != null
+              ? fmtSeconds(dailyRank.yourSeconds)
+              : "--"}
+          </Text>
+        )}
       </View>
       {dailyRank.percentile != null && dailyRank.percentile <= 10 ? (
         <View
@@ -144,7 +170,7 @@ export default function DailyLeaderboard() {
         )
       )}
       <Text className="mt-3 font-[jost400] text-[13px] text-crossed-gray-400">
-        Everyone who finished today's duel
+        Everyone who played today's duel · DNF = didn't beat the clock
       </Text>
     </View>
   );

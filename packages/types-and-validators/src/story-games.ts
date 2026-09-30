@@ -1,4 +1,5 @@
 import { THEMES } from "./word-search";
+import { WORDSY_DICTIONARY } from "./wordsy-dictionary";
 
 // Two extra Story-Mode game types, generated entirely from original word lists
 // (Wordsy) and original hand-authored puzzles (Categories). Deterministic from a
@@ -120,6 +121,18 @@ export type WordsyPuzzle = {
   length: number;
   maxGuesses: number;
 };
+
+// Wordle rules: a guess must be a REAL 5-letter word (plurals excluded). The
+// dictionary is the system word list with plurals filtered; the answer pool is
+// unioned in so every answer is always a legal guess.
+const WORDSY_VALID: Set<string> = new Set([
+  ...WORDSY_DICTIONARY,
+  ...WORDSY_WORDS[5],
+]);
+export const isValidWordsyGuess = (word: string): boolean =>
+  typeof word === "string" &&
+  word.length === 5 &&
+  WORDSY_VALID.has(word.toUpperCase());
 
 export const generateWordsy = (
   config: { length: number; maxGuesses: number },
@@ -309,6 +322,69 @@ const CATEGORIES_PUZZLES: CuratedPuzzle[] = [
     { category: "Tennis words", words: ["RACKET", "NET", "COURT", "SERVE"] },
     { category: "Moons", words: ["LUNA", "TITAN", "EUROPA", "PHOBOS"] },
   ]},
+  // ---- Red-herring puzzles (Connections-style): each has words that LOOK like
+  // they belong to another group in the same puzzle, but resolve to exactly one.
+  { id: "greens", groups: [
+    { category: "Shades of green", words: ["OLIVE", "JADE", "FOREST", "TEAL"] },
+    { category: "Fruits", words: ["PLUM", "PEACH", "LIME", "GRAPE"] },
+    { category: "___ TREE", words: ["PALM", "PINE", "GUM", "FIR"] },
+    { category: "Types of tea", words: ["CHAI", "OOLONG", "HERBAL", "MATCHA"] },
+  ]},
+  { id: "bass", groups: [
+    { category: "Fish", words: ["BASS", "SOLE", "PIKE", "TROUT"] },
+    { category: "Music terms", words: ["TREBLE", "TENOR", "TEMPO", "CHORD"] },
+    { category: "Boxing", words: ["JAB", "HOOK", "BOUT", "SPAR"] },
+    { category: "Card games", words: ["RUMMY", "POKER", "WHIST", "BRIDGE"] },
+  ]},
+  { id: "orbit", groups: [
+    { category: "___ FISH", words: ["STAR", "JELLY", "SWORD", "CAT"] },
+    { category: "Space", words: ["COMET", "GALAXY", "NEBULA", "QUASAR"] },
+    { category: "Playground", words: ["SWING", "SLIDE", "SEESAW", "MONKEY"] },
+    { category: "___ BAR", words: ["CANDY", "CROW", "SAND", "SPACE"] },
+  ]},
+  { id: "iron", groups: [
+    { category: "Elements", words: ["IRON", "ZINC", "NEON", "ARGON"] },
+    { category: "Monopoly tokens", words: ["THIMBLE", "BOOT", "HAT", "DOG"] },
+    { category: "Card-play verbs", words: ["DEAL", "SHUFFLE", "TRUMP", "BLUFF"] },
+    { category: "Ways to walk", words: ["STROLL", "AMBLE", "TRUDGE", "STRUT"] },
+  ]},
+  { id: "timber", groups: [
+    { category: "Dog sounds", words: ["BARK", "GROWL", "YELP", "HOWL"] },
+    { category: "Tree parts", words: ["TRUNK", "ROOT", "BRANCH", "TWIG"] },
+    { category: "At the bank", words: ["TELLER", "LOAN", "VAULT", "DEPOSIT"] },
+    { category: "Elephant features", words: ["TUSK", "IVORY", "HERD", "TRUMPET"] },
+  ]},
+  { id: "lamp", groups: [
+    { category: "___ HOUSE", words: ["LIGHT", "WARE", "OUT", "GREEN"] },
+    { category: "Colors", words: ["AMBER", "CORAL", "RUST", "TAUPE"] },
+    { category: "Not heavy", words: ["AIRY", "SLIGHT", "FLIMSY", "FEATHERY"] },
+    { category: "Traffic words", words: ["STOP", "YIELD", "MERGE", "SIGNAL"] },
+  ]},
+  { id: "wrist", groups: [
+    { category: "Parts of the hand", words: ["PALM", "THUMB", "KNUCKLE", "CUFF"] },
+    { category: "Trees", words: ["OAK", "BIRCH", "MAPLE", "ASPEN"] },
+    { category: "Card moves", words: ["CUT", "FORCE", "RIFFLE", "STACK"] },
+    { category: "Yoga poses", words: ["PLANK", "LUNGE", "SQUAT", "CRUNCH"] },
+  ]},
+  { id: "herb", groups: [
+    { category: "Herbs", words: ["MINT", "BASIL", "THYME", "DILL"] },
+    { category: "Earthy colors", words: ["SAGE", "OCHRE", "SIENNA", "UMBER"] },
+    { category: "A wise person", words: ["SEER", "GURU", "ORACLE", "PUNDIT"] },
+    { category: "Sewing box", words: ["NEEDLE", "SPOOL", "PIN", "BOBBIN"] },
+  ]},
+  { id: "genre", groups: [
+    { category: "Book genres", words: ["MYSTERY", "ROMANCE", "THRILLER", "FANTASY"] },
+    { category: "Means brand-new", words: ["NOVEL", "FRESH", "RECENT", "MODERN"] },
+    { category: "Party games", words: ["CHARADES", "TABOO", "TWISTER", "CLUE"] },
+    { category: "Spicy / bold", words: ["FIERY", "ZESTY", "PIQUANT", "TANGY"] },
+  ]},
+  { id: "gem", groups: [
+    { category: "Baseball", words: ["DIAMOND", "PITCH", "BASE", "BUNT"] },
+    { category: "Gems", words: ["RUBY", "PEARL", "OPAL", "TOPAZ"] },
+    { category: "Shapes", words: ["OVAL", "PRISM", "CONE", "RHOMBUS"] },
+    { category: "Tools", words: ["WRENCH", "CHISEL", "PLIERS", "MALLET"] },
+  ]},
+
 ];
 
 // Build a Categories puzzle. Prefer a curated puzzle we haven't shown recently

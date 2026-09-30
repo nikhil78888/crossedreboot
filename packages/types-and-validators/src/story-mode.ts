@@ -270,7 +270,9 @@ export const wordsyConfigFor = (
   level: number
 ): { length: number; maxGuesses: number } => {
   const cp = configProgress(level);
-  const length = Math.min(6, 4 + Math.floor(cp * 2.4)); // 4 → 6
+  // Wordsy is ALWAYS a 5-letter word (classic Wordle length). Difficulty ramps
+  // via fewer guesses only.
+  const length = 5;
   const maxGuesses = Math.max(4, 7 - Math.floor(cp * 3.2)); // 7 → 4
   return { length, maxGuesses };
 };
@@ -296,10 +298,9 @@ const estimatedSolve = (level: number): number => {
     return 70;
   }
   if (v === "WORDSY") {
-    // Deducing a hidden word takes real thinking time; give a roomy base so the
-    // clock isn't the thing that beats you (players asked for more time here).
-    const { length } = wordsyConfigFor(level);
-    return 66 + (length - 4) * 22; // 66 / 88 / 110
+    // Always a 5-letter word now; roomy fixed time so the clock isn't the thing
+    // that beats you (deducing a hidden word takes real thinking time).
+    return 88;
   }
   if (v === "CATEGORIES") {
     return 78; // a 16-tile grouping puzzle

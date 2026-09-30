@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Share, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
@@ -264,6 +264,28 @@ export default function ChallengeResult() {
               onPress={() => router.replace("/home")}
             />
           )}
+          {/* Shareable daily-duel result — texts a spoiler-free brag + app link. */}
+          <View className="mt-3">
+            <Button
+              intent="primary"
+              mode="text"
+              label="📲  Share result"
+              onPress={() => {
+                const link =
+                  "https://apps.apple.com/us/app/crossed/id6448530256";
+                const msg = youSolved
+                  ? didWin
+                    ? `⚔️ Crossed Daily Duel — I beat ${rival} in ${fmtSolve(
+                        yourSeconds
+                      )}! Think you can beat me? 🧩 ${link}`
+                    : `⚔️ Crossed Daily Duel — solved today's in ${fmtSolve(
+                        yourSeconds
+                      )}. Can you go faster? 🧩 ${link}`
+                  : `⚔️ Crossed Daily Duel — ${rival} got me today 😤 Can you beat them? 🧩 ${link}`;
+                Share.share({ message: msg }).catch(() => {});
+              }}
+            />
+          </View>
         </View>
       ) : (
         <>

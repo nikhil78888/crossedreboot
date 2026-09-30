@@ -82,6 +82,14 @@ gameRouter.get("/daily-rank", async (req, res) => {
       seconds: number;
     };
     const entries: Entry[] = [];
+    // Attempted-but-didn't-solve = DNF. We show these on the board too, so
+    // everyone who tried today's duel appears (not just finishers).
+    const dnfEntries: {
+      key: string;
+      profileId: string;
+      username: string | null;
+      avatar: string | null;
+    }[] = [];
     // The caller's MOST RECENT duel (finished or not) — anchors the board to
     // TODAY's puzzle, not their fastest-ever in the window (which was showing a
     // stale yesterday result when today's solve hadn't registered).
@@ -127,7 +135,15 @@ gameRouter.get("/daily-rank", async (req, res) => {
       if (human.id === myId && (!myLatest || g.createdAt > myLatest.createdAt)) {
         myLatest = { createdAt: g.createdAt, key, seconds: secs };
       }
-      if (secs == null) continue; // didn't finish → not a ranked entry
+      if (secs == null) {
+        dnfEntries.push({
+          key,
+          profileId: human.id,
+          username: human.username,
+          avatar: human.avatar,
+        });
+        continue; // DNF — recorded above, shown on the board as DNF
+      }
       entries.push({
         key,
         profileId: human.id,
@@ -137,13 +153,12 @@ gameRouter.get("/daily-rank", async (req, res) => {
       });
     }
 
-    // No completed duel today → prompt them to finish it (don't show yesterday).
-    if (!myLatest || myLatest.seconds == null) {
+    // Never even attempted today's duel → prompt them to play it.
+    if (!myLatest) {
       res.send({ played: false });
       return;
     }
     const myKey = myLatest.key;
-    const mySeconds = myLatest.seconds;
 
     // Best time per player on TODAY's puzzle, sorted fastest first. Other test
     // accounts are hidden from the board; the caller always sees themselves.
@@ -174,9 +189,37 @@ gameRouter.get("/daily-rank", async (req, res) => {
         isYou: e.profileId === myId,
       };
     });
-    const meRow = list.find((r) => r.isYou);
+    // DNF rows — attempted the SAME duel but never solved it (ran out of time).
+    // Listed below the finishers so the board shows everyone who tried.
+    const finisherIds = new Set(list.map((r) => r.profileId));
+    const dnfSeen = new Set<string>();
+    const dnfRows = dnfEntries
+      .filter((e) => e.key === myKey)
+      .filter((e) => !finisherIds.has(e.profileId))
+      .filter((e) => !(isTest(e.username) && e.profileId !== myId))
+      .filter((e) => (dnfSeen.has(e.profileId) ? false : dnfSeen.add(e.profileId)))
+      .map((e) => ({
+        profileId: e.profileId,
+        username: e.username,
+        avatar: e.avatar,
+        seconds: null as number | null,
+        rank: null as number | null,
+        isYou: e.profileId === myId,
+        dnf: true,
+      }));
+    const fullList = [
+      ...list.map((r) => ({
+        ...r,
+        seconds: r.seconds as number | null,
+        rank: r.rank as number | null,
+        dnf: false,
+      })),
+      ...dnfRows,
+    ];
+    const meRow = fullList.find((r) => r.isYou);
+    const youDnf = !!meRow && meRow.dnf;
     const total = list.length;
-    const myRank = meRow?.rank ?? null;
+    const myRank = meRow && !meRow.dnf ? meRow.rank : null;
     const percentile = myRank ? Math.max(1, Math.round((100 * myRank) / total)) : null;
     const beatPct =
       myRank && total > 1
@@ -219,12 +262,13 @@ gameRouter.get("/daily-rank", async (req, res) => {
 
     res.send({
       played: true,
-      yourSeconds: meRow?.seconds ?? null,
+      youDnf,
+      yourSeconds: meRow && !meRow.dnf ? meRow.seconds : null,
       rank: myRank,
       total,
       percentile,
       beatPct,
-      entries: list.slice(0, 100),
+      entries: fullList.slice(0, 100),
     });
   } catch (error) {
     console.log({ dailyRankError: error });

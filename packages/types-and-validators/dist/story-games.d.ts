@@ -3,6 +3,7 @@ export type WordsyPuzzle = {
     length: number;
     maxGuesses: number;
 };
+export declare const isValidWordsyGuess: (word: string) => boolean;
 export declare const generateWordsy: (config: {
     length: number;
     maxGuesses: number;

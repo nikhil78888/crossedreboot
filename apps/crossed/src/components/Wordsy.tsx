@@ -8,7 +8,11 @@ import {
 import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { supabase } from "../lib/supabase";
-import { WordsyPuzzle, scoreWordsyGuess } from "types-and-validators";
+import {
+  WordsyPuzzle,
+  scoreWordsyGuess,
+  isValidWordsyGuess,
+} from "types-and-validators";
 import { FriendlyCrosswordHeader } from "./FriendlyCrosswordHeader";
 import colors from "../lib/colors";
 
@@ -43,6 +47,7 @@ export const WordsyGrid = ({
   const [guesses, setGuesses] = useState<string[]>([]);
   const [current, setCurrent] = useState("");
   const [hints, setHints] = useState<number[]>([]); // revealed answer positions
+  const [invalid, setInvalid] = useState(false); // "not a word" flash
   const finishedRef = useRef(false);
   const gsRef = useRef(game?.gameState);
   useEffect(() => {
@@ -120,6 +125,13 @@ export const WordsyGrid = ({
   const submit = () => {
     if (finishedRef.current || current.length !== length) return;
     const guess = current.toUpperCase();
+    // Wordle rule: a guess must be a real word (no non-words, no plurals). An
+    // invalid guess flashes "Not a word" and does NOT consume a turn.
+    if (!isValidWordsyGuess(guess)) {
+      setInvalid(true);
+      setTimeout(() => setInvalid(false), 1200);
+      return;
+    }
     const next = [...guesses, guess];
     setGuesses(next);
     setCurrent("");
@@ -179,6 +191,23 @@ export const WordsyGrid = ({
       <View className="mb-2">
         <FriendlyCrosswordHeader gameId={gameId} />
       </View>
+
+      {invalid && (
+        <View
+          className="absolute left-0 right-0 items-center"
+          style={{ top: 4, zIndex: 20 }}
+          pointerEvents="none"
+        >
+          <View
+            className="rounded-full px-4 py-2"
+            style={{ backgroundColor: "#111827" }}
+          >
+            <Text className="font-[jost700] text-[13px] text-white">
+              Not a word
+            </Text>
+          </View>
+        </View>
+      )}
 
       {hints.length > 0 && (
         <Text className="mb-1 text-center font-[jost700] text-[15px] tracking-[4px] text-crossed-blue-450">

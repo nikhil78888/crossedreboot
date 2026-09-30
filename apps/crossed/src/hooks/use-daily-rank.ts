@@ -5,13 +5,15 @@ export type DailyRankEntry = {
   profileId: string;
   username: string | null;
   avatar: string | null;
-  seconds: number;
-  rank: number;
+  seconds: number | null; // null when the player DNF'd (didn't beat the clock)
+  rank: number | null; // null for DNF rows
   isYou: boolean;
+  dnf?: boolean;
 };
 
 export type DailyRank = {
   played: boolean;
+  youDnf?: boolean;
   yourSeconds?: number | null;
   rank?: number | null;
   total?: number;

@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
@@ -7,6 +7,7 @@ import { useGame } from "../hooks/use-game";
 import { useGameGate } from "../hooks/use-subscription";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { consumePendingIntro } from "../lib/intro-flag";
+import { getStoryCurrentLevel, startStoryLevel } from "../lib/story";
 import { events, trackEvent } from "../lib/track-event";
 
 // Shown after the guided intro match (username already chosen up front). Leads
@@ -56,6 +57,27 @@ export default function IntroComplete() {
   const enterApp = () => {
     consumePendingIntro();
     router.replace("/home");
+  };
+
+  // Drop the new player straight into Story Mode (their current level, = 1 for a
+  // brand-new account). After they clear it, the result screen offers "Next
+  // Level" or "Home" — so they continue the ladder or go to the menu.
+  const [startingStory, setStartingStory] = useState(false);
+  const startStory = async () => {
+    if (startingStory) return;
+    setStartingStory(true);
+    try {
+      consumePendingIntro();
+      const level = await getStoryCurrentLevel();
+      const started = await startStoryLevel(level);
+      if (started) {
+        router.replace(`/challenge?id=${started.id}&story=1&level=${level}`);
+      } else {
+        router.replace("/home");
+      }
+    } catch {
+      router.replace("/home");
+    }
   };
 
   const playAgain = async () => {
@@ -119,17 +141,17 @@ export default function IntroComplete() {
           intent="primary"
           size="xl"
           rounded="full"
-          label="Enter the app →"
-          onPress={enterApp}
+          label="Start Story Mode →"
+          isLoading={startingStory}
+          onPress={startStory}
         />
       </View>
       <View className="mt-3 items-center">
         <Button
           intent="primary"
           mode="text"
-          label="Play another intro game"
-          isLoading={creatingGuidedMatch}
-          onPress={playAgain}
+          label="Go to main menu"
+          onPress={enterApp}
         />
       </View>
     </View>
