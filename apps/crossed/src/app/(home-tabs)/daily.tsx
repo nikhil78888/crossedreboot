@@ -11,7 +11,13 @@ export default function DailyScreen() {
   const { meta, result, starting, startDuel } = useDaily();
   const done = result != null;
   const variantLabel =
-    meta.variant === "WORD_SEARCH" ? "word search" : "crossword";
+    meta.variant === "WORD_SEARCH"
+      ? "word search"
+      : meta.variant === "WORDSY"
+      ? "Wordsy"
+      : meta.variant === "CATEGORIES"
+      ? "Categories"
+      : "crossword";
 
   return (
     <View className="flex-1 bg-white px-6 pt-8">
