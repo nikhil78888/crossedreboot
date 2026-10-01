@@ -49,17 +49,17 @@ export default function DailyScreen() {
           <Text className="mt-1 text-center font-[jost500] text-[14px] text-crossed-gray-400">
             Come back tomorrow for a new duel.
           </Text>
-          {result?.seconds != null && (
-            <View className="mt-8 w-full">
-              <Button
-                intent="primary"
-                size="xl"
-                rounded="full"
-                label="See Today's Ranking"
-                onPress={() => router.push("/daily-leaderboard")}
-              />
-            </View>
-          )}
+          {/* Show the board to everyone who played today — a DNF (no solve time)
+              still appears on it, marked DNF. */}
+          <View className="mt-8 w-full">
+            <Button
+              intent="primary"
+              size="xl"
+              rounded="full"
+              label="See Today's Ranking"
+              onPress={() => router.push("/daily-leaderboard")}
+            />
+          </View>
         </View>
       ) : (
         <View className="mt-6 items-center">

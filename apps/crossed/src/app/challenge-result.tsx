@@ -263,23 +263,14 @@ export default function ChallengeResult() {
         </>
       ) : isDaily ? (
         <View className="mt-10">
-          {youSolved ? (
-            <Button
-              intent="primary"
-              size="xl"
-              rounded="full"
-              label="See Where You Rank →"
-              onPress={() => router.replace("/daily-leaderboard")}
-            />
-          ) : (
-            <Button
-              intent="primary"
-              size="xl"
-              rounded="full"
-              label="Done"
-              onPress={() => router.replace("/home")}
-            />
-          )}
+          {/* Everyone can see the board — a DNF just shows up as DNF. */}
+          <Button
+            intent="primary"
+            size="xl"
+            rounded="full"
+            label={youSolved ? "See Where You Rank →" : "See Today's Leaderboard →"}
+            onPress={() => router.replace("/daily-leaderboard")}
+          />
           {/* Shareable daily-duel result — a clean, multi-line spoiler-free
               brag + app link. Full-size button so it reads as a real action. */}
           <View className="mt-4">
@@ -333,6 +324,14 @@ export default function ChallengeResult() {
                   Share.share({ message: msg }).catch(() => undefined);
                 }
               }}
+            />
+          </View>
+          <View className="mt-3 items-center">
+            <Button
+              intent="primary"
+              mode="text"
+              label="Home"
+              onPress={() => router.replace("/home")}
             />
           </View>
         </View>
