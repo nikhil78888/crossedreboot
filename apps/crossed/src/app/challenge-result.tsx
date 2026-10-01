@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, Share, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { captureRef } from "react-native-view-shot";
-import * as Sharing from "expo-sharing";
 import { Button } from "../components/Button";
 import { DailyDuelShareCard } from "../components/DailyDuelShareCard";
 import { fmtSolve } from "./(home-tabs)/stats";
@@ -303,6 +301,14 @@ export default function ChallengeResult() {
                   : `⚔️ Crossed · Daily Duel\n😤 ${rival} beat the clock today and I didn't.\nThink you can take them down? 🧩\n${link}`;
                 try {
                   if (!shareCardRef.current) throw new Error("no card");
+                  // Load the native capture/share modules LAZILY, only on tap.
+                  // react-native-view-shot throws at import on any build without
+                  // the native module (TurboModuleRegistry.getEnforcing), so a
+                  // top-level import would crash this whole result screen on every
+                  // runtime that predates the module. Requiring here keeps the
+                  // crash contained to this try/catch → graceful text fallback.
+                  const { captureRef } = require("react-native-view-shot");
+                  const Sharing = require("expo-sharing");
                   const uri = await captureRef(shareCardRef, {
                     format: "png",
                     quality: 1,
