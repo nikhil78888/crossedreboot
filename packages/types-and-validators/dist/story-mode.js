@@ -227,12 +227,9 @@ var vectorHardness = function (d) {
 // Wordsy (guess-the-word): longer words = fewer guesses = harder. Config ramps
 // with the level so the game tightens the same way the others do.
 var wordsyConfigFor = function (level) {
-    var cp = configProgress(level);
-    // Wordsy is ALWAYS a 5-letter word (classic Wordle length). Difficulty ramps
-    // via fewer guesses only.
-    var length = 5;
-    var maxGuesses = Math.max(4, 7 - Math.floor(cp * 3.2)); // 7 → 4
-    return { length: length, maxGuesses: maxGuesses };
+    // Wordsy is ALWAYS classic Wordle: a 5-letter word with 6 guesses (6 rows).
+    // Difficulty ramps via the clock (time-to-beat), not the board shape.
+    return { length: 5, maxGuesses: 6 };
 };
 exports.wordsyConfigFor = wordsyConfigFor;
 // Categories (group 16 words into 4 sets): fewer mistakes allowed = harder, and

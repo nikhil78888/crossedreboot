@@ -192,6 +192,10 @@ export const WordsyGrid = ({
         <FriendlyCrosswordHeader gameId={gameId} />
       </View>
 
+      <Text className="mb-1 text-center font-[jost700] text-[15px] text-crossed-gray-700">
+        Guess the 5-letter word
+      </Text>
+
       {invalid && (
         <View
           className="absolute left-0 right-0 items-center"

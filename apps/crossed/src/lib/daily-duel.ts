@@ -170,7 +170,9 @@ export const getTodaysDuel = async (): Promise<{
       ...base,
       crosswordsId: null,
       resolvedClues: null,
-      puzzle: generateCategories({ mistakes: 4, trickiness: 0.6 }, meta.seed),
+      // High trickiness so the daily duel reliably draws the clever, red-herring
+      // puzzles (not the easy distinct-theme ones reserved for early story levels).
+      puzzle: generateCategories({ mistakes: 4, trickiness: 0.85 }, meta.seed),
     };
   } else {
     // Seeded pick of a published 5×5 mini — same crossword for everyone today.

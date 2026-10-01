@@ -396,17 +396,26 @@ export const generateCategories = (
   avoidIds: string[] = []
 ): CategoriesPuzzle => {
   const rand = rng(seed);
-  const avoid = new Set(avoidIds);
-  const fresh = CATEGORIES_PUZZLES.filter((p) => !avoid.has(p.id));
-  const bank = fresh.length > 0 ? fresh : CATEGORIES_PUZZLES;
-  const pick = bank[Math.floor(rand() * bank.length)];
-  if (pick) {
-    const groups = pick.groups.map((g) => ({ ...g, words: [...g.words] }));
-    const tiles = shuffle(
-      groups.flatMap((g) => g.words),
-      rand
-    );
-    return { id: pick.id, groups, tiles, mistakes: config.mistakes };
+  // Difficulty ramp (trickiness 0 = easiest .. 1 = hardest). The curated bank is
+  // the CLEVER set — overlapping, red-herring groups (hard). The themed generator
+  // makes four clearly-distinct, non-overlapping groups (easy). So at low
+  // trickiness (early Story levels) we almost always use the easy themed puzzles,
+  // and as trickiness rises (later levels) we increasingly draw the clever
+  // curated puzzles. Deterministic per seed.
+  const useCurated = rand() < config.trickiness;
+  if (useCurated) {
+    const avoid = new Set(avoidIds);
+    const fresh = CATEGORIES_PUZZLES.filter((p) => !avoid.has(p.id));
+    const bank = fresh.length > 0 ? fresh : CATEGORIES_PUZZLES;
+    const pick = bank[Math.floor(rand() * bank.length)];
+    if (pick) {
+      const groups = pick.groups.map((g) => ({ ...g, words: [...g.words] }));
+      const tiles = shuffle(
+        groups.flatMap((g) => g.words),
+        rand
+      );
+      return { id: pick.id, groups, tiles, mistakes: config.mistakes };
+    }
   }
   return generateCategoriesThemed(config, seed);
 };

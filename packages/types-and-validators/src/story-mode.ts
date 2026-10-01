@@ -269,12 +269,9 @@ const vectorHardness = (d: { dr: number; dc: number }) => {
 export const wordsyConfigFor = (
   level: number
 ): { length: number; maxGuesses: number } => {
-  const cp = configProgress(level);
-  // Wordsy is ALWAYS a 5-letter word (classic Wordle length). Difficulty ramps
-  // via fewer guesses only.
-  const length = 5;
-  const maxGuesses = Math.max(4, 7 - Math.floor(cp * 3.2)); // 7 → 4
-  return { length, maxGuesses };
+  // Wordsy is ALWAYS classic Wordle: a 5-letter word with 6 guesses (6 rows).
+  // Difficulty ramps via the clock (time-to-beat), not the board shape.
+  return { length: 5, maxGuesses: 6 };
 };
 
 // Categories (group 16 words into 4 sets): fewer mistakes allowed = harder, and
