@@ -1,9 +1,12 @@
+import { useRef } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import { Avatar } from "react-native-ui-lib";
 import { useRouter } from "expo-router";
 import { Button } from "../components/Button";
+import { DailyRankShareCard } from "../components/DailyRankShareCard";
 import { useDailyRank, DailyRankEntry } from "../hooks/use-daily-rank";
 import { fmtSeconds } from "../lib/daily-duel";
+import { shareDuel } from "../lib/share-duel";
 import { avatars } from "../lib/images";
 import colors from "../lib/colors";
 
@@ -19,6 +22,25 @@ export default function DailyLeaderboard() {
   const router = useRouter();
   const { dailyRank, isLoadingDailyRank } = useDailyRank();
   const done = () => router.replace("/(home-tabs)/home");
+  const shareCardRef = useRef<View>(null);
+  const dateLabel = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  const shareRank = () =>
+    shareDuel({
+      cardRef: shareCardRef,
+      buildMessage: (link) => {
+        if (dailyRank?.youDnf)
+          return `⚔️ Crossed · Daily Duel\n😤 Today's duel got me — can you beat the clock? 🧩\n${link}`;
+        const r = dailyRank?.rank;
+        const p = dailyRank?.percentile;
+        const tot = dailyRank?.total;
+        return `⚔️ Crossed · Daily Duel\n🏆 I ranked #${r} today${
+          p != null ? ` — top ${p}%` : ""
+        }${tot ? ` of ${tot}` : ""}! Can you beat me? 🧩\n${link}`;
+      },
+    });
 
   const renderRow = ({ item }: { item: DailyRankEntry }) => (
     <View
@@ -182,15 +204,36 @@ export default function DailyLeaderboard() {
         keyExtractor={(i) => i.profileId}
         renderItem={renderRow}
         ListHeaderComponent={header}
-        contentContainerStyle={{ paddingBottom: 110 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
       />
       <View className="absolute inset-x-4 bottom-8">
         <Button
           intent="primary"
           size="xl"
           rounded="full"
-          label="Done"
-          onPress={done}
+          label="📲  Share my rank"
+          onPress={shareRank}
+        />
+        <View className="mt-2 items-center">
+          <Button intent="primary" mode="text" label="Done" onPress={done} />
+        </View>
+      </View>
+
+      {/* Offscreen rank card — captured to a PNG on share (image on builds with
+          the native module, text brag everywhere else). */}
+      <View
+        style={{ position: "absolute", left: -10000, top: 0 }}
+        pointerEvents="none"
+      >
+        <DailyRankShareCard
+          ref={shareCardRef}
+          rank={dailyRank.rank ?? null}
+          percentile={dailyRank.percentile ?? null}
+          beatPct={dailyRank.beatPct ?? null}
+          total={dailyRank.total ?? 0}
+          yourSeconds={dailyRank.yourSeconds ?? null}
+          dnf={!!dailyRank.youDnf}
+          dateLabel={dateLabel}
         />
       </View>
     </View>
