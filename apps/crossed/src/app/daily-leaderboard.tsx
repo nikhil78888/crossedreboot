@@ -204,7 +204,7 @@ export default function DailyLeaderboard() {
         keyExtractor={(i) => i.profileId}
         renderItem={renderRow}
         ListHeaderComponent={header}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 190 }}
       />
       <View className="absolute inset-x-4 bottom-8">
         <Button
@@ -214,8 +214,15 @@ export default function DailyLeaderboard() {
           label="📲  Share my rank"
           onPress={shareRank}
         />
-        <View className="mt-2 items-center">
-          <Button intent="primary" mode="text" label="Done" onPress={done} />
+        <View className="mt-2">
+          <Button
+            intent="primary"
+            size="lg"
+            rounded="full"
+            mode="outline"
+            label="Done"
+            onPress={done}
+          />
         </View>
       </View>
 
