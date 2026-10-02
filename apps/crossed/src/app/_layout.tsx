@@ -137,6 +137,16 @@ export default function IndexLayout() {
         else setPendingJoinGame(joinGameId);
         return;
       }
+      // Daily-duel share: an EXISTING user jumps to today's Daily Duel. Because
+      // the duel is deterministic per day, a same-day click lands them on the
+      // exact puzzle the sharer played; a click after it expired just lands them
+      // on that day's current duel — both are simply "today's duel". A brand-new
+      // install is deliberately NOT dropped into the duel; we let the normal
+      // new-user onboarding run (so we don't stash anything for logged-out users).
+      if (params.duel === true || params.duel === "true" || params.duel === "1") {
+        if (user) router.push("/daily");
+        return;
+      }
       const challengeId =
         typeof params.challengeId === "string" ? params.challengeId : undefined;
       if (!challengeId) return;

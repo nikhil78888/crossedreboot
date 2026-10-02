@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../components/Button";
 import { DailyDuelShareCard } from "../components/DailyDuelShareCard";
+import { branch } from "../lib/branch";
 import { fmtSolve } from "./(home-tabs)/stats";
 import { setTodaysResult } from "../lib/daily-duel";
 import { getPlayStreak } from "../lib/streak";
@@ -281,8 +282,30 @@ export default function ChallengeResult() {
               mode="outline"
               label="📲  Share my result"
               onPress={async () => {
-                const link =
-                  "https://apps.apple.com/us/app/crossed/id6448530256";
+                // Prefer a Branch deep link that drops an EXISTING player
+                // straight into today's Daily Duel (same-day = the exact puzzle;
+                // after it expires = that day's duel), and sends a NEW user to the
+                // App Store + normal onboarding. Falls back to the plain store link
+                // if Branch isn't available on this build.
+                let link = "https://apps.apple.com/us/app/crossed/id6448530256";
+                try {
+                  if (branch) {
+                    const buo = await branch.createBranchUniversalObject(
+                      "daily-duel",
+                      {
+                        title: "Crossed · Daily Duel",
+                        contentMetadata: { customMetadata: { duel: "true" } },
+                      }
+                    );
+                    const res = await buo.generateShortUrl(
+                      { feature: "daily-duel-share" },
+                      { duel: "true" }
+                    );
+                    if (res?.url) link = res.url;
+                  }
+                } catch {
+                  // keep the App Store fallback
+                }
                 const me = fmtSolve(yourSeconds);
                 const them = fmtSolve(theirSeconds);
                 const msg = youSolved
