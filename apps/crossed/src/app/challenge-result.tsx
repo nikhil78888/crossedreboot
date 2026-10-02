@@ -264,13 +264,15 @@ export default function ChallengeResult() {
         </>
       ) : isDaily ? (
         <View className="mt-10">
-          {/* Everyone can see the board — a DNF just shows up as DNF. */}
+          {/* Everyone can see the board — a DNF just shows up as DNF. PUSH (not
+              replace) so Back returns to THIS finish screen, where Share still
+              lives. */}
           <Button
             intent="primary"
             size="xl"
             rounded="full"
             label={youSolved ? "See Where You Rank →" : "See Today's Leaderboard →"}
-            onPress={() => router.replace("/daily-leaderboard")}
+            onPress={() => router.push("/daily-leaderboard")}
           />
           {/* Shareable daily-duel result — a clean, multi-line spoiler-free
               brag + app link. Full-size button so it reads as a real action. */}
