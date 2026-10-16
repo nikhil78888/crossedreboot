@@ -6,21 +6,22 @@ import { WelcomeContent } from "../components/WelcomeContent";
 import { ChooseUsernameView } from "../components/ChooseUsernameView";
 import { IntroGamePrompt } from "../components/IntroGamePrompt";
 import { Logo } from "../components/Logo";
-import { startStoryLevel } from "../lib/story";
 import { CROSSWORD_TUTORIAL_SEEN_KEY } from "./game";
+import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 
 type Phase = "loading" | "welcome" | "username" | "prompt";
 
 // In-app preview of the EXACT new-user sequence, walkable from an existing
 // account (which otherwise never sees the logged-out flow). logo splash →
-// welcome → choose-username → "Start Level 1" prompt → Story Mode Level 1 —
-// the same first game a real new player gets (their first game IS Story L1),
-// so this preview stays faithful to the real onboarding.
+// welcome → choose-username → warm-up prompt → guided tutorial match vs a bot —
+// the same first game a real new player gets, so this preview stays faithful to
+// the real onboarding.
 export default function IntroPreview() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const { myProfile } = useMyProfile();
+  const { createGuidedMatch } = useGame({ gameId: undefined });
   const [launching, setLaunching] = useState(false);
 
   useEffect(() => {
@@ -29,12 +30,10 @@ export default function IntroPreview() {
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Launch Story Mode Level 1 — always level 1 here (not the tester's saved
-  // level), because the point of the preview is to show what a brand-new
-  // player sees. A win only ever advances the saved level via max(), so this
-  // can't roll an existing account's progress backward. We also clear the
-  // "tutorial seen" flag first so the how-to-play walkthrough re-shows (a real
-  // new player has never seen it); closing it in-game sets the flag back.
+  // Launch the guided warm-up match vs a bot — the same first game a real new
+  // player gets. We clear the "tutorial seen" flag first so the how-to-play
+  // walkthrough re-shows (a real new player has never seen it); closing it
+  // in-game sets the flag back.
   const runRace = async () => {
     if (launching) return;
     setLaunching(true);
@@ -42,9 +41,9 @@ export default function IntroPreview() {
       await AsyncStorage.removeItem(CROSSWORD_TUTORIAL_SEEN_KEY).catch(
         () => undefined
       );
-      const started = await startStoryLevel(1);
-      if (started) {
-        router.replace(`/challenge?id=${started.id}&story=1&level=1`);
+      const id = await createGuidedMatch({ source: "onboarding" });
+      if (id) {
+        router.replace(`/game?gameId=${id}&guided=1`);
       } else {
         setLaunching(false);
       }

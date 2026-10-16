@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { IntroGamePrompt } from "../components/IntroGamePrompt";
+import { useGame } from "../hooks/use-game";
 import { useMyProfile } from "../hooks/use-my-profile";
 import { consumePendingIntro } from "../lib/intro-flag";
-import { getStoryCurrentLevel, startStoryLevel } from "../lib/story";
 import { events, trackEvent } from "../lib/track-event";
 
 // The brand-new player's warm-up prompt, as its OWN full-screen route rather
@@ -18,21 +18,21 @@ import { events, trackEvent } from "../lib/track-event";
 export default function IntroPrompt() {
   const router = useRouter();
   const { myProfile } = useMyProfile();
+  const { createGuidedMatch } = useGame({ gameId: undefined });
   const [launching, setLaunching] = useState(false);
 
-  // The new player's first game IS Story Mode level 1 — an easy, generous
-  // crossword vs the first boss. After they clear it, the story-result screen
-  // offers "Next Level" or the main menu, so they continue the ladder.
+  // The new player's first game is an easy, beatable warm-up vs a weak bot with
+  // the how-to-play tutorial (guided=1). On finish it routes to intro-complete,
+  // which drops them into the app — it does NOT force them onto the Story ladder.
   const launchIntro = async () => {
     if (launching) return;
     setLaunching(true);
     trackEvent(events.INTRO_RACE_STARTED);
     try {
-      const level = await getStoryCurrentLevel(); // 1 for a brand-new account
-      const started = await startStoryLevel(level);
-      if (!started) throw new Error("no game");
+      const id = await createGuidedMatch({ source: "onboarding" });
+      if (!id) throw new Error("no game");
       consumePendingIntro();
-      router.replace(`/challenge?id=${started.id}&story=1&level=${level}`);
+      router.replace(`/game?gameId=${id}&guided=1`);
     } catch {
       // Stay on the prompt and let them retry. Previously a failure fell through
       // to the dashboard, which silently skipped the intro for that player.

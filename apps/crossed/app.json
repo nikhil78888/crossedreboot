@@ -3,7 +3,7 @@
     "name": "Crossed.",
     "slug": "crossed",
     "owner": "nikhilrmehta7",
-    "version": "1.0.45",
+    "version": "1.0.46",
     "orientation": "portrait",
     "icon": "./src/assets/images/logo_icon.png",
     "userInterfaceStyle": "light",
