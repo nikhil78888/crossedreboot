@@ -209,7 +209,14 @@ export const CrosswordGrid = ({
           const isIntro = !!(
             game.gameState as Record<string, unknown> | undefined
           )?.__intro;
-          const botWinGame = botCanWin(gameId) && !isIntro;
+          // The bot is only ever allowed to WIN (surge to 100% and end the
+          // match) in a real competitive race. Never in the guided intro (first
+          // game is always winnable) and never in friendly/solo bot games — there
+          // the bot caps at 0.9 and the player wins by finishing.
+          const botWinGame =
+            botCanWin(gameId) &&
+            !isIntro &&
+            (game.gameType === "RANKED" || game.gameType === "TOURNAMENT");
 
           let totalBotFillableCells: number;
           let nextDelayMs: number;
@@ -250,9 +257,34 @@ export const CrosswordGrid = ({
               1,
               Math.floor(totalFillableCells * targetFrac)
             );
-            nextDelayMs = surging ? 90 + Math.random() * 90 : 450 + Math.random() * 700;
+            // The guided intro keeps a brisk, steady cadence so the first-game
+            // race always reads as close — the slow 450-1150ms pace let the bot
+            // fall far behind a quick solver (the bar never looked competitive).
+            nextDelayMs = isIntro
+              ? 180 + Math.random() * 140
+              : surging
+              ? 90 + Math.random() * 90
+              : 450 + Math.random() * 700;
           }
           const cellsToFill = totalBotFillableCells - botFilledCells;
+          // End the match the moment the bot has filled its WHOLE grid — directly
+          // here, not only inside the fill interval below. That interval is torn
+          // down and recreated on every player keystroke, so the tick that would
+          // detect completion could be cleared before it fires, leaving the bot
+          // bar full but the game stuck in PLAYING. This check has no such race.
+          const botGridComplete =
+            !!botGameState &&
+            !botGameState.solution.some((row) => row.includes(""));
+          if (
+            botGridComplete &&
+            botWinGame &&
+            !botFinishedRef.current &&
+            !solvedRef.current
+          ) {
+            botFinishedRef.current = true;
+            finishGame();
+            return;
+          }
           if (botGameState && cellsToFill > 0 && secondsLeft > 0) {
             const interval = setInterval(() => {
               // Player already solved — stop; another ghost write here would
@@ -276,11 +308,7 @@ export const CrosswordGrid = ({
                 // player's partial and the bot takes it at the wire. If the
                 // player finished first the game is already COMPLETED and this
                 // effect wouldn't be running, so their win stands.
-                if (
-                  botWinGame &&
-                  game.gameType === "RANKED" &&
-                  !botFinishedRef.current
-                ) {
+                if (botWinGame && !botFinishedRef.current) {
                   botFinishedRef.current = true;
                   finishGame();
                 }

@@ -96,11 +96,32 @@ export const SudokuGrid = ({
     const earlyFloor = elapsedFrac < 0.3 ? 0.22 : 0;
     const isIntro = !!(game.gameState as Record<string, unknown> | undefined)
       ?.__intro;
-    const botWinGame = botCanWin(gameId) && !isIntro;
+    // Bot may only WIN (surge to 100% + end the match) in a real competitive
+    // race — never the guided intro or friendly/solo bot games.
+    const botWinGame =
+      botCanWin(gameId) &&
+      !isIntro &&
+      (game.gameType === "RANKED" || game.gameType === "TOURNAMENT");
     const surging = botShouldSurge(botWinGame, playerFrac);
     const targetOwnFrac = botTargetFrac(botWinGame, playerFrac, earlyFloor, lead);
     const targetFilled = givens + Math.floor(fillable * targetOwnFrac);
     const cellsToFill = targetFilled - botFilled;
+    // End the match the moment the bot has filled its whole grid — directly
+    // here, not only inside the fill interval (which is recreated on every
+    // player move, so its completion tick can be cleared before it fires,
+    // leaving the bar full but the game stuck in PLAYING).
+    const botSol = (game.gameState?.[opponent.id]?.solution ??
+      botGameState.solution) as Cell[][];
+    if (
+      botSol &&
+      !botSol.some((row) => row.includes(EMPTY)) &&
+      botWinGame &&
+      !botFinishedRef.current
+    ) {
+      botFinishedRef.current = true;
+      finishGame();
+      return;
+    }
     // Smooth, brisk catch-up — not instant (that would look robotic). When
     // surging to the wire in a win-game, fill fast to edge the player out.
     const nextDelayMs = surging ? 90 + Math.random() * 90 : 450 + Math.random() * 700;
@@ -118,11 +139,7 @@ export const SudokuGrid = ({
           // the player was already ~80% done) — end the match so the bot wins at
           // the wire. If the player finished first the game is already COMPLETED
           // and this effect wouldn't be running.
-          if (
-            botWinGame &&
-            game.gameType === "RANKED" &&
-            !botFinishedRef.current
-          ) {
+          if (botWinGame && !botFinishedRef.current) {
             botFinishedRef.current = true;
             finishGame();
           }
