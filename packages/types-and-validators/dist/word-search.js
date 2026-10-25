@@ -281,6 +281,56 @@ exports.THEMES = {
         "COFFEE", "PASTRY", "JUICE", "COMPOTE", "GRANOLA", "OATMEAL", "PANCAKE",
         "SAUSAGE", "BISCUIT", "KIPPERS", "SCRAMBLE", "FRITTATA", "TURNOVER",
         "PORRIDGE", "HASHBROWN", "CROISSANT",
+    ],
+    Instruments: [
+        "GUITAR", "VIOLIN", "CELLO", "FLUTE", "OBOE", "TRUMPET", "TROMBONE", "PIANO",
+        "HARP", "DRUM", "BANJO", "FIDDLE", "CLARINET", "BASSOON", "TUBA", "CYMBAL",
+        "UKULELE", "ORGAN", "PICCOLO", "MARIMBA", "BONGO", "SITAR",
+    ],
+    Fabrics: [
+        "COTTON", "SILK", "WOOL", "LINEN", "DENIM", "VELVET", "SATIN", "SUEDE",
+        "LEATHER", "NYLON", "POLYESTER", "CANVAS", "FLEECE", "CHIFFON", "CASHMERE", "TWEED",
+        "CORDUROY", "FLANNEL", "JERSEY", "SPANDEX", "BURLAP", "MUSLIN", "TAFFETA",
+    ],
+    Dances: [
+        "SALSA", "TANGO", "WALTZ", "RUMBA", "SAMBA", "FOXTROT", "JIVE", "MAMBO",
+        "BOLERO", "CONGA", "POLKA", "TWIST", "SHUFFLE", "BALLET", "SWING", "FLAMENCO",
+        "QUICKSTEP", "CANCAN", "HUSTLE", "LINDY",
+    ],
+    Mammals: [
+        "OTTER", "BISON", "MOOSE", "ZEBRA", "GIRAFFE", "LEOPARD", "CHEETAH", "GAZELLE",
+        "RACCOON", "SQUIRREL", "HEDGEHOG", "PLATYPUS", "KANGAROO", "DOLPHIN", "NARWHAL", "WALRUS",
+        "BEAVER", "BADGER", "MEERKAT", "ANTELOPE", "BUFFALO",
+    ],
+    Spices: [
+        "PEPPER", "GINGER", "NUTMEG", "CUMIN", "PAPRIKA", "SAFFRON", "CINNAMON", "CLOVE",
+        "CARDAMOM", "TURMERIC", "OREGANO", "BASIL", "THYME", "PARSLEY", "CILANTRO", "ROSEMARY",
+        "FENNEL", "ANISE", "MUSTARD", "CORIANDER",
+    ],
+    Cheeses: [
+        "CHEDDAR", "GOUDA", "BRIE", "SWISS", "FETA", "PARMESAN", "PROVOLONE", "RICOTTA",
+        "HAVARTI", "GRUYERE", "COLBY", "MUENSTER", "ASIAGO", "STILTON", "PANEER", "HALLOUMI",
+        "MANCHEGO", "PECORINO", "ROMANO", "BOURSIN", "CAMEMBERT",
+    ],
+    Currencies: [
+        "DOLLAR", "EURO", "POUND", "RUPEE", "PESO", "FRANC", "RAND", "LIRA",
+        "DINAR", "DIRHAM", "SHEKEL", "FORINT", "KRONA", "ZLOTY", "RUBLE", "REAL",
+        "BAHT", "RINGGIT", "NICKEL", "PENNY",
+    ],
+    Mountains: [
+        "EVEREST", "DENALI", "RAINIER", "ELBRUS", "OLYMPUS", "ARARAT", "EIGER", "KENYA",
+        "SHASTA", "ETNA", "LOGAN", "HOOD", "BLANC", "SINAI", "TETON", "WHITNEY",
+        "MCKINLEY", "FUJI", "KOSCIUSKO", "SNOWDON",
+    ],
+    Rivers: [
+        "AMAZON", "NILE", "DANUBE", "THAMES", "VOLGA", "GANGES", "MEKONG", "SEINE",
+        "RHINE", "CONGO", "YANGTZE", "ZAMBEZI", "COLORADO", "HUDSON", "TIGRIS", "JORDAN",
+        "YUKON", "NIGER", "LOIRE", "ORINOCO", "MISSOURI", "COLUMBIA",
+    ],
+    Body: [
+        "ELBOW", "ANKLE", "WRIST", "SHOULDER", "KNUCKLE", "THUMB", "SPINE", "SKULL",
+        "FEMUR", "TIBIA", "PELVIS", "KIDNEY", "LIVER", "SPLEEN", "BICEP", "TENDON",
+        "THIGH", "SHIN", "PALM", "HEEL", "CHEEK", "TEMPLE",
     ]
 };
 // Regular: across, down, and both forward diagonals (a proper word search).

@@ -32,9 +32,12 @@ const HIGHEST_KEY = "story:highestLevel"; // best level reached (for display/pri
 const RECENT_WORDSY_KEY = "story:recentWordsy"; // last answers
 const RECENT_CATEGORIES_KEY = "story:recentCategories"; // last curated ids
 const RECENT_CROSSWORD_KEY = "story:recentCrossword"; // last crossword ids
-const WORDSY_MEMORY = 12;
-const CATEGORIES_MEMORY = 8;
-const CROSSWORD_MEMORY = 12;
+// Wider rolling windows now that the content pools are much larger — more
+// spacing before any puzzle/answer can recur. Safe against starvation: each
+// generator falls back to its full pool if the avoid list filters everything.
+const WORDSY_MEMORY = 60;
+const CATEGORIES_MEMORY = 24;
+const CROSSWORD_MEMORY = 30;
 
 const getRecent = async (key: string): Promise<string[]> => {
   try {
