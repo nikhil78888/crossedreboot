@@ -33,7 +33,12 @@ const VariantAnswers = ({
   const gs = (game.gameState ?? {}) as Record<string, unknown> & {
     __wordsy?: { answer?: string };
     __categories?: { groups?: { category: string; words: string[] }[] };
-    __wordsearch?: { words?: string[]; grid?: string[][]; theme?: string };
+    __wordsearch?: {
+      words?: string[];
+      grid?: string[][];
+      theme?: string;
+      placements?: { word: string; cells: { r: number; c: number }[] }[];
+    };
     __trivia?: { questions?: { q: string; choices: string[]; answer: number }[] };
   };
 
@@ -96,29 +101,81 @@ const VariantAnswers = ({
   if (game.gameVariant === "WORD_SEARCH") {
     const words = gs.__wordsearch?.words ?? [];
     const grid = gs.__wordsearch?.grid ?? [];
+    const placements = gs.__wordsearch?.placements ?? [];
+    // A readable palette; each answer word gets its own color so the grid
+    // highlight and the word-list label match. Cycles if there are >palette words.
+    const PALETTE = [
+      "#2563eb", "#dc2626", "#16a34a", "#9333ea",
+      "#ea580c", "#0891b2", "#db2777", "#ca8a04",
+    ];
+    const colorForWord = (w: string) => {
+      const i = words.findIndex((x) => x.toUpperCase() === w.toUpperCase());
+      return PALETTE[(i < 0 ? 0 : i) % PALETTE.length];
+    };
+    // Map every placed cell → its word's color so we can tint the grid. On the
+    // rare crossing, the later word wins — still clearly highlighted either way.
+    const cellColor: Record<string, string> = {};
+    for (const p of placements) {
+      const color = colorForWord(p.word);
+      for (const cell of p.cells ?? []) cellColor[`${cell.r},${cell.c}`] = color;
+    }
+    const cols = grid[0]?.length ?? grid.length ?? 1;
+    const screenW = Dimensions.get("window").width;
+    const cellSize = Math.max(16, Math.floor((screenW - 48) / Math.max(cols, 1)));
+
     return (
       <View className="px-5">
         {grid.length > 0 && (
           <Section>
             <Heading>The grid</Heading>
-            <View className="mt-2">
+            <View className="mt-3 items-center">
               {grid.map((row, r) => (
-                <Text
-                  key={r}
-                  className="font-[jost600] text-crossed-gray-700"
-                  style={{ fontSize: 16, letterSpacing: 3 }}
-                >
-                  {row.join(" ")}
-                </Text>
+                <View key={r} className="flex-row">
+                  {row.map((letter, c) => {
+                    const color = cellColor[`${r},${c}`];
+                    return (
+                      <View
+                        key={c}
+                        style={{
+                          width: cellSize,
+                          height: cellSize,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: 6,
+                          margin: 1,
+                          backgroundColor: color ? `${color}22` : "transparent",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: Math.min(18, cellSize - 6),
+                            fontWeight: color ? "700" : "500",
+                            color: color ?? "#6b7280",
+                          }}
+                        >
+                          {(letter ?? "").toUpperCase()}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
               ))}
             </View>
           </Section>
         )}
         <Section>
           <Heading>Words to find</Heading>
-          <Text className="mt-2 font-[jost600] text-base text-crossed-gray-900">
-            {words.map((w) => w.toUpperCase()).join("   ")}
-          </Text>
+          <View className="mt-2 flex-row flex-wrap">
+            {words.map((w, i) => (
+              <Text
+                key={i}
+                className="mr-3 mb-1 font-[jost700]"
+                style={{ fontSize: 16, color: colorForWord(w) }}
+              >
+                {w.toUpperCase()}
+              </Text>
+            ))}
+          </View>
         </Section>
       </View>
     );

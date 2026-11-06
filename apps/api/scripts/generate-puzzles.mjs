@@ -55,20 +55,23 @@ const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
 // commonness (their long answers can be slightly less common). 5x5 stays the
 // strictest/easiest since it's the most-played size.
 const FREQ_SIZE_FACTOR = SIZE <= 5 ? 1 : SIZE <= 7 ? 1.25 : 1.5;
+// Frequency caps per answer length — a word rarer than this is dropped from the
+// fill dictionary. Tightened (was 9k/13k/18k/28k/42k/50k) so answers skew toward
+// everyday words an average person actually knows, cutting crossword-ese fill.
 const maxRankForLen = (len) =>
   Math.round(
     FREQ_SIZE_FACTOR *
       (len <= 3
-        ? 9000
+        ? 7000
         : len === 4
-        ? 13000
+        ? 10000
         : len === 5
-        ? 18000
+        ? 14000
         : len === 6
-        ? 28000
+        ? 22000
         : len === 7
-        ? 42000
-        : 50000)
+        ? 32000
+        : 40000)
   );
 const FREQ_URL =
   "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";
@@ -342,10 +345,11 @@ const clueScore = (clue, freqRank) => {
   }
   return s;
 };
-// A word is only kept if it has at least one clue this clean. Lowered from 24
+// A word is only kept if it has at least one clue this clean. Lowered 24→18→15
 // so obscure / cryptic "impossible" clues are rejected — the fill stays
-// gettable. (clueScore rises with answer obscurity + clue length/rarity.)
-const MAX_CLUE_SCORE = 18;
+// gettable, tuned to "slightly hard for an average person". (clueScore rises
+// with answer obscurity + clue length/rarity.)
+const MAX_CLUE_SCORE = 15;
 
 // Reject broken harvested clues: cross-references to other entries ("See 42",
 // "11d-27a-5d", "11-Across") that make no sense in a freshly generated grid.
