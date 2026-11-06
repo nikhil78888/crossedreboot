@@ -49,7 +49,19 @@ var DUEL_VARIANTS = [
     "WORDSY",
     "CATEGORIES",
 ];
-var duelVariant = function (seed) {
+// Whole days since the Unix epoch for a YYYY-MM-DD string (UTC midnight).
+var epochDay = function (day) {
+    return Math.floor(Date.parse("".concat(day, "T00:00:00Z")) / 86400000);
+};
+// Strict round-robin by calendar day so every variant comes up exactly once per
+// 4-day cycle — the old hash-based pick (seed>>>5 % 4) could streak and leave a
+// mode (e.g. Word Search) absent for a long stretch. Derived from the day, not
+// the seed, so it's a clean rotation rather than a random draw.
+var duelVariant = function (seed, day) {
+    if (day)
+        return DUEL_VARIANTS[((epochDay(day) % 4) + 4) % 4];
+    // Back-compat: seed-only callers still get a deterministic (if not strictly
+    // rotating) pick.
     return DUEL_VARIANTS[(seed >>> 5) % DUEL_VARIANTS.length];
 };
 exports.duelVariant = duelVariant;
@@ -78,7 +90,7 @@ exports.duelSeconds = duelSeconds;
 var duelMeta = function (day) {
     if (day === void 0) { day = (0, exports.localDay)(); }
     var seed = (0, exports.seedFrom)(day);
-    var variant = (0, exports.duelVariant)(seed);
+    var variant = (0, exports.duelVariant)(seed, day);
     return {
         day: day,
         seed: seed,

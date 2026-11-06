@@ -77,6 +77,19 @@ const timelineFor = (seed: number, seconds: number) => {
   return pts;
 };
 
+// Structural view of the (not-in-generated-types) challenges SELECT builder,
+// used to find today's already-created shared duel row.
+type ChallengeQuery = {
+  is: (col: string, v: null) => ChallengeQuery;
+  eq: (col: string, v: string) => ChallengeQuery;
+  gte: (col: string, v: string) => ChallengeQuery;
+  order: (col: string, o: { ascending: boolean }) => ChallengeQuery;
+  limit: (n: number) => Promise<{ data: { id: string }[] | null }>;
+};
+const challengesQuery = supabase as unknown as {
+  from: (t: "challenges") => { select: (c: string) => ChallengeQuery };
+};
+
 // Structural view of the (not-in-generated-types) challenges insert.
 const challengesTable = supabase as unknown as {
   from: (t: "challenges") => {
@@ -135,6 +148,36 @@ export const getTodaysDuel = async (): Promise<{
     if (cached) return { id: cached, meta };
   } catch {
     // fall through and create it
+  }
+
+  // SHARED duel: before generating our own, reuse today's existing system
+  // challenge if one is already in the DB. The first client to open the duel
+  // creates the row; every other device/app-version then races that SAME
+  // puzzle instead of generating its own from the local bank. This is what
+  // fixes "different people get different puzzles" — the puzzle no longer
+  // depends on each client's bundled bank/version, only on the one shared row.
+  try {
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    const { data: shared } = await challengesQuery
+      .from("challenges")
+      .select("id")
+      .is("challengerId", null)
+      .eq("challengerName", meta.opponent)
+      .eq("gameVariant", meta.variant)
+      .gte("createdAt", since.toISOString())
+      .order("createdAt", { ascending: true })
+      .limit(1);
+    if (shared && shared[0]?.id) {
+      try {
+        await AsyncStorage.setItem(cacheKey(meta.day), shared[0].id);
+      } catch {
+        // non-fatal
+      }
+      return { id: shared[0].id, meta };
+    }
+  } catch {
+    // no shared row / query failed → create our own below
   }
 
   const base: Record<string, unknown> = {

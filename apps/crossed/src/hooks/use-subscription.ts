@@ -8,9 +8,10 @@ import Purchases, {
 import { supabase } from "../lib/supabase";
 import { useMyProfile } from "./use-my-profile";
 import {
-  FREE_COMPETITIVE_PER_DAY,
+  FREE_GAMES_BEFORE_GATE,
   GATED_GAME_TYPES,
   hasProEntitlement,
+  isComped,
 } from "../lib/revenuecat";
 
 export const useSubscription = () => {
@@ -94,49 +95,53 @@ export const useSubscription = () => {
   return { isPro, offering, loading, purchase, restore, refresh, diagnostic };
 };
 
-// Gate for competitive games (ranked/friendly/tournament). Returns whether the
-// player can start another one today and how many free games remain.
+// Gate for non-duel games. The first FREE_GAMES_BEFORE_GATE (20) lifetime games
+// are free for everyone; after that, non-duel games require Pro (or a redeemed
+// friend code). The DAILY DUEL is always free — callers starting a duel pass
+// { isDailyDuel: true } and are never blocked.
 export const useGameGate = () => {
   const { myProfile } = useMyProfile();
   const { isPro, loading } = useSubscription();
 
-  const checkCanPlay = useCallback(async () => {
-    // PAYWALL DISABLED (2026-08): retention experiment — never gate anyone while
-    // we figure out whether the game retains at all. To re-enable the
-    // 3-free-games/day limit, delete this block and uncomment the logic below.
-    return { allowed: true, remaining: Infinity, isPro: true };
-
-    /* ----- original gate logic (temporarily disabled) -----
-    if (isPro) return { allowed: true, remaining: Infinity, isPro: true };
-    // Entitlement not resolved yet (RevenueCat call in flight): NEVER block.
-    // isPro starts false, so gating here would lock out a paying subscriber
-    // whose customer-info request simply hadn't returned when they tapped play.
-    if (loading) return { allowed: true, remaining: Infinity, isPro: false };
-    if (!myProfile)
+  const checkCanPlay = useCallback(
+    async (opts?: { isDailyDuel?: boolean }) => {
+      // The daily duel is always free, regardless of subscription or games
+      // played — never gate it.
+      if (opts?.isDailyDuel)
+        return { allowed: true, remaining: Infinity, isPro };
+      // Subscribers play unlimited.
+      if (isPro) return { allowed: true, remaining: Infinity, isPro: true };
+      // A redeemed friend code grants unlimited play (device-local).
+      if (await isComped())
+        return { allowed: true, remaining: Infinity, isPro: true };
+      // Entitlement not resolved yet (RevenueCat call in flight): NEVER block —
+      // isPro starts false, so gating here would lock out a paying subscriber
+      // whose customer-info request simply hadn't returned when they tapped play.
+      if (loading) return { allowed: true, remaining: Infinity, isPro: false };
+      if (!myProfile)
+        return {
+          allowed: true,
+          remaining: FREE_GAMES_BEFORE_GATE,
+          isPro: false,
+        };
+      // Lifetime count of the player's gated (non-duel) games.
+      const { count } = await supabase
+        .from("games")
+        .select("id, profiles!gamePlayers!inner(id)", {
+          count: "exact",
+          head: true,
+        })
+        .in("gameType", GATED_GAME_TYPES as unknown as string[])
+        .filter("profiles.id", "eq", myProfile.id);
+      const played = count ?? 0;
       return {
-        allowed: true,
-        remaining: FREE_COMPETITIVE_PER_DAY,
+        allowed: played < FREE_GAMES_BEFORE_GATE,
+        remaining: Math.max(0, FREE_GAMES_BEFORE_GATE - played),
         isPro: false,
       };
-    const since = new Date();
-    since.setUTCHours(0, 0, 0, 0);
-    const { count } = await supabase
-      .from("games")
-      .select("id, profiles!gamePlayers!inner(id)", {
-        count: "exact",
-        head: true,
-      })
-      .in("gameType", GATED_GAME_TYPES as unknown as string[])
-      .gte("createdAt", since.toISOString())
-      .filter("profiles.id", "eq", myProfile.id);
-    const played = count ?? 0;
-    return {
-      allowed: played < FREE_COMPETITIVE_PER_DAY,
-      remaining: Math.max(0, FREE_COMPETITIVE_PER_DAY - played),
-      isPro: false,
-    };
-    ----- end original gate logic ----- */
-  }, [isPro, loading, myProfile]);
+    },
+    [isPro, loading, myProfile]
+  );
 
   return { checkCanPlay };
 };

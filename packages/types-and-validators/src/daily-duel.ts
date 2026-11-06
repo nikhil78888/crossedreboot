@@ -74,8 +74,19 @@ const DUEL_VARIANTS: DuelVariant[] = [
   "WORDSY",
   "CATEGORIES",
 ];
-export const duelVariant = (seed: number): DuelVariant =>
-  DUEL_VARIANTS[(seed >>> 5) % DUEL_VARIANTS.length];
+// Whole days since the Unix epoch for a YYYY-MM-DD string (UTC midnight).
+const epochDay = (day: string): number =>
+  Math.floor(Date.parse(`${day}T00:00:00Z`) / 86400000);
+// Strict round-robin by calendar day so every variant comes up exactly once per
+// 4-day cycle — the old hash-based pick (seed>>>5 % 4) could streak and leave a
+// mode (e.g. Word Search) absent for a long stretch. Derived from the day, not
+// the seed, so it's a clean rotation rather than a random draw.
+export const duelVariant = (seed: number, day?: string): DuelVariant => {
+  if (day) return DUEL_VARIANTS[((epochDay(day) % 4) + 4) % 4];
+  // Back-compat: seed-only callers still get a deterministic (if not strictly
+  // rotating) pick.
+  return DUEL_VARIANTS[(seed >>> 5) % DUEL_VARIANTS.length];
+};
 
 export const duelSeconds = (seed: number, variant: DuelVariant): number => {
   // Which "kind of day" it is, 0 (hardest) .. 1 (easiest). Shifted seed slice so
@@ -101,7 +112,7 @@ export const duelSeconds = (seed: number, variant: DuelVariant): number => {
 // The one function everything derives from: a calendar day → the day's duel.
 export const duelMeta = (day: string = localDay()): DuelMeta => {
   const seed = seedFrom(day);
-  const variant = duelVariant(seed);
+  const variant = duelVariant(seed, day);
   return {
     day,
     seed,

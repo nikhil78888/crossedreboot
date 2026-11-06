@@ -695,10 +695,19 @@ export const CrosswordGrid = ({
       solution[x]?.[y] != null &&
       (solution[x - 1]?.[y] != null || solution[x + 1]?.[y] != null);
     if (direction === "Across") {
-      // next clued cell in the current row
-      const emptyRowCellIndex = solution[cell.x].findIndex(
-        (c, col) => c !== null && col > cell.y && inAcrossWord(cell.x, col)
-      );
+      // next clued cell in the current row — prefer the next EMPTY one so the
+      // cursor skips letters already filled in by crossing words; fall back to
+      // the next clued cell so it can never stall.
+      const findInRow = (emptyOnly: boolean) =>
+        solution[cell.x].findIndex(
+          (c, col) =>
+            c !== null &&
+            col > cell.y &&
+            inAcrossWord(cell.x, col) &&
+            (!emptyOnly || c === "")
+        );
+      const emptyRowCellIndex =
+        findInRow(true) >= 0 ? findInRow(true) : findInRow(false);
       if (emptyRowCellIndex >= 0) {
         setCurrentCell({ x: cell.x, y: emptyRowCellIndex });
         setDirection(direction);
@@ -728,10 +737,17 @@ export const CrosswordGrid = ({
       // next clued cell in the current column
       const currentCol = cell.y;
       const colCells = solution.map((row) => row[currentCol]);
-      const idx = colCells.findIndex(
-        (c, index) =>
-          c !== null && index > cell.x && inDownWord(index, currentCol)
-      );
+      // Prefer the next EMPTY clued cell down the column (skip already-filled
+      // crossing letters); fall back to the next clued cell so it never stalls.
+      const findInCol = (emptyOnly: boolean) =>
+        colCells.findIndex(
+          (c, index) =>
+            c !== null &&
+            index > cell.x &&
+            inDownWord(index, currentCol) &&
+            (!emptyOnly || c === "")
+        );
+      const idx = findInCol(true) >= 0 ? findInCol(true) : findInCol(false);
       if (idx >= 0) {
         setCurrentCell({ x: idx, y: currentCol });
         setDirection(direction);

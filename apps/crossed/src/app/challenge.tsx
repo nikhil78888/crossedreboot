@@ -27,8 +27,9 @@ export default function ChallengeAccept() {
       ran.current = true;
       (async () => {
         try {
-          // Challenge (ghost) races count against the daily free limit too.
-          const gate = await checkCanPlay();
+          // The daily duel is always free; other challenge/ghost races count
+          // toward the free-game allowance.
+          const gate = await checkCanPlay({ isDailyDuel: daily === "1" });
           if (!gate.allowed) {
             trackEvent(events.GATE_BLOCKED, {
               mode: "CHALLENGE",

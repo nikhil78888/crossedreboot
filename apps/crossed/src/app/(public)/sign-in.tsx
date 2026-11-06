@@ -66,11 +66,30 @@ const LoginForm = () => {
     },
     resolver: zodResolver(loginFormSchema),
   });
-  const { signInWithEmail, isSigningInWithEmail } = useAuth();
+  const { signInWithEmail, isSigningInWithEmail, signInWithEmailError } =
+    useAuth();
 
   const onSubmit = (formValues: z.infer<typeof loginFormSchema>) => {
-    signInWithEmail(formValues);
+    // Normalize the email (trim + lowercase) so stray spaces / caps don't cause
+    // a silent "no such user".
+    signInWithEmail({
+      email: formValues.email.trim().toLowerCase(),
+      password: formValues.password,
+    });
   };
+
+  // Surface auth failures — previously a wrong email/password just stopped the
+  // spinner with NO message, which read as "the sign-in is broken / stuck".
+  const authMessage = signInWithEmailError
+    ? ((signInWithEmailError as { code?: string }).code ===
+        "auth/user-not-found" ||
+      (signInWithEmailError as { code?: string }).code ===
+        "auth/wrong-password" ||
+      (signInWithEmailError as { code?: string }).code ===
+        "auth/invalid-credential"
+        ? "That email or password doesn't match an account. Check for typos (including in your email) and try again."
+        : "Couldn't sign you in. Check your connection and try again.")
+    : null;
 
   return (
     <View>
@@ -114,9 +133,9 @@ const LoginForm = () => {
         )}
         name="password"
       />
-      {errors.root?.message && (
+      {(errors.root?.message || authMessage) && (
         <Text className="text-xs text-red-500 text-center my-1">
-          {errors.root.message}
+          {errors.root?.message || authMessage}
         </Text>
       )}
       <View className="items-end">

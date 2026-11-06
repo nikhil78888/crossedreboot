@@ -53,6 +53,8 @@ const APPLY = args.includes("--apply");
 const isBadClue = (c) => {
   const t = (c || "").trim();
   return (
+    // --- one-word clues: too terse to be gettable (e.g. "Sink", "Flee") ---
+    /^[^\s]+$/.test(t) ||
     // --- genuine cross-references (all require a digit, so no prose FPs) ---
     /\bsee\s+\d/i.test(t) ||
     /\b\d{1,3}\s*[-–]?\s*(across|down)\b/i.test(t) ||

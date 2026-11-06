@@ -342,8 +342,10 @@ const clueScore = (clue, freqRank) => {
   }
   return s;
 };
-// A word is only kept if it has at least one clue this clean.
-const MAX_CLUE_SCORE = 24;
+// A word is only kept if it has at least one clue this clean. Lowered from 24
+// so obscure / cryptic "impossible" clues are rejected — the fill stays
+// gettable. (clueScore rises with answer obscurity + clue length/rarity.)
+const MAX_CLUE_SCORE = 18;
 
 // Reject broken harvested clues: cross-references to other entries ("See 42",
 // "11d-27a-5d", "11-Across") that make no sense in a freshly generated grid.
@@ -354,6 +356,9 @@ const MAX_CLUE_SCORE = 24;
 // can't deduce the answer from them. A SPECIFIC name clue ("Actress Thurman")
 // is fine; these regexes only catch the generic-category phrasings.
 const isBadClue = (c) =>
+  // One-word clues are too terse to be gettable (e.g. "Sink", "Flee") — require
+  // at least two words so every clue is a real definition/hint.
+  /^[^\s]+$/.test((c || "").trim()) ||
   /\b\d{1,3}\s*[ad]\b/i.test(c) ||
   /\bsee\s+\d/i.test(c) ||
   /\d+\s*[- ]\s*(across|down)\b/i.test(c) ||

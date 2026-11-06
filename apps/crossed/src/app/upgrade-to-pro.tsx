@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import { PurchasesPackage } from "react-native-purchases";
 import { useSubscription } from "../hooks/use-subscription";
 import { Button } from "../components/Button";
-import { FREE_COMPETITIVE_PER_DAY } from "../lib/revenuecat";
+import { FREE_GAMES_BEFORE_GATE, redeemFriendCode } from "../lib/revenuecat";
 import { events, trackEvent } from "../lib/track-event";
 import colors from "../lib/colors";
 
@@ -20,6 +27,7 @@ export default function UpgradeToPro() {
   const { isPro, offering, loading, purchase, restore, diagnostic } =
     useSubscription();
   const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState("");
 
   // Leaving the paywall must ALWAYS work. If this screen is the only entry in
   // the stack (e.g. a challenge deep link on a cold start routed straight here),
@@ -121,6 +129,16 @@ export default function UpgradeToPro() {
     }
   };
 
+  const onRedeem = async () => {
+    if (await redeemFriendCode(code)) {
+      trackEvent(events.RESTORE_RESULT, { restored: true, code: true });
+      Alert.alert("Unlocked 🎉", "Enjoy unlimited play, on the house.");
+      leave();
+    } else {
+      Alert.alert("Invalid code", "Double-check the code and try again.");
+    }
+  };
+
   return (
     <ScrollView
       className="flex-1 bg-white px-6"
@@ -133,8 +151,8 @@ export default function UpgradeToPro() {
         Crossed Pro
       </Text>
       <Text className="mt-1 text-center font-[jost400] text-crossed-gray-400">
-        You get {FREE_COMPETITIVE_PER_DAY} free games a day. Go Pro for
-        unlimited play.
+        Your first {FREE_GAMES_BEFORE_GATE} games are free. Go Pro for unlimited
+        play — the Daily Duel is always free.
       </Text>
 
       <View className="mt-6">
@@ -251,6 +269,36 @@ export default function UpgradeToPro() {
             );
           })
         )}
+      </View>
+
+      <View className="mt-4 flex-row items-center">
+        <TextInput
+          value={code}
+          onChangeText={setCode}
+          placeholder="Friend code"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          style={{
+            flex: 1,
+            borderWidth: 1,
+            borderColor: colors["crossed-gray"]["200"],
+            borderRadius: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            fontFamily: "jost500",
+            fontSize: 15,
+          }}
+        />
+        <View className="ml-2">
+          <Button
+            label="Redeem"
+            intent="primary"
+            mode="outline"
+            size="base"
+            rounded="full"
+            onPress={onRedeem}
+          />
+        </View>
       </View>
 
       <View className="mt-2">
