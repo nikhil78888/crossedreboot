@@ -255,6 +255,22 @@ export default function ChallengeResult() {
               />
             )}
           </View>
+          {/* See the solved puzzle — works for every story variant (the answers
+              screen reads the solution from the game's state). */}
+          {params.gameId && (
+            <View className="mt-4">
+              <Button
+                intent="secondary"
+                size="lg"
+                rounded="full"
+                mode="outline"
+                label="See Answers"
+                onPress={() =>
+                  router.push(`/view-answers?gameId=${params.gameId}`)
+                }
+              />
+            </View>
+          )}
           <View className="mt-3 items-center">
             <Button
               intent="primary"
@@ -389,6 +405,20 @@ export default function ChallengeResult() {
               onPress={() => router.replace("/home")}
             />
           </View>
+          {params.gameId && (
+            <View className="mt-4">
+              <Button
+                intent="secondary"
+                size="lg"
+                rounded="full"
+                mode="outline"
+                label="See Answers"
+                onPress={() =>
+                  router.push(`/view-answers?gameId=${params.gameId}`)
+                }
+              />
+            </View>
+          )}
           <View className="mt-3 items-center">
             <Button
               intent="primary"
