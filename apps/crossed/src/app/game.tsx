@@ -504,7 +504,9 @@ export default function Game() {
             challengeMeta.name ?? "your rival"
           )}&won=${beat ? 1 : 0}&${resultParams}${
             daily === "1" ? "&daily=1" : ""
-          }${story === "1" ? `&story=1&level=${level ?? "1"}` : ""}`
+          }${story === "1" ? `&story=1&level=${level ?? "1"}` : ""}${
+            gameId ? `&gameId=${gameId}` : ""
+          }`
         );
         return;
       }

@@ -31,6 +31,7 @@ export default function ChallengeResult() {
     daily?: string;
     story?: string;
     level?: string;
+    gameId?: string;
   }>();
   const isDaily = params.daily === "1";
   const isStory = params.story === "1";
@@ -274,6 +275,22 @@ export default function ChallengeResult() {
             label={youSolved ? "See Where You Rank →" : "See Today's Leaderboard →"}
             onPress={() => router.push("/daily-leaderboard")}
           />
+          {/* See the solved puzzle — works for every duel variant (the answers
+              screen reads the solution from the game's state). */}
+          {params.gameId && (
+            <View className="mt-4">
+              <Button
+                intent="secondary"
+                size="lg"
+                rounded="full"
+                mode="outline"
+                label="See Answers"
+                onPress={() =>
+                  router.push(`/view-answers?gameId=${params.gameId}`)
+                }
+              />
+            </View>
+          )}
           {/* Shareable daily-duel result — a clean, multi-line spoiler-free
               brag + app link. Full-size button so it reads as a real action. */}
           <View className="mt-4">
