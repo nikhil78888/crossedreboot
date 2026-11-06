@@ -101,7 +101,7 @@ export const useSubscription = () => {
 // { isDailyDuel: true } and are never blocked.
 export const useGameGate = () => {
   const { myProfile } = useMyProfile();
-  const { isPro, loading } = useSubscription();
+  const { isPro, loading, offering } = useSubscription();
 
   const checkCanPlay = useCallback(
     async (opts?: { isDailyDuel?: boolean }) => {
@@ -114,6 +114,12 @@ export const useGameGate = () => {
       // A redeemed friend code grants unlimited play (device-local).
       if (await isComped())
         return { allowed: true, remaining: Infinity, isPro: true };
+      // Safety: NEVER gate when there's no purchasable plan available (e.g. the
+      // RevenueCat products aren't set up yet, or offerings failed to load).
+      // Otherwise a 20+-game user would be blocked with no way to pay. The gate
+      // therefore self-activates only once real plans exist.
+      if (!offering || offering.availablePackages.length === 0)
+        return { allowed: true, remaining: Infinity, isPro: false };
       // Entitlement not resolved yet (RevenueCat call in flight): NEVER block —
       // isPro starts false, so gating here would lock out a paying subscriber
       // whose customer-info request simply hadn't returned when they tapped play.
@@ -140,7 +146,7 @@ export const useGameGate = () => {
         isPro: false,
       };
     },
-    [isPro, loading, myProfile]
+    [isPro, loading, myProfile, offering]
   );
 
   return { checkCanPlay };

@@ -881,13 +881,25 @@ export const CrosswordGrid = ({
   const handleKey = ({ x, y, key }: { x: number; y: number; key: string }) => {
     if (isGameFinished) return;
     setSolution({ cell: { x, y }, value: key });
-    // If that keystroke completed the current word, jump straight to the next
-    // unfinished word instead of stepping to the (now full) next cell.
+    // NYT-style advance, scoped to the CURRENT WORD:
+    //   1. move to the next EMPTY cell in the word (skipping filled crossings);
+    //   2. if none ahead, wrap to the first still-empty cell in the word (so
+    //      squares you skipped earlier get filled);
+    //   3. only when the whole word is full, jump to the next unfinished clue.
+    // (isFilled treats the just-typed cell as filled, since `solution` state
+    // hasn't flushed yet.)
     const cells = wordCells({ x, y }, direction);
-    const justCompleted =
-      cells.length >= 2 && cells.every((c) => isFilled(c, { x, y }));
-    if (justCompleted && gotoNextIncompleteWord({ x, y }, direction, { x, y }))
+    const curIdx = cells.findIndex((c) => c.x === x && c.y === y);
+    const nextEmpty =
+      cells.slice(curIdx + 1).find((c) => !isFilled(c, { x, y })) ??
+      cells.find((c) => !isFilled(c, { x, y }));
+    if (nextEmpty) {
+      setCurrentCell(nextEmpty);
       return;
+    }
+    // Word complete → next unfinished word (next clue).
+    if (gotoNextIncompleteWord({ x, y }, direction, { x, y })) return;
+    // Grid full / nothing left — fall back to the plain step.
     gotoNextCell({ cell: currentCell, direction, allowLoop: true });
   };
 
