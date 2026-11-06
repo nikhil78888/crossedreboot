@@ -20,6 +20,7 @@ import { ChallengeResultsBanner } from "../../components/ChallengeResultsBanner"
 import { NewGameButtons } from "../../components/NewGameButtons";
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import { useMyProfile } from "../../hooks/use-my-profile";
+import { useAuth } from "../../hooks/use-auth";
 import { useGameGate } from "../../hooks/use-subscription";
 import { events, trackEvent } from "../../lib/track-event";
 import { supabase } from "../../lib/supabase";
@@ -40,7 +41,12 @@ export default function Home() {
   const { game } = useGame({
     gameId: currentGameId,
   });
-  const { myProfile } = useMyProfile();
+  const { myProfile, refreshMyProfile } = useMyProfile();
+  const { logout } = useAuth();
+  // After a while stuck on the loading spinner, offer an escape hatch (retry /
+  // sign out) instead of an infinite spinner — some devices never resolve the
+  // profile load and were left on a dead spinner with no way out.
+  const [stuck, setStuck] = useState(false);
   // Register this device for re-engagement push notifications (asks permission
   // once the player has reached the dashboard, i.e. after onboarding).
   usePushRegistration(myProfile?.id);
@@ -160,16 +166,67 @@ export default function Home() {
   // Hold the spinner until we know whether this is a brand-new player (and while
   // the redirect to /intro-prompt lands). Rendering the dashboard first is what
   // produced the flash before the intro appeared.
-  if (
+  // If loading stalls past ~12s, surface the retry / sign-out escape hatch
+  // instead of leaving the user on a dead spinner.
+  useEffect(() => {
+    const blocking =
+      launchingChallenge ||
+      launchingJoin ||
+      loadingCurrentGameId ||
+      (currentGameId && !game) ||
+      introState !== "existing";
+    if (!blocking) {
+      setStuck(false);
+      return;
+    }
+    const t = setTimeout(() => setStuck(true), 12000);
+    return () => clearTimeout(t);
+  }, [
+    launchingChallenge,
+    launchingJoin,
+    loadingCurrentGameId,
+    currentGameId,
+    game,
+    introState,
+  ]);
+
+  const isBlocking =
     launchingChallenge ||
     launchingJoin ||
     loadingCurrentGameId ||
     (currentGameId && !game) ||
-    introState !== "existing"
-  ) {
+    introState !== "existing";
+
+  if (isBlocking) {
     return (
-      <View className="flex-1 items-center justify-center px-4 bg-white">
+      <View className="flex-1 items-center justify-center px-6 bg-white">
         <ActivityIndicator />
+        {stuck && (
+          <View className="mt-8 w-full">
+            <Text className="text-center font-[jost500] text-crossed-gray-500 mb-4">
+              Still loading? This can happen on a flaky connection.
+            </Text>
+            <Button
+              intent="primary"
+              size="lg"
+              rounded="full"
+              label="Retry"
+              onPress={() => {
+                setStuck(false);
+                void refreshMyProfile();
+              }}
+            />
+            <View className="mt-3">
+              <Button
+                intent="secondary"
+                mode="text"
+                size="base"
+                label="Sign out"
+                onPress={() => void logout()}
+              />
+            </View>
+          </View>
+        )}
       </View>
     );
   }

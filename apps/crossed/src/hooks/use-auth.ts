@@ -34,13 +34,45 @@ export const useAuth = () => {
         // get current firebase user
         const user = auth().currentUser;
         if (user) {
-          // get idToken for current firebase user
-          const firebaseIdToken = await user.getIdToken(true);
+          // Every network step here is bounded by a timeout + retried. Without
+          // this, a slow/hanging token call (seen on some fresh-install devices
+          // on a flaky connection) never settles, so isLoadingUser stays true
+          // and the whole app is stuck on a dead loading spinner forever.
+          const withTimeout = <T>(p: Promise<T>, ms: number, label: string) =>
+            Promise.race([
+              p,
+              new Promise<T>((_, reject) =>
+                setTimeout(() => reject(new Error(`${label} timed out`)), ms)
+              ),
+            ]);
+          const delay = (ms: number) =>
+            new Promise((r) => setTimeout(r, ms));
+
+          // get idToken for current firebase user (force refresh, bounded)
+          const firebaseIdToken = await withTimeout(
+            user.getIdToken(true),
+            15000,
+            "getIdToken"
+          );
           // set Authorization header for all API calls to crossed backend
           axios.defaults.headers.Authorization = `Bearer ${firebaseIdToken}`;
-          // get supabse token from crossed backend
-          const response = await axios.get(`/api/auth/supabase-token`);
-          const supabaseToken = response.data.supabaseToken;
+          // Exchange for a Supabase token — retried so a transient slow call
+          // doesn't trap the user. Each attempt is bounded by axios' timeout.
+          let supabaseToken: string | undefined;
+          let lastErr: unknown;
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+              const response = await axios.get(`/api/auth/supabase-token`, {
+                timeout: 12000,
+              });
+              supabaseToken = response.data.supabaseToken;
+              break;
+            } catch (e) {
+              lastErr = e;
+              if (attempt < 2) await delay(800 * (attempt + 1));
+            }
+          }
+          if (!supabaseToken) throw lastErr ?? new Error("no supabase token");
           // set supabase token for authenticating supabase calls.
           setSupabaseToken(supabaseToken);
         }
