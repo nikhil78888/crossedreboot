@@ -91,6 +91,20 @@ export default function DailyScreen() {
               onPress={shareResult}
             />
           </View>
+          {result?.gameId && (
+            <View className="mt-3 w-full">
+              <Button
+                intent="secondary"
+                size="lg"
+                rounded="full"
+                mode="outline"
+                label="See Answers"
+                onPress={() =>
+                  router.push(`/view-answers?gameId=${result.gameId}`)
+                }
+              />
+            </View>
+          )}
         </View>
       ) : (
         <View className="mt-6 items-center">

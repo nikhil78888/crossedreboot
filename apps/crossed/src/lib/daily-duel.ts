@@ -110,7 +110,11 @@ const cacheKey = (day: string) => `daily:duelChallenge:v7:${day}`;
 // Today's finished-duel result, so the card can show the player's time (and stop
 // offering a re-race) once they've completed it.
 const resultKey = (day: string) => `daily:duelResult:${day}`;
-export type DuelResult = { seconds: number | null; won: boolean };
+export type DuelResult = {
+  seconds: number | null;
+  won: boolean;
+  gameId?: string; // the game played, so the daily card can link to its answers
+};
 
 export const setTodaysResult = async (r: DuelResult): Promise<void> => {
   try {

@@ -86,9 +86,10 @@ export default function ChallengeResult() {
       setTodaysResult({
         seconds: youSolvedFlag ? yourSecondsRaw : null,
         won: didWin,
+        gameId: params.gameId,
       });
     }
-  }, [isDaily, youSolvedFlag, yourSecondsRaw, didWin]);
+  }, [isDaily, youSolvedFlag, yourSecondsRaw, didWin, params.gameId]);
   const rival = params.name || "your rival";
   const isTrivia = params.variant === "TRIVIA";
   const yourSeconds = parseInt(params.you ?? "0", 10) || 0;
