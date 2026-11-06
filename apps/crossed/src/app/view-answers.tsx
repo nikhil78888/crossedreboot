@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Dimensions } from "react-native";
 import { useGame } from "../hooks/use-game";
 import { CrosswordGrid } from "../components/Crossword";
 import { SudokuGrid } from "../components/Sudoku";
@@ -189,10 +189,18 @@ export default function ViewAnswers() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 60 }}
     >
-      {game.gameVariant === "SUDOKU" ? (
-        <SudokuGrid gameId={gameId as string} showResults={{ playerId }} />
-      ) : game.gameVariant === "CROSSWORD" ? (
-        <CrosswordGrid gameId={gameId as string} showResults={{ playerId }} />
+      {isGridGame ? (
+        // The grid components are `flex-1` and size themselves from their
+        // measured height. Inside this ScrollView a flex child has no bounded
+        // height, so it collapsed to ~0 — the "tiny dot". Give it an explicit
+        // square region (≈ screen width) so the grid renders full size.
+        <View style={{ height: Dimensions.get("window").width }}>
+          {game.gameVariant === "SUDOKU" ? (
+            <SudokuGrid gameId={gameId as string} showResults={{ playerId }} />
+          ) : (
+            <CrosswordGrid gameId={gameId as string} showResults={{ playerId }} />
+          )}
+        </View>
       ) : (
         <VariantAnswers game={game} playerId={playerId || myProfile.id} />
       )}
