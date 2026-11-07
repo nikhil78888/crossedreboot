@@ -5,8 +5,13 @@
 // built on crossword-ese fill (ETUI, OLEO, ORTS, ERNE…) that no clue rescues.
 //
 // It reads each published crossword's `usedWords` and flags the puzzle if any
-// word is rarer than a per-length frequency cap (or absent from the frequency
-// list entirely, which is the signature of crossword-ese). Flagged puzzles are
+// word is genuinely awkward fill. A pure frequency cap was far too blunt (it
+// flagged fair words like OAR / ACRE / ADOBE / BERET that just aren't in a
+// frequency list), so the signal is: NOT a real dictionary headword AND not a
+// common everyday abbreviation — which precisely catches squashed-phrase fill
+// (ATAD="a tad", ATALL, INON, ONEND, IMIN, ASIS, SOSO) and obscure junk, while
+// keeping every real English word. With --loose it also flags real words rarer
+// than a generous frequency cap. Flagged puzzles are
 // UNPUBLISHED (isPublished=false) — fully reversible, nothing is deleted; flip
 // the flag back to re-publish. The generator refills the pool with easier fill.
 //
@@ -47,14 +52,23 @@ const LOOSE = args.includes("--loose"); // flag more aggressively
 
 const FREQ_URL =
   "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";
+const WEBSTER_URL =
+  "https://raw.githubusercontent.com/matthewreagan/WebstersEnglishDictionary/master/dictionary_compact.json";
 
-// Per-length rarity caps. A word whose frequency rank exceeds the cap for its
-// length (or that's absent from the list — treated as rank = Infinity) marks the
-// whole puzzle as "too hard". Looser caps with --loose flag more puzzles.
-const CAP = LOOSE
-  ? { 3: 9000, 4: 12000, 5: 16000, 6: 22000, 7: 30000, 8: 36000 }
-  : { 3: 12000, 4: 16000, 5: 22000, 6: 30000, 7: 40000, 8: 48000 };
-const capFor = (len) => CAP[Math.min(8, Math.max(3, len))] ?? 48000;
+// Everyday abbreviations/slang that aren't dictionary headwords but are fair,
+// gettable fill — NOT flagged. (The awkward stuff is squashed phrases and truly
+// obscure entries, which this allowlist deliberately leaves out.)
+const OK_ABBREV = new Set([
+  "ETA", "ICU", "CPR", "URL", "PTA", "PTO", "ATV", "TLC", "DVD", "TV", "SOS",
+  "IOU", "OMG", "LOL", "BFF", "BTW", "FYI", "ASAP", "DIY", "FAQ", "CEO", "DNA",
+  "RNA", "GPS", "USB", "PDF", "ATM", "FBI", "CIA", "NASA", "ER", "AC", "PC",
+  "AM", "PM", "OK", "MVP", "NBA", "NFL", "MLB", "UFO", "RSVP", "AKA", "ETAL",
+  "NDA", "POV", "CGI", "TBD", "EOD", "YOLO", "ESP", "HBO", "PBS", "CNN",
+]);
+
+// Only used with --loose: also flag real words rarer than a generous cap.
+const CAP = { 3: 15000, 4: 20000, 5: 28000, 6: 38000, 7: 46000, 8: 50000 };
+const capFor = (len) => CAP[Math.min(8, Math.max(3, len))] ?? 50000;
 
 async function loadFreq() {
   const txt = await (await fetch(FREQ_URL)).text();
@@ -64,6 +78,16 @@ async function loadFreq() {
     if (w && /^[A-Z]+$/.test(w) && !rank.has(w)) rank.set(w, i);
   });
   return rank;
+}
+
+async function loadDictWords() {
+  const d = await (await fetch(WEBSTER_URL)).json();
+  const set = new Set();
+  for (const k of Object.keys(d)) {
+    const w = k.trim().toUpperCase();
+    if (/^[A-Z]+$/.test(w)) set.add(w);
+  }
+  return set;
 }
 
 async function fetchAllPublished() {
@@ -102,8 +126,8 @@ async function unpublish(ids) {
 }
 
 (async () => {
-  console.log(`Loading frequency list…  (mode: ${LOOSE ? "loose" : "normal"})`);
-  const rank = await loadFreq();
+  console.log(`Loading dictionary + frequency…  (mode: ${LOOSE ? "loose" : "normal"})`);
+  const [dictWords, rank] = await Promise.all([loadDictWords(), loadFreq()]);
   const rows = await fetchAllPublished();
   console.log(`Published crosswords: ${rows.length}`);
 
@@ -118,9 +142,13 @@ async function unpublish(ids) {
     const bad = [];
     for (const w of words) {
       if (!/^[A-Z]+$/.test(w) || w.length < 3) continue;
+      // Primary signal: not a real dictionary word and not a fair everyday
+      // abbreviation → squashed-phrase / obscure junk fill.
+      const isJunk = !dictWords.has(w) && !OK_ABBREV.has(w);
+      // --loose also flags real-but-rare words.
       const rk = rank.get(w);
-      const tooRare = rk === undefined || rk > capFor(w.length);
-      if (tooRare) bad.push(w);
+      const tooRare = LOOSE && (rk === undefined || rk > capFor(w.length));
+      if (isJunk || tooRare) bad.push(w);
     }
     if (bad.length) {
       flagged.push(r.id);

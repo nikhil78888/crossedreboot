@@ -55,23 +55,20 @@ const MAX_DICT_LEN = Math.max(5, MAX_SLOT);
 // commonness (their long answers can be slightly less common). 5x5 stays the
 // strictest/easiest since it's the most-played size.
 const FREQ_SIZE_FACTOR = SIZE <= 5 ? 1 : SIZE <= 7 ? 1.25 : 1.5;
-// Frequency caps per answer length — a word rarer than this is dropped from the
-// fill dictionary. Tightened (was 9k/13k/18k/28k/42k/50k) so answers skew toward
-// everyday words an average person actually knows, cutting crossword-ese fill.
 const maxRankForLen = (len) =>
   Math.round(
     FREQ_SIZE_FACTOR *
       (len <= 3
-        ? 7000
+        ? 9000
         : len === 4
-        ? 10000
+        ? 13000
         : len === 5
-        ? 14000
+        ? 18000
         : len === 6
-        ? 22000
+        ? 28000
         : len === 7
-        ? 32000
-        : 40000)
+        ? 42000
+        : 50000)
   );
 const FREQ_URL =
   "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt";

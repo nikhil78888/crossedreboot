@@ -66,7 +66,30 @@ export const extractWordSlots = (
 };
 
 const key = (word: string, clue: string) => `${word}|||${clue}`;
-const rand = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+
+// Clue HARDNESS proxy (lower = easier / more approachable). This is a syntactic
+// read of what makes a clue hard for an average person — NOT a quality signal.
+// We penalize the cryptic/trivia hallmarks: wordplay ("?"), fill-in-the-blank
+// ("___", usually pop-culture), multi-clause (";"/":"), long/wordy, and quotes.
+// One-word clues are penalized HARD so we never regress to terse synonyms (which
+// the generator already bans) — we want the clearest definition, not the shortest.
+const clueHardness = (clue: string): number => {
+  const c = (clue || "").trim();
+  if (!c) return Infinity;
+  let s = c.length;
+  const words = c.split(/\s+/).length;
+  if (words === 1) s += 60; // terse synonym — avoid
+  if (words > 6) s += (words - 6) * 10; // wordy
+  if (/\?\s*$/.test(c)) s += 28; // pun / wordplay
+  if (/[;:]/.test(c)) s += 22; // multi-clause
+  if (/,/.test(c)) s += 6;
+  if (/_/.test(c)) s += 30; // fill-in-the-blank
+  if (/["']/.test(c)) s += 8;
+  return s;
+};
+// Easiest clue first; stable for equal scores.
+const easiestFirst = (clues: string[]): string[] =>
+  clues.slice().sort((a, b) => clueHardness(a) - clueHardness(b));
 
 // Resolve a crossword's clues to ones the player hasn't seen, log what they were
 // shown, and return the new clues object (or null to use the baked clues).
@@ -117,23 +140,39 @@ export const resolveAndLogClues = async (
       for (const slot of slots.filter((s) => s.direction === direction)) {
         const bakedClue = bakedClueFor(slot.number, direction);
         const pool = bank.get(slot.word) ?? [];
-        // Prefer clues matching the requested difficulty; fall back to any clue
-        // for the word, then to the puzzle's baked clue.
-        let candidates = pool
-          .filter((p) => p.difficulty === wantDiff)
-          .map((p) => p.clue);
-        if (!candidates.length) candidates = pool.map((p) => p.clue);
-        if (!candidates.length && bakedClue) candidates = [bakedClue];
-        candidates = Array.from(new Set(candidates.filter(Boolean)));
-        const unseen = candidates.filter((c) => !seen.has(key(slot.word, c)));
-        // Pick a random unseen clue (quality is guaranteed by the bank being
-        // curated-only for curated words + eval-judged for the rest — NOT by
-        // clue length, which the evals explicitly reject as a quality signal).
-        const chosen = unseen.length
-          ? rand(unseen)
-          : candidates.length
-          ? rand(candidates)
-          : bakedClue;
+        // EASY tier: clues at the requested difficulty (REGULAR for everyone now
+        // that Regular/Hard is merged) PLUS the puzzle's own editorial baked clue.
+        // HARD tier: everything else — used only as a last resort. Within each
+        // tier we pick the EASIEST clue (clueHardness), preferring unseen ones so
+        // never-repeat still holds. This makes clues gettable for an average
+        // person without dropping any puzzle from the pool. (Players reported the
+        // CLUES, not the fill words, as the hard part.)
+        const easyTier = Array.from(
+          new Set(
+            [
+              ...pool.filter((p) => p.difficulty === wantDiff).map((p) => p.clue),
+              bakedClue,
+            ].filter(Boolean)
+          )
+        );
+        const hardTier = Array.from(
+          new Set(
+            pool
+              .filter((p) => p.difficulty !== wantDiff)
+              .map((p) => p.clue)
+              .filter((c) => c && !easyTier.includes(c))
+          )
+        );
+        const unseen = (arr: string[]) =>
+          arr.filter((c) => !seen.has(key(slot.word, c)));
+        const easyUnseen = easiestFirst(unseen(easyTier));
+        const hardUnseen = easiestFirst(unseen(hardTier));
+        const chosen =
+          easyUnseen[0] ??
+          easiestFirst(easyTier)[0] ??
+          hardUnseen[0] ??
+          easiestFirst(hardTier)[0] ??
+          bakedClue;
         out[direction].push({ number: slot.number, clue: chosen });
         if (chosen) {
           chosenPairs.push({ profilesId: profileId, word: slot.word, clue: chosen });
