@@ -296,8 +296,8 @@ export default function MapTapScreen() {
             <Text style={{ fontFamily: "jost700", fontSize: 24, color: "#1d4ed8" }}>
               {current.name}
             </Text>
-            <Text style={{ fontFamily: "jost500", fontSize: 11, color: "#9ca3af" }}>
-              {current.type}
+            <Text style={{ fontFamily: "jost500", fontSize: 13, color: "#6b7280" }}>
+              {current.country}
             </Text>
           </View>
 

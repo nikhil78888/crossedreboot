@@ -8,12 +8,16 @@
 // (plate carrée) political world map: screen x is linear in longitude and y is
 // linear in latitude, so a tap's pixel position converts straight to lat/long.
 
+import CITY_DATA from "./mappy-cities.json";
+
 export type PlaceType = "city";
 export type MapPlace = {
   name: string;
+  country: string; // shown with the city, MapTap-style ("Lyon, France")
   type: PlaceType;
   lat: number; // +N / -S
   lon: number; // +E / -W
+  pop: number; // population (for difficulty-tiered sampling)
 };
 
 // Graduated time scoring instead of a hard hit/miss. Each place has two radii:
@@ -62,63 +66,20 @@ export const distanceKm = (
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
 };
 
-// A pool of well-known world CITIES (recognizable to a broad audience). We name
-// the city; you tap where it is. Coordinates are the city center.
-export const PLACES: MapPlace[] = [
-  // North America
-  { name: "New York City", type: "city", lat: 40.7, lon: -74.0 },
-  { name: "Los Angeles", type: "city", lat: 34.1, lon: -118.2 },
-  { name: "Chicago", type: "city", lat: 41.9, lon: -87.6 },
-  { name: "Toronto", type: "city", lat: 43.7, lon: -79.4 },
-  { name: "Washington, D.C.", type: "city", lat: 38.9, lon: -77.0 },
-  { name: "Mexico City", type: "city", lat: 19.4, lon: -99.1 },
-  { name: "Havana", type: "city", lat: 23.1, lon: -82.4 },
-  { name: "Vancouver", type: "city", lat: 49.3, lon: -123.1 },
-  // South America
-  { name: "Rio de Janeiro", type: "city", lat: -22.9, lon: -43.2 },
-  { name: "São Paulo", type: "city", lat: -23.5, lon: -46.6 },
-  { name: "Buenos Aires", type: "city", lat: -34.6, lon: -58.4 },
-  { name: "Lima", type: "city", lat: -12.0, lon: -77.0 },
-  { name: "Bogotá", type: "city", lat: 4.7, lon: -74.1 },
-  { name: "Santiago", type: "city", lat: -33.4, lon: -70.6 },
-  // Europe
-  { name: "London", type: "city", lat: 51.5, lon: -0.1 },
-  { name: "Paris", type: "city", lat: 48.9, lon: 2.4 },
-  { name: "Madrid", type: "city", lat: 40.4, lon: -3.7 },
-  { name: "Barcelona", type: "city", lat: 41.4, lon: 2.2 },
-  { name: "Lisbon", type: "city", lat: 38.7, lon: -9.1 },
-  { name: "Rome", type: "city", lat: 41.9, lon: 12.5 },
-  { name: "Berlin", type: "city", lat: 52.5, lon: 13.4 },
-  { name: "Amsterdam", type: "city", lat: 52.4, lon: 4.9 },
-  { name: "Stockholm", type: "city", lat: 59.3, lon: 18.1 },
-  { name: "Athens", type: "city", lat: 38.0, lon: 23.7 },
-  { name: "Warsaw", type: "city", lat: 52.2, lon: 21.0 },
-  { name: "Moscow", type: "city", lat: 55.8, lon: 37.6 },
-  { name: "Istanbul", type: "city", lat: 41.0, lon: 29.0 },
-  // Africa & Middle East
-  { name: "Cairo", type: "city", lat: 30.0, lon: 31.2 },
-  { name: "Lagos", type: "city", lat: 6.5, lon: 3.4 },
-  { name: "Nairobi", type: "city", lat: -1.3, lon: 36.8 },
-  { name: "Cape Town", type: "city", lat: -33.9, lon: 18.4 },
-  { name: "Johannesburg", type: "city", lat: -26.2, lon: 28.0 },
-  { name: "Dubai", type: "city", lat: 25.2, lon: 55.3 },
-  { name: "Tehran", type: "city", lat: 35.7, lon: 51.4 },
-  // Asia
-  { name: "Mumbai", type: "city", lat: 19.1, lon: 72.9 },
-  { name: "New Delhi", type: "city", lat: 28.6, lon: 77.2 },
-  { name: "Bangkok", type: "city", lat: 13.8, lon: 100.5 },
-  { name: "Singapore", type: "city", lat: 1.4, lon: 103.8 },
-  { name: "Jakarta", type: "city", lat: -6.2, lon: 106.8 },
-  { name: "Beijing", type: "city", lat: 39.9, lon: 116.4 },
-  { name: "Shanghai", type: "city", lat: 31.2, lon: 121.5 },
-  { name: "Hong Kong", type: "city", lat: 22.3, lon: 114.2 },
-  { name: "Tokyo", type: "city", lat: 35.7, lon: 139.7 },
-  { name: "Seoul", type: "city", lat: 37.6, lon: 127.0 },
-  // Oceania
-  { name: "Sydney", type: "city", lat: -33.9, lon: 151.2 },
-  { name: "Melbourne", type: "city", lat: -37.8, lon: 145.0 },
-  { name: "Auckland", type: "city", lat: -36.8, lon: 174.8 },
-];
+// ~1,900 real world cities (population >= 300k, GeoNames, city-sections removed)
+// as [name, lat, lon, pop]. Comprehensive — includes plenty of hard ones — but
+// no villages or neighborhoods. We name the city; you tap where it is.
+export const PLACES: MapPlace[] = (
+  CITY_DATA as [string, string, number, number, number][]
+).map(([name, country, lat, lon, pop]) => ({
+  name,
+  country,
+  type: "city",
+  lat,
+  lon,
+  pop,
+}));
+
 
 // A seeded shuffle so a given seed reproduces the same round (useful later for a
 // shared daily duel; v1 just passes Math.random-derived seeds).
@@ -133,18 +94,56 @@ const mulberry32 = (seed: number) => {
   };
 };
 
-// Build a round of ROUND_SIZE distinct places from a seed.
+// Recognizability tier. Raw population is a BAD proxy for "famous" (the biggest
+// cities are populous-but-unknown Chinese/Indian cities), so the famous tier is
+// a hand-curated set of globally iconic cities. Everything else is the harder
+// long tail. Each round is mostly iconic with a couple of hard ones mixed in.
+const ICONIC = new Set<string>([
+  "New York City","Los Angeles","Chicago","San Francisco","Las Vegas","Miami","Boston","Washington","Seattle","Houston","Dallas","Philadelphia","Atlanta","Toronto","Vancouver","Montréal","Mexico City","Havana",
+  "Rio de Janeiro","São Paulo","Buenos Aires","Lima","Bogotá","Santiago","Caracas","Quito","Montevideo",
+  "London","Paris","Madrid","Barcelona","Lisbon","Rome","Milan","Naples","Berlin","Munich","Frankfurt am Main","Hamburg","Amsterdam","Brussels","Vienna","Zürich","Prague","Budapest","Warsaw","Stockholm","Copenhagen","Oslo","Helsinki","Dublin","Edinburgh","Athens","Moscow","Saint Petersburg","Kyiv","Istanbul","Lyon","Marseille",
+  "Cairo","Casablanca","Marrakesh","Cape Town","Johannesburg","Nairobi","Lagos","Accra","Addis Ababa","Tunis","Algiers","Dakar","Dubai","Abu Dhabi","Doha","Riyadh","Jerusalem","Tel Aviv","Beirut","Baghdad","Tehran","Makkah",
+  "Mumbai","Delhi","New Delhi","Bengaluru","Kolkata","Chennai","Hyderabad","Karachi","Lahore","Islamabad","Dhaka","Bangkok","Singapore","Kuala Lumpur","Jakarta","Manila","Hanoi","Ho Chi Minh City","Beijing","Shanghai","Hong Kong","Guangzhou","Shenzhen","Chengdu","Tokyo","Osaka","Kyoto","Nagoya","Seoul","Busan","Taipei",
+  "Sydney","Melbourne","Brisbane","Perth","Auckland",
+]);
+const FAMOUS = PLACES.filter((p) => ICONIC.has(p.name));
+const REST = PLACES.filter((p) => !ICONIC.has(p.name));
+
+// Weighted sampling without replacement (Efraimidis–Spirakis), weighted by
+// sqrt(population) so bigger cities are favored within a tier but the tail still
+// appears. Returns `n` distinct places.
+const weightedPick = (
+  pool: MapPlace[],
+  n: number,
+  rnd: () => number
+): MapPlace[] => {
+  const keyed = pool.map((p) => ({
+    p,
+    k: Math.pow(rnd() || 1e-9, 1 / Math.max(1, Math.sqrt(p.pop))),
+  }));
+  keyed.sort((a, b) => b.k - a.k);
+  return keyed.slice(0, Math.min(n, keyed.length)).map((x) => x.p);
+};
+
+// Build a round from a seed: ~60% famous, ~40% harder, then shuffle the order.
 export const makeRound = (
   seed: number,
   size: number = ROUND_SIZE
 ): MapPlace[] => {
   const rnd = mulberry32(seed || 1);
-  const pool = [...PLACES];
-  for (let i = pool.length - 1; i > 0; i--) {
+  // Mostly recognizable, with ~2 harder ones per round.
+  const restN = Math.min(2, REST.length, Math.max(0, size - 1));
+  const famousN = Math.max(0, size - restN);
+  const round = [
+    ...weightedPick(FAMOUS, famousN, rnd),
+    ...weightedPick(REST, restN, rnd),
+  ];
+  // Fisher–Yates so the hard ones aren't always last.
+  for (let i = round.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    [round[i], round[j]] = [round[j], round[i]];
   }
-  return pool.slice(0, Math.min(size, pool.length));
+  return round;
 };
 
 export type HitTier = "bullseye" | "good" | "miss";
