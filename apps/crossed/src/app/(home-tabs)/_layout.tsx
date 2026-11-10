@@ -116,14 +116,6 @@ export default function HomeLayout() {
         }}
       />
       <Tabs.Screen
-        name="map-tap"
-        options={{
-          tabBarLabel: "Map",
-          headerTitle: "Map Tap",
-          tabBarIcon: () => <Text style={{ fontSize: 18 }}>🗺️</Text>,
-        }}
-      />
-      <Tabs.Screen
         name="stats"
         options={{
           tabBarLabel: "Stats",

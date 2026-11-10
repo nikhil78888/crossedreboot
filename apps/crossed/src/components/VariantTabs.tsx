@@ -1,13 +1,18 @@
 import { Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
 import { GameVariant } from "../hooks/use-game";
 import { useVariant } from "../hooks/use-variant";
 import colors from "../lib/colors";
 
-const TABS: { key: GameVariant; label: string }[] = [
+// "MAP_TAP" is a LAUNCHER, not a pipeline variant — it's a standalone game for
+// now, so tapping it routes to /map-tap instead of calling setVariant.
+type TabKey = GameVariant | "MAP_TAP";
+const TABS: { key: TabKey; label: string }[] = [
   { key: "CROSSWORD", label: "Crossword" },
   { key: "SUDOKU", label: "Sudoku" },
   { key: "WORD_SEARCH", label: "Word Search" },
+  { key: "MAP_TAP", label: "Map Tap" },
   // TRIVIA disabled (2026-08): not reaching users — hidden from the picker for now.
   // { key: "TRIVIA", label: "Trivia" },
 ];
@@ -17,6 +22,7 @@ const TABS: { key: GameVariant; label: string }[] = [
 // TouchableOpacity), and the touchable stretches to fill it.
 export const VariantTabs = () => {
   const { variant, setVariant } = useVariant();
+  const router = useRouter();
   const blue = colors["crossed-blue"]["450"];
   return (
     <View
@@ -29,12 +35,16 @@ export const VariantTabs = () => {
       }}
     >
       {TABS.map((t) => {
-        const active = variant === t.key;
+        const active = t.key !== "MAP_TAP" && variant === t.key;
         return (
           <View key={t.key} style={{ flex: 1 }}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => setVariant(t.key)}
+              onPress={() =>
+                t.key === "MAP_TAP"
+                  ? router.push("/map-tap")
+                  : setVariant(t.key)
+              }
               style={{
                 alignItems: "center",
                 justifyContent: "center",
