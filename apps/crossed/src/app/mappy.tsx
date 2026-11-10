@@ -26,11 +26,14 @@ import {
   xFracToLon,
   yFracToLat,
   fmtKm,
-  MISS_PENALTY_SEC,
-  TOLERANCE_KM,
+  BONUS_MAX_SEC,
   type MapPlace,
   type TapResult,
 } from "../lib/map-tap";
+
+// Signed seconds, e.g. "-2.1s" (bonus) or "+4s" (penalty).
+const fmtDelta = (s: number) =>
+  s === 0 ? "" : `${s > 0 ? "+" : "−"}${Math.abs(s).toFixed(1)}s`;
 
 const MAP = require("../assets/images/mappy-world.png");
 const RATIO = 1920 / 3840; // true equirectangular (plate carrée), full ±90/±180, 2:1
@@ -156,11 +159,12 @@ export default function MapTapScreen() {
     ],
   }));
 
-  const misses = results.filter((r) => !r.hit).length;
+  const misses = results.filter((r) => r.tier === "miss").length;
+  const bullseyes = results.filter((r) => r.tier === "bullseye").length;
   const hits = results.filter((r) => r.hit).length;
-  const penaltySec = misses * MISS_PENALTY_SEC;
+  const deltaSec = results.reduce((s, r) => s + r.timeDeltaSec, 0);
   const elapsedSec = Math.max(0, (nowMs - startMs) / 1000);
-  const totalSec = elapsedSec + penaltySec;
+  const totalSec = Math.max(0, elapsedSec + deltaSec);
   const current = round[idx];
 
   const Marker = ({
@@ -239,8 +243,9 @@ export default function MapTapScreen() {
             }}
           >
             We name a place — you tap where it is on the map. Pinch to zoom, drag
-            to pan. Hits are green; misses cost +{MISS_PENALTY_SEC}s. Place all 7
-            as fast as you can.
+            to pan. Nail it and you SHAVE up to {BONUS_MAX_SEC}s off your time;
+            get in the ballpark and you're fine; a real miss adds time. Place all
+            7 as fast — and as accurately — as you can.
           </Text>
           <View style={{ marginTop: 28, width: "100%" }}>
             <Button intent="primary" size="xl" rounded="full" label="Start" onPress={start} />
@@ -312,7 +317,13 @@ export default function MapTapScreen() {
                       <Marker
                         lat={feedback.tapLat}
                         lon={feedback.tapLon}
-                        color={feedback.hit ? "#16a34a" : "#dc2626"}
+                        color={
+                          feedback.tier === "bullseye"
+                            ? "#eab308"
+                            : feedback.tier === "good"
+                            ? "#16a34a"
+                            : "#dc2626"
+                        }
                       />
                       <Marker
                         lat={feedback.place.lat}
@@ -338,9 +349,11 @@ export default function MapTapScreen() {
                 color: feedback.hit ? "#16a34a" : "#dc2626",
               }}
             >
-              {feedback.hit
+              {feedback.tier === "bullseye"
+                ? `🎯 Bullseye! ${fmtKm(feedback.distanceKm)}  ${fmtDelta(feedback.timeDeltaSec)}`
+                : feedback.tier === "good"
                 ? `Nice! ${fmtKm(feedback.distanceKm)} off`
-                : `Miss — ${fmtKm(feedback.distanceKm)} off  (+${MISS_PENALTY_SEC}s)`}
+                : `Miss — ${fmtKm(feedback.distanceKm)} off  ${fmtDelta(feedback.timeDeltaSec)}`}
             </Text>
           ) : (
             <Text
@@ -352,7 +365,7 @@ export default function MapTapScreen() {
                 color: "#9ca3af",
               }}
             >
-              pinch to zoom · drag to pan · within {TOLERANCE_KM[current.type]} km counts
+              pinch to zoom · drag to pan · get close for a time bonus
             </Text>
           )}
         </View>
@@ -379,8 +392,8 @@ export default function MapTapScreen() {
             your time
           </Text>
           <Text style={{ marginTop: 10, fontFamily: "jost600", fontSize: 15, color: "#4b5563" }}>
-            {hits} hit{hits === 1 ? "" : "s"} · {misses} miss{misses === 1 ? "" : "es"}
-            {misses ? `  (+${penaltySec}s)` : ""}
+            🎯 {bullseyes} · ✅ {hits - bullseyes} · ❌ {misses}
+            {deltaSec !== 0 ? `   (${fmtDelta(deltaSec)} total)` : ""}
           </Text>
 
           <View style={{ marginTop: 18, width: "100%" }}>
@@ -396,16 +409,18 @@ export default function MapTapScreen() {
                 }}
               >
                 <Text style={{ fontFamily: "jost600", fontSize: 14, color: "#111827" }}>
-                  {r.hit ? "✅" : "❌"}  {r.place.name}
+                  {r.tier === "bullseye" ? "🎯" : r.tier === "good" ? "✅" : "❌"}{"  "}
+                  {r.place.name}
                 </Text>
                 <Text
                   style={{
                     fontFamily: "jost500",
                     fontSize: 13,
-                    color: r.hit ? "#16a34a" : "#dc2626",
+                    color: r.tier === "miss" ? "#dc2626" : "#16a34a",
                   }}
                 >
                   {fmtKm(r.distanceKm)}
+                  {r.timeDeltaSec !== 0 ? `  ${fmtDelta(r.timeDeltaSec)}` : ""}
                 </Text>
               </View>
             ))}

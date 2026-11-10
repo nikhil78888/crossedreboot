@@ -16,16 +16,19 @@ export type MapPlace = {
   lon: number; // +E / -W
 };
 
-// Per-type hit tolerance (km). Countries are big targets; capitals are points,
-// so they need a tighter tap. Distance scoring is forgiving, so even small
-// countries are gettable by tapping the right neighborhood.
-export const TOLERANCE_KM: Record<PlaceType, number> = {
-  country: 750,
-  capital: 350,
+// Graduated time scoring instead of a hard hit/miss. Each place has two radii:
+//   close  — tap inside this and you EARN a time bonus (precision is rewarded),
+//            scaling from BONUS_MAX at a bullseye down to 0 at the edge.
+//   free   — a generous forgiveness zone: anywhere inside free (but outside
+//            close) is neutral (no penalty, counts as a solid hit).
+//   beyond free — a real miss: a time penalty that grows with distance, capped.
+// Countries are big targets so their radii are larger than a capital's point.
+export const RADII: Record<PlaceType, { close: number; free: number; penPer: number }> = {
+  country: { close: 500, free: 1100, penPer: 450 },
+  capital: { close: 300, free: 700, penPer: 350 },
 };
-
-// Seconds added to your race time for a miss (tap outside tolerance).
-export const MISS_PENALTY_SEC = 5;
+export const BONUS_MAX_SEC = 3; // best possible time bonus (bullseye)
+export const PENALTY_MAX_SEC = 8; // worst possible time penalty (far miss)
 // Places per round.
 export const ROUND_SIZE = 7;
 
@@ -157,22 +160,43 @@ export const makeRound = (
   return pool.slice(0, Math.min(size, pool.length));
 };
 
+export type HitTier = "bullseye" | "good" | "miss";
 export type TapResult = {
   place: MapPlace;
   tapLat: number;
   tapLon: number;
   distanceKm: number;
-  hit: boolean;
+  tier: HitTier;
+  // Seconds added to your time: NEGATIVE = bonus (very close), 0 = solid hit,
+  // POSITIVE = penalty (real miss).
+  timeDeltaSec: number;
+  hit: boolean; // true for bullseye or good (anything inside `free`)
 };
 
 export const scoreTap = (place: MapPlace, tapLat: number, tapLon: number): TapResult => {
   const d = distanceKm(place.lat, place.lon, tapLat, tapLon);
+  const r = RADII[place.type];
+  let tier: HitTier;
+  let timeDeltaSec: number;
+  if (d <= r.close) {
+    // Bullseye zone: bonus scales from -BONUS_MAX (dead on) up to 0 at the edge.
+    tier = "bullseye";
+    timeDeltaSec = -BONUS_MAX_SEC * (1 - d / r.close);
+  } else if (d <= r.free) {
+    tier = "good"; // solid hit, neutral time
+    timeDeltaSec = 0;
+  } else {
+    tier = "miss";
+    timeDeltaSec = Math.min(PENALTY_MAX_SEC, 1 + (d - r.free) / r.penPer);
+  }
   return {
     place,
     tapLat,
     tapLon,
     distanceKm: d,
-    hit: d <= TOLERANCE_KM[place.type],
+    tier,
+    timeDeltaSec: Math.round(timeDeltaSec * 10) / 10,
+    hit: tier !== "miss",
   };
 };
 
