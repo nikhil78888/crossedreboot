@@ -31,6 +31,10 @@ export const BONUS_MAX_SEC = 3; // best possible time bonus (bullseye)
 export const PENALTY_MAX_SEC = 8; // worst possible time penalty (far miss)
 // Places per round.
 export const ROUND_SIZE = 7;
+// Accuracy gate: you must land at least this many of the round (inside the
+// forgiving `free` zone) for the run to post a time. Below it = DNF, so you
+// can't just spam-tap fast and bank a good time on luck.
+export const MIN_HITS = 5;
 
 // ---- Equirectangular pixel <-> lat/long ----
 // Fractions in [0,1] across the map image. lon -180..180 -> x 0..1,

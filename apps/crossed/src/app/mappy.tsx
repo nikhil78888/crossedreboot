@@ -27,6 +27,8 @@ import {
   yFracToLat,
   fmtKm,
   BONUS_MAX_SEC,
+  MIN_HITS,
+  ROUND_SIZE,
   type MapPlace,
   type TapResult,
 } from "../lib/map-tap";
@@ -165,6 +167,7 @@ export default function MapTapScreen() {
   const deltaSec = results.reduce((s, r) => s + r.timeDeltaSec, 0);
   const elapsedSec = Math.max(0, (nowMs - startMs) / 1000);
   const totalSec = Math.max(0, elapsedSec + deltaSec);
+  const passed = hits >= MIN_HITS; // accuracy gate: need MIN_HITS to post a time
   const current = round[idx];
 
   const Marker = ({
@@ -265,6 +268,15 @@ export default function MapTapScreen() {
           >
             <Text style={{ fontFamily: "jost600", fontSize: 13, color: "#9ca3af" }}>
               {idx + 1} / {round.length}
+            </Text>
+            <Text
+              style={{
+                fontFamily: "jost600",
+                fontSize: 13,
+                color: hits >= MIN_HITS ? "#16a34a" : "#9ca3af",
+              }}
+            >
+              ✅ {hits}/{MIN_HITS}
             </Text>
             <Text style={{ fontFamily: "jost700", fontSize: 18, color: "#111827" }}>
               {totalSec.toFixed(1)}s
@@ -373,24 +385,43 @@ export default function MapTapScreen() {
 
       {phase === "done" && (
         <View style={{ alignItems: "center", paddingTop: 12 }}>
-          <Text style={{ fontSize: 44 }}>🗺️</Text>
+          <Text style={{ fontSize: 44 }}>{passed ? "🗺️" : "🚫"}</Text>
           <Text style={{ marginTop: 6, fontFamily: "jost700", fontSize: 24, color: "#111827" }}>
-            Round complete
+            {passed ? "Round complete" : "Did not finish"}
           </Text>
-          <Text style={{ marginTop: 10, fontFamily: "jost700", fontSize: 44, color: "#111827" }}>
-            {totalSec.toFixed(1)}s
-          </Text>
-          <Text
-            style={{
-              fontFamily: "jost500",
-              fontSize: 12,
-              color: "#9ca3af",
-              textTransform: "uppercase",
-              letterSpacing: 2,
-            }}
-          >
-            your time
-          </Text>
+          {passed ? (
+            <>
+              <Text style={{ marginTop: 10, fontFamily: "jost700", fontSize: 44, color: "#111827" }}>
+                {totalSec.toFixed(1)}s
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "jost500",
+                  fontSize: 12,
+                  color: "#9ca3af",
+                  textTransform: "uppercase",
+                  letterSpacing: 2,
+                }}
+              >
+                your time
+              </Text>
+            </>
+          ) : (
+            <Text
+              style={{
+                marginTop: 12,
+                textAlign: "center",
+                fontFamily: "jost600",
+                fontSize: 15,
+                color: "#dc2626",
+                paddingHorizontal: 20,
+                lineHeight: 22,
+              }}
+            >
+              You only landed {hits} of {ROUND_SIZE}. You need at least {MIN_HITS}{" "}
+              to post a time — no time this round.
+            </Text>
+          )}
           <Text style={{ marginTop: 10, fontFamily: "jost600", fontSize: 15, color: "#4b5563" }}>
             🎯 {bullseyes} · ✅ {hits - bullseyes} · ❌ {misses}
             {deltaSec !== 0 ? `   (${fmtDelta(deltaSec)} total)` : ""}
