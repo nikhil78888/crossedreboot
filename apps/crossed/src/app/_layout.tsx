@@ -275,7 +275,7 @@ export default function IndexLayout() {
         <Stack.Screen name="trivia-setup" options={{ headerTitle: "Trivia" }} />
         <Stack.Screen name="intro-preview" options={{ headerShown: false }} />
         <Stack.Screen name="all-games" options={{ headerTitle: "All Puzzles" }} />
-        <Stack.Screen name="map-tap" options={{ headerTitle: "Map Tap" }} />
+        <Stack.Screen name="mappy" options={{ headerTitle: "Mappy" }} />
         <Stack.Screen name="challenge" options={{ headerShown: false }} />
         <Stack.Screen
           name="challenge-result"

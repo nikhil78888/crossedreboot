@@ -4,7 +4,7 @@
 // adds a time penalty. Fully self-contained (bundled place list + one map image)
 // like Wordsy/Word Search, so it ships with no server content.
 //
-// The bundled map (src/assets/images/maptap-world.png) is an EQUIRECTANGULAR
+// The bundled map (src/assets/images/mappy-world.png) is an EQUIRECTANGULAR
 // (plate carrée) political world map: screen x is linear in longitude and y is
 // linear in latitude, so a tap's pixel position converts straight to lat/long.
 

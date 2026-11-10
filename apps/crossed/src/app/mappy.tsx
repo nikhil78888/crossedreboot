@@ -32,8 +32,8 @@ import {
   type TapResult,
 } from "../lib/map-tap";
 
-const MAP = require("../assets/images/maptap-world.png");
-const RATIO = 954 / 1920; // bundled equirectangular map H/W
+const MAP = require("../assets/images/mappy-world.png");
+const RATIO = 1920 / 3840; // true equirectangular (plate carrée), full ±90/±180, 2:1
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
 const START_SCALE = 2.2; // start zoomed in so the map reads big, not a thin strip
@@ -43,7 +43,7 @@ type Phase = "intro" | "playing" | "done";
 export default function MapTapScreen() {
   const navigation = useNavigation();
   useLayoutEffect(() => {
-    navigation.setOptions({ headerTitle: "Map Tap" });
+    navigation.setOptions({ headerTitle: "Mappy" });
   }, [navigation]);
 
   const screen = Dimensions.get("window");
@@ -225,7 +225,7 @@ export default function MapTapScreen() {
         <View style={{ alignItems: "center", paddingTop: 24 }}>
           <Text style={{ fontSize: 46 }}>🗺️</Text>
           <Text style={{ marginTop: 10, fontFamily: "jost700", fontSize: 26, color: "#111827" }}>
-            Map Tap
+            Mappy
           </Text>
           <Text
             style={{

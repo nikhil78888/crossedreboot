@@ -5,14 +5,14 @@ import { GameVariant } from "../hooks/use-game";
 import { useVariant } from "../hooks/use-variant";
 import colors from "../lib/colors";
 
-// "MAP_TAP" is a LAUNCHER, not a pipeline variant — it's a standalone game for
-// now, so tapping it routes to /map-tap instead of calling setVariant.
-type TabKey = GameVariant | "MAP_TAP";
+// "MAPPY" is a LAUNCHER, not a pipeline variant — it's a standalone game for
+// now, so tapping it routes to /mappy instead of calling setVariant.
+type TabKey = GameVariant | "MAPPY";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "CROSSWORD", label: "Crossword" },
   { key: "SUDOKU", label: "Sudoku" },
   { key: "WORD_SEARCH", label: "Word Search" },
-  { key: "MAP_TAP", label: "Map Tap" },
+  { key: "MAPPY", label: "Mappy" },
   // TRIVIA disabled (2026-08): not reaching users — hidden from the picker for now.
   // { key: "TRIVIA", label: "Trivia" },
 ];
@@ -35,15 +35,13 @@ export const VariantTabs = () => {
       }}
     >
       {TABS.map((t) => {
-        const active = t.key !== "MAP_TAP" && variant === t.key;
+        const active = t.key !== "MAPPY" && variant === t.key;
         return (
           <View key={t.key} style={{ flex: 1 }}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() =>
-                t.key === "MAP_TAP"
-                  ? router.push("/map-tap")
-                  : setVariant(t.key)
+                t.key === "MAPPY" ? router.push("/mappy") : setVariant(t.key)
               }
               style={{
                 alignItems: "center",
