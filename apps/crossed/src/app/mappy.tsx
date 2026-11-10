@@ -53,7 +53,7 @@ const botTimeFor = () =>
   Math.round(ROUND_SIZE * (3 + Math.random() * 2) * 10) / 10;
 
 const MIN_SCALE = 1;
-const MAX_SCALE = 6;
+const MAX_SCALE = 9; // deeper zoom; the 3840px map stays sharp (no downscaling)
 const START_SCALE = 2.2; // start zoomed in so the map reads big, not a thin strip
 
 type Phase = "intro" | "playing" | "done";
@@ -238,6 +238,9 @@ export default function MapTapScreen() {
     </View>
   );
 
+  // Markers live inside the scaled map (so they pin to a lat/lon), but we
+  // counter-scale them by 1/scale about their own center so they stay a small,
+  // constant on-screen size at any zoom instead of ballooning.
   const Marker = ({
     lat,
     lon,
@@ -253,28 +256,34 @@ export default function MapTapScreen() {
   }) => {
     const left = lonToXFrac(lon) * BW;
     const top = latToYFrac(lat) * BH;
-    const sz = ring ? 14 : 11;
+    const sz = ring ? 10 : 8;
+    const counter = useAnimatedStyle(() => ({
+      transform: [{ scale: 1 / scale.value }],
+    }));
     return (
-      <View
-        style={{
-          position: "absolute",
-          left: left - sz / 2,
-          top: top - sz / 2,
-          width: sz,
-          height: sz,
-          borderRadius: sz / 2,
-          backgroundColor: ring ? "transparent" : color,
-          borderWidth: ring ? 2.5 : 2,
-          borderColor: color,
-        }}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            left: left - sz / 2,
+            top: top - sz / 2,
+            width: sz,
+            height: sz,
+            borderRadius: sz / 2,
+            backgroundColor: ring ? "transparent" : color,
+            borderWidth: ring ? 2 : 1.5,
+            borderColor: color,
+          },
+          counter,
+        ]}
       >
         {label ? (
           <Text
             style={{
               position: "absolute",
               top: sz + 1,
-              left: -22,
-              width: sz + 44,
+              left: -26,
+              width: sz + 52,
               textAlign: "center",
               fontSize: 9,
               fontWeight: "700",
@@ -285,7 +294,7 @@ export default function MapTapScreen() {
             {label}
           </Text>
         ) : null}
-      </View>
+      </Animated.View>
     );
   };
 
@@ -393,7 +402,12 @@ export default function MapTapScreen() {
                     mapStyle,
                   ]}
                 >
-                  <Image source={MAP} style={{ width: BW, height: BH }} contentFit="fill" />
+                  <Image
+                    source={MAP}
+                    style={{ width: BW, height: BH }}
+                    contentFit="fill"
+                    allowDownscaling={false}
+                  />
                   {feedback && (
                     <>
                       <Marker
@@ -493,8 +507,22 @@ export default function MapTapScreen() {
             </Text>
           )}
           <Text style={{ marginTop: 10, fontFamily: "jost600", fontSize: 15, color: "#4b5563" }}>
-            🎯 {bullseyes} · ✅ {hits - bullseyes} · ❌ {misses}
+            🎯 {bullseyes} bullseye · ✅ {hits - bullseyes} close · ❌ {misses} missed
             {deltaSec !== 0 ? `   (${fmtDelta(deltaSec)} total)` : ""}
+          </Text>
+          <Text
+            style={{
+              marginTop: 6,
+              textAlign: "center",
+              fontFamily: "jost500",
+              fontSize: 12,
+              color: "#9ca3af",
+              paddingHorizontal: 16,
+              lineHeight: 18,
+            }}
+          >
+            🎯 dead on — time bonus   ·   ✅ close enough — counts   ·   ❌ too far —
+            adds time
           </Text>
 
           <View style={{ marginTop: 18, width: "100%" }}>
