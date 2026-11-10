@@ -39,6 +39,19 @@ const fmtDelta = (s: number) =>
 
 const MAP = require("../assets/images/mappy-world.png");
 const RATIO = 1920 / 3840; // true equirectangular (plate carrée), full ±90/±180, 2:1
+
+// Funny-named ghost opponents you race. Each game the bot is given a random but
+// reasonable finish time; you win by posting a faster time (and passing the
+// accuracy gate).
+const BOT_NAMES = [
+  "Globetrotter Greg", "Atlas Annie", "Compass Carl", "Nomad Nia",
+  "Captain Cartography", "Wanderlust Wade", "Meridian Mia", "Roaming Rosa",
+  "Latitude Lou", "Jetset Jess", "Pinpoint Pete", "Voyager Val",
+];
+// Bot finish time: ~3–5s per city → ~21–35s for a 7-city round.
+const botTimeFor = () =>
+  Math.round(ROUND_SIZE * (3 + Math.random() * 2) * 10) / 10;
+
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
 const START_SCALE = 2.2; // start zoomed in so the map reads big, not a thin strip
@@ -74,6 +87,8 @@ export default function MapTapScreen() {
   const [feedback, setFeedback] = useState<TapResult | null>(null);
   const [startMs, setStartMs] = useState(0);
   const [nowMs, setNowMs] = useState(0);
+  const [botSeconds, setBotSeconds] = useState(0);
+  const [botName, setBotName] = useState("");
   const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -92,6 +107,8 @@ export default function MapTapScreen() {
     setResults([]);
     setFeedback(null);
     resetView();
+    setBotSeconds(botTimeFor());
+    setBotName(BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]);
     const now = Date.now();
     setStartMs(now);
     setNowMs(now);
@@ -168,7 +185,58 @@ export default function MapTapScreen() {
   const elapsedSec = Math.max(0, (nowMs - startMs) / 1000);
   const totalSec = Math.max(0, elapsedSec + deltaSec);
   const passed = hits >= MIN_HITS; // accuracy gate: need MIN_HITS to post a time
+  // Race progress: you by places placed, the bot by elapsed time vs its target.
+  const youFrac = Math.min(1, results.length / ROUND_SIZE);
+  const botFrac = botSeconds ? Math.min(1, elapsedSec / botSeconds) : 0;
+  const won = passed && totalSec < botSeconds;
   const current = round[idx];
+
+  // Two-row race progress bar: you vs the bot.
+  const RaceBars = () => (
+    <View style={{ marginBottom: 12 }}>
+      {(
+        [
+          { label: "You", frac: youFrac, color: "#2563eb" },
+          { label: botName, frac: botFrac, color: "#9ca3af" },
+        ] as const
+      ).map((row) => (
+        <View
+          key={row.label}
+          style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}
+        >
+          <Text
+            style={{
+              width: 74,
+              fontFamily: "jost600",
+              fontSize: 11,
+              color: "#6b7280",
+            }}
+            numberOfLines={1}
+          >
+            {row.label}
+          </Text>
+          <View
+            style={{
+              flex: 1,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: "#f1f5f9",
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                width: `${Math.round(row.frac * 100)}%`,
+                height: "100%",
+                borderRadius: 4,
+                backgroundColor: row.color,
+              }}
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 
   const Marker = ({
     lat,
@@ -283,6 +351,8 @@ export default function MapTapScreen() {
             </Text>
           </View>
 
+          <RaceBars />
+
           <View
             style={{
               alignItems: "center",
@@ -385,9 +455,9 @@ export default function MapTapScreen() {
 
       {phase === "done" && (
         <View style={{ alignItems: "center", paddingTop: 12 }}>
-          <Text style={{ fontSize: 44 }}>{passed ? "🗺️" : "🚫"}</Text>
+          <Text style={{ fontSize: 44 }}>{passed ? (won ? "🏆" : "⏱️") : "🚫"}</Text>
           <Text style={{ marginTop: 6, fontFamily: "jost700", fontSize: 24, color: "#111827" }}>
-            {passed ? "Round complete" : "Did not finish"}
+            {passed ? (won ? `You beat ${botName}!` : `${botName} won`) : "Did not finish"}
           </Text>
           {passed ? (
             <>
@@ -403,7 +473,7 @@ export default function MapTapScreen() {
                   letterSpacing: 2,
                 }}
               >
-                your time
+                your time · {botName} {botSeconds.toFixed(1)}s
               </Text>
             </>
           ) : (
