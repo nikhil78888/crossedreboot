@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -18,6 +18,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { Button } from "../components/Button";
+import { RaceBar } from "../components/RaceBar";
 import {
   makeRound,
   scoreTap,
@@ -48,9 +49,11 @@ const BOT_NAMES = [
   "Captain Cartography", "Wanderlust Wade", "Meridian Mia", "Roaming Rosa",
   "Latitude Lou", "Jetset Jess", "Pinpoint Pete", "Voyager Val",
 ];
-// Bot finish time: ~3–5s per city → ~21–35s for a 7-city round.
+// Bot finish time: ~6.5–10s per city → ~45–70s for a 7-city round. Finding a
+// city, zooming/panning, and the per-tap reveal all cost real time, so the bot
+// needs to be this slow to be a fair race (it was finishing way too fast).
 const botTimeFor = () =>
-  Math.round(ROUND_SIZE * (3 + Math.random() * 2) * 10) / 10;
+  Math.round(ROUND_SIZE * (6.5 + Math.random() * 3.5) * 10) / 10;
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 9; // deeper zoom; the 3840px map stays sharp (no downscaling)
@@ -89,8 +92,23 @@ export default function MapTapScreen() {
   const [nowMs, setNowMs] = useState(0);
   const [botSeconds, setBotSeconds] = useState(0);
   const [botName, setBotName] = useState("");
+  const [endedByBot, setEndedByBot] = useState(false);
   const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // The bot crossing the finish line ends the round as a loss (matches the
+  // ghost-race modes, where hitting the opponent's time without finishing = a
+  // loss). Fires off the live clock tick.
+  useEffect(() => {
+    if (phase !== "playing" || !botSeconds) return;
+    if ((nowMs - startMs) / 1000 >= botSeconds) {
+      if (tickRef.current) clearInterval(tickRef.current);
+      if (advanceRef.current) clearTimeout(advanceRef.current);
+      setFeedback(null);
+      setEndedByBot(true);
+      setPhase("done");
+    }
+  }, [nowMs, phase, botSeconds, startMs]);
 
   const resetView = () => {
     scale.value = withTiming(START_SCALE);
@@ -106,6 +124,7 @@ export default function MapTapScreen() {
     setIdx(0);
     setResults([]);
     setFeedback(null);
+    setEndedByBot(false);
     resetView();
     setBotSeconds(botTimeFor());
     setBotName(BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]);
@@ -188,53 +207,35 @@ export default function MapTapScreen() {
   // Race progress: you by places placed, the bot by elapsed time vs its target.
   const youFrac = Math.min(1, results.length / ROUND_SIZE);
   const botFrac = botSeconds ? Math.min(1, elapsedSec / botSeconds) : 0;
-  const won = passed && totalSec < botSeconds;
+  const won = !endedByBot && passed && totalSec < botSeconds;
   const current = round[idx];
 
-  // Two-row race progress bar: you vs the bot.
+  // Two-row race progress bar (you vs the bot), using the shared in-game RaceBar
+  // so it matches the crossword/word-search races.
   const RaceBars = () => (
     <View style={{ marginBottom: 12 }}>
-      {(
-        [
-          { label: "You", frac: youFrac, color: "#2563eb" },
-          { label: botName, frac: botFrac, color: "#9ca3af" },
-        ] as const
-      ).map((row) => (
-        <View
-          key={row.label}
-          style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Text
+          style={{ width: 70, fontFamily: "jost600", fontSize: 12, color: "#4b5563" }}
+          numberOfLines={1}
         >
-          <Text
-            style={{
-              width: 74,
-              fontFamily: "jost600",
-              fontSize: 11,
-              color: "#6b7280",
-            }}
-            numberOfLines={1}
-          >
-            {row.label}
-          </Text>
-          <View
-            style={{
-              flex: 1,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: "#f1f5f9",
-              overflow: "hidden",
-            }}
-          >
-            <View
-              style={{
-                width: `${Math.round(row.frac * 100)}%`,
-                height: "100%",
-                borderRadius: 4,
-                backgroundColor: row.color,
-              }}
-            />
-          </View>
+          You
+        </Text>
+        <View style={{ flex: 1 }}>
+          <RaceBar progress={youFrac * 100} hot />
         </View>
-      ))}
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+        <Text
+          style={{ width: 70, fontFamily: "jost600", fontSize: 12, color: "#4b5563" }}
+          numberOfLines={1}
+        >
+          {botName.split(" ")[0]}
+        </Text>
+        <View style={{ flex: 1 }}>
+          <RaceBar progress={botFrac * 100} />
+        </View>
+      </View>
     </View>
   );
 
@@ -469,11 +470,34 @@ export default function MapTapScreen() {
 
       {phase === "done" && (
         <View style={{ alignItems: "center", paddingTop: 12 }}>
-          <Text style={{ fontSize: 44 }}>{passed ? (won ? "🏆" : "⏱️") : "🚫"}</Text>
-          <Text style={{ marginTop: 6, fontFamily: "jost700", fontSize: 24, color: "#111827" }}>
-            {passed ? (won ? `You beat ${botName}!` : `${botName} won`) : "Did not finish"}
+          <Text style={{ fontSize: 44 }}>
+            {endedByBot ? "⏱️" : passed ? (won ? "🏆" : "⏱️") : "🚫"}
           </Text>
-          {passed ? (
+          <Text style={{ marginTop: 6, fontFamily: "jost700", fontSize: 24, color: "#111827" }}>
+            {endedByBot
+              ? `${botName} won`
+              : passed
+              ? won
+                ? `You beat ${botName}!`
+                : `${botName} won`
+              : "Did not finish"}
+          </Text>
+          {endedByBot ? (
+            <Text
+              style={{
+                marginTop: 12,
+                textAlign: "center",
+                fontFamily: "jost600",
+                fontSize: 15,
+                color: "#dc2626",
+                paddingHorizontal: 20,
+                lineHeight: 22,
+              }}
+            >
+              {botName} finished first — you ran out of time. You'd placed {hits}{" "}
+              of {ROUND_SIZE}.
+            </Text>
+          ) : passed ? (
             <>
               <Text style={{ marginTop: 10, fontFamily: "jost700", fontSize: 44, color: "#111827" }}>
                 {totalSec.toFixed(1)}s
