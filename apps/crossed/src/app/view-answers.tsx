@@ -119,9 +119,14 @@ const VariantAnswers = ({
       const color = colorForWord(p.word);
       for (const cell of p.cells ?? []) cellColor[`${cell.r},${cell.c}`] = color;
     }
-    const cols = grid[0]?.length ?? grid.length ?? 1;
+    const cols = Math.max(grid[0]?.length ?? grid.length ?? 1, 1);
     const screenW = Dimensions.get("window").width;
-    const cellSize = Math.max(16, Math.floor((screenW - 48) / Math.max(cols, 1)));
+    // Available width = screen minus the page px-5 (~40) and the Section px-4
+    // (~32). Each cell also carries 1px margin on both sides (2px). Subtract both
+    // so the whole row fits — the 12x12 HARD daily grid was overflowing before.
+    const GRID_PAD = 76;
+    const avail = screenW - GRID_PAD;
+    const cellSize = Math.max(13, Math.floor(avail / cols) - 2);
 
     return (
       <View className="px-5">
@@ -148,7 +153,7 @@ const VariantAnswers = ({
                       >
                         <Text
                           style={{
-                            fontSize: Math.min(18, cellSize - 6),
+                            fontSize: Math.max(9, Math.min(16, cellSize - 5)),
                             fontWeight: color ? "700" : "500",
                             color: color ?? "#6b7280",
                           }}
