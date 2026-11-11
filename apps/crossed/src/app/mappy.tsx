@@ -30,6 +30,7 @@ import {
   BONUS_MAX_SEC,
   MIN_HITS,
   ROUND_SIZE,
+  BIG_COUNTRIES,
   type MapPlace,
   type TapResult,
 } from "../lib/map-tap";
@@ -56,7 +57,7 @@ const botTimeFor = () =>
   Math.round(ROUND_SIZE * (6.5 + Math.random() * 3.5) * 10) / 10;
 
 const MIN_SCALE = 1;
-const MAX_SCALE = 9; // deeper zoom; the 3840px map stays sharp (no downscaling)
+const MAX_SCALE = 16; // deep zoom so you can place a city precisely
 const START_SCALE = 2.2; // start zoomed in so the map reads big, not a thin strip
 
 type Phase = "intro" | "playing" | "done";
@@ -91,6 +92,7 @@ export default function MapTapScreen() {
   const [startMs, setStartMs] = useState(0);
   const [nowMs, setNowMs] = useState(0);
   const [botSeconds, setBotSeconds] = useState(0);
+  const [botSteps, setBotSteps] = useState<number[]>([]);
   const [botName, setBotName] = useState("");
   const [endedByBot, setEndedByBot] = useState(false);
   const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,7 +128,14 @@ export default function MapTapScreen() {
     setFeedback(null);
     setEndedByBot(false);
     resetView();
-    setBotSeconds(botTimeFor());
+    const bs = botTimeFor();
+    setBotSeconds(bs);
+    // Jittered cumulative times at which the bot "places" each city, so its bar
+    // jumps in uneven steps (like a real player) instead of filling smoothly.
+    const segs = Array.from({ length: ROUND_SIZE }, () => 0.4 + Math.random());
+    const sum = segs.reduce((a, b) => a + b, 0);
+    let acc = 0;
+    setBotSteps(segs.map((s) => (acc += (s / sum) * bs)));
     setBotName(BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]);
     const now = Date.now();
     setStartMs(now);
@@ -206,7 +215,10 @@ export default function MapTapScreen() {
   const passed = hits >= MIN_HITS; // accuracy gate: need MIN_HITS to post a time
   // Race progress: you by places placed, the bot by elapsed time vs its target.
   const youFrac = Math.min(1, results.length / ROUND_SIZE);
-  const botFrac = botSeconds ? Math.min(1, elapsedSec / botSeconds) : 0;
+  // Bot progress = how many of its (jittered) city-placement steps have elapsed.
+  const botFrac = botSteps.length
+    ? botSteps.filter((t) => elapsedSec >= t).length / botSteps.length
+    : 0;
   const won = !endedByBot && passed && totalSec < botSeconds;
   const current = round[idx];
 
@@ -377,7 +389,9 @@ export default function MapTapScreen() {
               {current.name}
             </Text>
             <Text style={{ fontFamily: "jost500", fontSize: 13, color: "#6b7280" }}>
-              {current.country}
+              {BIG_COUNTRIES.has(current.country) && current.province
+                ? `${current.province}, ${current.country}`
+                : current.country}
             </Text>
           </View>
 
@@ -409,28 +423,55 @@ export default function MapTapScreen() {
                     contentFit="fill"
                     allowDownscaling={false}
                   />
-                  {feedback && (
-                    <>
-                      <Marker
-                        lat={feedback.tapLat}
-                        lon={feedback.tapLon}
-                        color={
-                          feedback.tier === "bullseye"
-                            ? "#eab308"
-                            : feedback.tier === "good"
-                            ? "#16a34a"
-                            : "#dc2626"
-                        }
-                      />
-                      <Marker
-                        lat={feedback.place.lat}
-                        lon={feedback.place.lon}
-                        color={feedback.hit ? "#16a34a" : "#2563eb"}
-                        ring
-                        label={feedback.hit ? "✓" : feedback.place.name}
-                      />
-                    </>
-                  )}
+                  {feedback &&
+                    (() => {
+                      // A line from your tap to the true city, so it's obvious
+                      // what the two dots mean and how far off you were.
+                      const ax = lonToXFrac(feedback.tapLon) * BW;
+                      const ay = latToYFrac(feedback.tapLat) * BH;
+                      const bx = lonToXFrac(feedback.place.lon) * BW;
+                      const by = latToYFrac(feedback.place.lat) * BH;
+                      const len = Math.hypot(bx - ax, by - ay);
+                      const ang = Math.atan2(by - ay, bx - ax);
+                      return (
+                        <>
+                          {len > 2 && (
+                            <View
+                              style={{
+                                position: "absolute",
+                                left: (ax + bx) / 2 - len / 2,
+                                top: (ay + by) / 2 - 1,
+                                width: len,
+                                height: 2,
+                                backgroundColor: "rgba(100,116,139,0.7)",
+                                transform: [{ rotateZ: `${ang}rad` }],
+                              }}
+                            />
+                          )}
+                          {/* your guess */}
+                          <Marker
+                            lat={feedback.tapLat}
+                            lon={feedback.tapLon}
+                            color={
+                              feedback.tier === "bullseye"
+                                ? "#eab308"
+                                : feedback.tier === "good"
+                                ? "#16a34a"
+                                : "#dc2626"
+                            }
+                            label="you"
+                          />
+                          {/* the real city */}
+                          <Marker
+                            lat={feedback.place.lat}
+                            lon={feedback.place.lon}
+                            color="#2563eb"
+                            ring
+                            label={feedback.place.name}
+                          />
+                        </>
+                      );
+                    })()}
                 </Animated.View>
               </View>
             </GestureDetector>

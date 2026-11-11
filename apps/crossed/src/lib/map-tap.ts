@@ -14,11 +14,19 @@ export type PlaceType = "city";
 export type MapPlace = {
   name: string;
   country: string; // shown with the city, MapTap-style ("Lyon, France")
+  province: string; // state/region — shown for big countries to disambiguate
   type: PlaceType;
   lat: number; // +N / -S
   lon: number; // +E / -W
   pop: number; // population (for difficulty-tiered sampling)
 };
+
+// Big countries where the country alone is too vague (a city could be anywhere),
+// so we also show the province/state.
+export const BIG_COUNTRIES = new Set<string>([
+  "China", "India", "United States", "Russia", "Brazil", "Canada",
+  "Australia", "Indonesia", "Argentina", "Kazakhstan", "Mexico", "Pakistan",
+]);
 
 // Graduated time scoring instead of a hard hit/miss. Each place has two radii:
 //   close  — tap inside this and you EARN a time bonus (precision is rewarded),
@@ -28,9 +36,9 @@ export type MapPlace = {
 //   beyond free — a real miss: a time penalty that grows with distance, capped.
 // Countries are big targets so their radii are larger than a capital's point.
 export const RADII: Record<PlaceType, { close: number; free: number; penPer: number }> = {
-  // Cities are point targets, so the zones are generous enough to be fair on a
-  // world map: nail it within ~300km for a bonus, ~800km still counts.
-  city: { close: 300, free: 800, penPer: 350 },
+  // Cities are point targets, so the zones are generous (the small hit area felt
+  // too strict): nail it within ~450km for a bonus, ~1300km still counts.
+  city: { close: 450, free: 1300, penPer: 500 },
 };
 export const BONUS_MAX_SEC = 3; // best possible time bonus (bullseye)
 export const PENALTY_MAX_SEC = 8; // worst possible time penalty (far miss)
@@ -39,7 +47,7 @@ export const ROUND_SIZE = 7;
 // Accuracy gate: you must land at least this many of the round (inside the
 // forgiving `free` zone) for the run to post a time. Below it = DNF, so you
 // can't just spam-tap fast and bank a good time on luck.
-export const MIN_HITS = 5;
+export const MIN_HITS = 4;
 
 // ---- Equirectangular pixel <-> lat/long ----
 // Fractions in [0,1] across the map image. lon -180..180 -> x 0..1,
@@ -70,10 +78,11 @@ export const distanceKm = (
 // as [name, lat, lon, pop]. Comprehensive — includes plenty of hard ones — but
 // no villages or neighborhoods. We name the city; you tap where it is.
 export const PLACES: MapPlace[] = (
-  CITY_DATA as [string, string, number, number, number][]
-).map(([name, country, lat, lon, pop]) => ({
+  CITY_DATA as [string, string, string, number, number, number][]
+).map(([name, country, province, lat, lon, pop]) => ({
   name,
   country,
+  province,
   type: "city",
   lat,
   lon,
@@ -109,35 +118,48 @@ const ICONIC = new Set<string>([
 const FAMOUS = PLACES.filter((p) => ICONIC.has(p.name));
 const REST = PLACES.filter((p) => !ICONIC.has(p.name));
 
-// Weighted sampling without replacement (Efraimidis–Spirakis), weighted by
-// sqrt(population) so bigger cities are favored within a tier but the tail still
-// appears. Returns `n` distinct places.
-const weightedPick = (
+// Weighted pick without replacement (Efraimidis–Spirakis, weight = sqrt(pop)),
+// skipping any country already used so a round never repeats a country. Mutates
+// `usedCountries`. Returns up to `n` places.
+const weightedPickDistinct = (
   pool: MapPlace[],
   n: number,
-  rnd: () => number
+  rnd: () => number,
+  usedCountries: Set<string>
 ): MapPlace[] => {
-  const keyed = pool.map((p) => ({
-    p,
-    k: Math.pow(rnd() || 1e-9, 1 / Math.max(1, Math.sqrt(p.pop))),
-  }));
-  keyed.sort((a, b) => b.k - a.k);
-  return keyed.slice(0, Math.min(n, keyed.length)).map((x) => x.p);
+  const order = pool
+    .map((p) => ({ p, k: Math.pow(rnd() || 1e-9, 1 / Math.max(1, Math.sqrt(p.pop))) }))
+    .sort((a, b) => b.k - a.k);
+  const out: MapPlace[] = [];
+  for (const { p } of order) {
+    if (out.length >= n) break;
+    if (usedCountries.has(p.country)) continue;
+    usedCountries.add(p.country);
+    out.push(p);
+  }
+  return out;
 };
 
-// Build a round from a seed: ~60% famous, ~40% harder, then shuffle the order.
+// Build a round from a seed: ~5 recognizable + ~2 harder, ONE city per country,
+// then shuffle the order.
 export const makeRound = (
   seed: number,
   size: number = ROUND_SIZE
 ): MapPlace[] => {
   const rnd = mulberry32(seed || 1);
-  // Mostly recognizable, with ~2 harder ones per round.
-  const restN = Math.min(2, REST.length, Math.max(0, size - 1));
+  const used = new Set<string>();
+  const restN = Math.min(2, Math.max(0, size - 1));
   const famousN = Math.max(0, size - restN);
   const round = [
-    ...weightedPick(FAMOUS, famousN, rnd),
-    ...weightedPick(REST, restN, rnd),
+    ...weightedPickDistinct(FAMOUS, famousN, rnd, used),
+    ...weightedPickDistinct(REST, restN, rnd, used),
   ];
+  // Top up from the whole pool if a tier ran short on distinct countries.
+  if (round.length < size) {
+    round.push(
+      ...weightedPickDistinct(PLACES, size - round.length, rnd, used)
+    );
+  }
   // Fisher–Yates so the hard ones aren't always last.
   for (let i = round.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
